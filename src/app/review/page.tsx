@@ -16,8 +16,8 @@ import {
   type CardMemory,
   type Rating,
 } from "@/lib/srs";
+import { loadSettings } from "@/lib/settings";
 
-const NEW_PER_DAY = 10; // số thẻ mới tối đa mỗi ngày
 const MAX_DUE = 100; // số thẻ đến hạn tối đa mỗi phiên
 const PAGE = 100;
 const MAX_PAGES = 20;
@@ -251,6 +251,7 @@ export default function ReviewPage() {
   const [viMap, setViMap] = useState<Record<string, SavedViMeaning>>({});
   const [revealed, setRevealed] = useState<boolean>(false);
   const [reviewedCount, setReviewedCount] = useState<number>(0);
+  const [newPerDay, setNewPerDay] = useState<number>(10);
 
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [saveIssue, setSaveIssue] = useState<string | null>(null);
@@ -378,7 +379,9 @@ export default function ReviewPage() {
         }
 
         const dueCards = (dueRes.data ?? []) as RawCard[];
-        const remainingNew = Math.max(0, NEW_PER_DAY - (countRes.count ?? 0));
+        const limit = loadSettings().newPerDay; // lấy từ tab Cài đặt
+        setNewPerDay(limit);
+        const remainingNew = Math.max(0, limit - (countRes.count ?? 0));
         const newIds = await pickNewWordIds(supabase, lv, remainingNew);
 
         const allIds = Array.from(
@@ -745,7 +748,7 @@ export default function ReviewPage() {
                 {newCount}
               </div>
               <div className="text-xs text-emerald-700 mt-1">
-                Thẻ mới hôm nay (tối đa {NEW_PER_DAY})
+                Thẻ mới hôm nay (tối đa {newPerDay})
               </div>
             </div>
           </div>
