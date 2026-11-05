@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type {
   Word,
   WordMeaningEn,
@@ -31,11 +31,77 @@ export default function VocabPage() {
     {}
   );
 
+  // Đánh số mỗi lần tải để bỏ qua kết quả nghĩa đã lưu của lần tải cũ
+  const requestIdRef = useRef<number>(0);
+
   const levels =
     version === "new" ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6];
 
+  // Tải ngầm nghĩa tiếng Việt đã lưu (không chặn việc hiện danh sách từ)
+  const loadSavedMeanings = useCallback(
+    async (wordIds: string[], append: boolean, requestId: number) => {
+      if (wordIds.length === 0) {
+        if (!append && requestId === requestIdRef.current) {
+          setSavedViMap({});
+        }
+        return;
+      }
+      try {
+        const supabase = createClient();
+        const { data: viRows } = await supabase
+          .from("vi_user")
+          .select("word_id, text, status")
+          .in("word_id", wordIds)
+          .is("deleted_at", null);
+
+        if (requestId !== requestIdRef.current) return;
+
+        const typedRows = (viRows ?? []) as ViUserRowPick[];
+        const fetchedMap: Record<string, SavedViMeaning> = {};
+        for (const row of typedRows) {
+          fetchedMap[row.word_id] = {
+            text: row.text,
+            status: row.status,
+          };
+        }
+
+        setSavedViMap((prev) =>
+          append ? { ...prev, ...fetchedMap } : fetchedMap
+        );
+      } catch {
+        // Bỏ qua nếu không tải được nghĩa đã lưu
+      }
+    },
+    []
+  );
+
+  // Lưu đệm vào Dexie (IndexedDB) để dùng ngoại tuyến, không dùng localStorage
+  const cacheWords = useCallback(async (data: WordsResponse) => {
+    try {
+      const plainWords: Word[] = data.words.map(({ meanings_en, ...w }) => {
+        void meanings_en;
+        return w;
+      });
+      const allMeanings: WordMeaningEn[] = data.words.flatMap(
+        (w) => w.meanings_en
+      );
+      await db.transaction("rw", db.words, db.word_meanings_en, async () => {
+        if (plainWords.length > 0) {
+          await db.words.bulkPut(plainWords);
+        }
+        if (allMeanings.length > 0) {
+          await db.word_meanings_en.bulkPut(allMeanings);
+        }
+      });
+    } catch {
+      // Bỏ qua nếu trình duyệt chặn IndexedDB ở chế độ ẩn danh
+    }
+  }, []);
+
   const fetchWords = useCallback(
     async (cursorToLoad: string | null, append: boolean) => {
+      const requestId = ++requestIdRef.current;
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -60,59 +126,19 @@ export default function VocabPage() {
 
         const data: WordsResponse = await res.json();
 
+        // Hiện danh sách từ ngay lập tức
         setWords((prev) => (append ? [...prev, ...data.words] : data.words));
         setNextCursor(data.next_cursor);
+        setLoading(false);
+        setLoadingMore(false);
 
-        // Đọc nghĩa tiếng Việt đã lưu của người dùng từ bảng vi_user (chỉ lấy deleted_at là null)
-        const wordIds = data.words.map((w) => w.id);
-        if (wordIds.length > 0) {
-          try {
-            const supabase = createClient();
-            const { data: viRows } = await supabase
-              .from("vi_user")
-              .select("word_id, text, status")
-              .in("word_id", wordIds)
-              .is("deleted_at", null);
-
-            const typedRows = (viRows ?? []) as ViUserRowPick[];
-            const fetchedMap: Record<string, SavedViMeaning> = {};
-            for (const row of typedRows) {
-              fetchedMap[row.word_id] = {
-                text: row.text,
-                status: row.status,
-              };
-            }
-
-            setSavedViMap((prev) =>
-              append ? { ...prev, ...fetchedMap } : fetchedMap
-            );
-          } catch {
-            // Bỏ qua nếu không tải được nghĩa đã lưu
-          }
-        } else if (!append) {
-          setSavedViMap({});
-        }
-
-        // Lưu đệm vào Dexie (IndexedDB) để dùng ngoại tuyến, không dùng localStorage
-        try {
-          const plainWords: Word[] = data.words.map(({ meanings_en, ...w }) => {
-            void meanings_en;
-            return w;
-          });
-          const allMeanings: WordMeaningEn[] = data.words.flatMap(
-            (w) => w.meanings_en
-          );
-          await db.transaction("rw", db.words, db.word_meanings_en, async () => {
-            if (plainWords.length > 0) {
-              await db.words.bulkPut(plainWords);
-            }
-            if (allMeanings.length > 0) {
-              await db.word_meanings_en.bulkPut(allMeanings);
-            }
-          });
-        } catch {
-          // Bỏ qua nếu trình duyệt chặn IndexedDB ở chế độ ẩn danh
-        }
+        // Việc phụ chạy ngầm, không chờ
+        void loadSavedMeanings(
+          data.words.map((w) => w.id),
+          append,
+          requestId
+        );
+        void cacheWords(data);
       } catch (err) {
         setErrorMsg(
           err instanceof Error ? err.message : "Không thể tải danh sách từ vựng."
@@ -122,7 +148,7 @@ export default function VocabPage() {
         setLoadingMore(false);
       }
     },
-    [version, level]
+    [version, level, loadSavedMeanings, cacheWords]
   );
 
   useEffect(() => {
