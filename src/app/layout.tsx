@@ -14,10 +14,6 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: APP_NAME,
   },
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
 };
 
 export const viewport: Viewport = {
