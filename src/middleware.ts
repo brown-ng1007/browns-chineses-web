@@ -29,10 +29,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Làm mới phiên đăng nhập
+  // Đọc phiên từ cookie, không gọi mạng tới Supabase mỗi lần chuyển trang
+  // (trước đây getUser() làm mọi trang và mọi lượt tải trước đều chờ thêm một vòng mạng).
+  // Bước này chỉ dùng để chuyển hướng; dữ liệu vẫn được bảo vệ bởi RLS
+  // và /api/* tự kiểm tra phiên. Phiên hết hạn vẫn được làm mới tự động ở đây.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const hasSession = session !== null;
 
   const pathname = request.nextUrl.pathname;
 
@@ -45,14 +49,14 @@ export async function middleware(request: NextRequest) {
     pathname === "/sw.js";
 
   // Chưa đăng nhập mà vào các trang học -> chuyển về /login
-  if (!user && !isPublicOrApi) {
+  if (!hasSession && !isPublicOrApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // Đã đăng nhập mà vào /login -> chuyển về trang chủ /
-  if (user && pathname.startsWith("/login")) {
+  if (hasSession && pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

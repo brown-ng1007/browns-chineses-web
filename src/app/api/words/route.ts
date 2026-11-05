@@ -15,12 +15,14 @@ import type { Word, WordMeaningEn, WordsResponse } from "@/types/database.types"
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
+  // Kiểm tra phiên từ cookie (không gọi mạng thêm). Bảng từ vựng vẫn do RLS bảo vệ:
+  // Supabase tự xác minh token ở truy vấn bên dưới, token giả sẽ không đọc được gì.
   const {
-    data: { user },
+    data: { session },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
 
-  if (authError || !user) {
+  if (authError || !session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -135,5 +137,10 @@ export async function GET(request: NextRequest) {
     next_cursor: hasMore ? String(offset + WORDS_PAGE_SIZE) : null,
   };
 
-  return NextResponse.json(response);
+  // Dữ liệu từ vựng gần như không đổi: cho trình duyệt nhớ để lần mở sau hiện ngay
+  return NextResponse.json(response, {
+    headers: {
+      "Cache-Control": "private, max-age=300, stale-while-revalidate=86400",
+    },
+  });
 }

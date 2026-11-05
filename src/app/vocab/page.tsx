@@ -176,6 +176,24 @@ export default function VocabPage() {
       }
       setErrorMsg(null);
 
+      // Hiện ngay trang đầu từ bản đã lưu trên máy (nếu có), mạng sẽ cập nhật sau.
+      // Bỏ qua mục "Tất cả" vì phải đọc rất nhiều dòng.
+      if (!append && level !== null) {
+        const cachedFirst = await loadWordsFromDexie(version, level, null);
+        if (requestId !== requestIdRef.current) return;
+        if (cachedFirst && cachedFirst.words.length > 0) {
+          setWords(cachedFirst.words);
+          setNextCursor(cachedFirst.next_cursor);
+          setOfflineData(false);
+          setLoading(false);
+          void loadSavedMeanings(
+            cachedFirst.words.map((w) => w.id),
+            false,
+            requestId
+          );
+        }
+      }
+
       try {
         const params = new URLSearchParams();
         params.set("version", version);
@@ -212,6 +230,8 @@ export default function VocabPage() {
           data = (await res.json()) as WordsResponse;
         }
 
+        if (requestId !== requestIdRef.current) return; // đã có lần tải mới hơn
+
         setOfflineData(fromCache);
 
         // Hiện danh sách từ ngay lập tức
@@ -230,12 +250,15 @@ export default function VocabPage() {
           void cacheWords(data);
         }
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         setErrorMsg(
           err instanceof Error ? err.message : "Không thể tải danh sách từ vựng."
         );
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     },
     [version, level, loadSavedMeanings, cacheWords]
