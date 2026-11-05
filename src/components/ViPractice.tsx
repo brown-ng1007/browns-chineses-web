@@ -86,6 +86,9 @@ export default function ViPractice({
     setChecking(true);
     setErrorMsg(null);
     setSaveSuccess(false);
+    // Xóa kết quả cũ ngay khi bắt đầu chấm lại, để không hiểu nhầm nếu lần này bị lỗi
+    setAttemptResult(null);
+    setSelectedSuggestion("");
 
     try {
       const payload: ViAttemptRequest = {
@@ -231,6 +234,10 @@ export default function ViPractice({
   }
   const hasSuggestions = allSuggestions.length > 0;
 
+  // Ô nhập đã khác chữ vừa chấm (người dùng đang sửa/gộp)
+  const inputChangedSinceCheck =
+    attemptResult !== null && inputText.trim() !== checkedInputText;
+
   return (
     <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
       {/* Khu vực nút mở Luyện nghĩa Việt & Xem nghĩa đã lưu (ẩn mặc định) */}
@@ -329,6 +336,12 @@ export default function ViPractice({
                 </span>
               </div>
 
+              <p className="text-xs text-slate-500 break-words">
+                Kết quả này chấm cho: &ldquo;{checkedInputText}&rdquo;
+                {inputChangedSinceCheck &&
+                  " (ô nhập đã khác, bấm Kiểm tra để chấm lại chữ mới)"}
+              </p>
+
               <p className="text-sm text-slate-800 leading-relaxed">
                 {attemptResult.explanation}
               </p>
@@ -411,7 +424,10 @@ export default function ViPractice({
                     <button
                       type="button"
                       disabled={
-                        savingChoice !== null || checking || !inputText.trim()
+                        savingChoice !== null ||
+                        checking ||
+                        !inputText.trim() ||
+                        !inputChangedSinceCheck
                       }
                       onClick={() => handleConfirm("merge")}
                       className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition"
@@ -422,6 +438,13 @@ export default function ViPractice({
                     </button>
                   )}
                 </div>
+
+                {hasSuggestions && !inputChangedSinceCheck && (
+                  <p className="text-xs text-slate-500">
+                    Muốn gộp: bấm &ldquo;+ Chép thêm gợi ý&rdquo; hoặc sửa ô nhập
+                    trước, nút Gộp sẽ sáng lên.
+                  </p>
+                )}
 
                 {saveSuccess && (
                   <p className="text-xs sm:text-sm font-semibold text-emerald-700">
