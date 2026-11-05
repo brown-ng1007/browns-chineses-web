@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { APP_NAME } from "@/lib/config";
 import Watermelon from "@/components/Watermelon";
+import TowerHome from "@/components/tower/TowerHome";
 
 const READY = [
   {
@@ -120,10 +121,12 @@ export default function HomePage() {
         <div aria-hidden="true" className="absolute inset-x-0 bottom-3 h-2 bg-lime-200" />
       </section>
 
+      <TowerHome />
+
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400">
-            Phân khu luyện tập
+            Công cụ luyện tập
           </h2>
           <span className="text-xs font-medium text-emerald-700/70">
             7 tính năng sẵn sàng
