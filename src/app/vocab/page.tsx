@@ -1,10 +1,23 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { Word, WordMeaningEn, WordsResponse } from "@/types/database.types";
+import type {
+  Word,
+  WordMeaningEn,
+  WordsResponse,
+  ViUserStatus,
+} from "@/types/database.types";
 import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
+import ViPractice, { type SavedViMeaning } from "@/components/ViPractice";
 
 type WordWithMeanings = Word & { meanings_en: WordMeaningEn[] };
+
+interface ViUserRowPick {
+  word_id: string;
+  text: string;
+  status: ViUserStatus;
+}
 
 export default function VocabPage() {
   const [version, setVersion] = useState<"new" | "old">("new");
@@ -14,8 +27,12 @@ export default function VocabPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [savedViMap, setSavedViMap] = useState<Record<string, SavedViMeaning>>(
+    {}
+  );
 
-  const levels = version === "new" ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6];
+  const levels =
+    version === "new" ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 2, 3, 4, 5, 6];
 
   const fetchWords = useCallback(
     async (cursorToLoad: string | null, append: boolean) => {
@@ -45,6 +62,36 @@ export default function VocabPage() {
 
         setWords((prev) => (append ? [...prev, ...data.words] : data.words));
         setNextCursor(data.next_cursor);
+
+        // Đọc nghĩa tiếng Việt đã lưu của người dùng từ bảng vi_user (chỉ lấy deleted_at là null)
+        const wordIds = data.words.map((w) => w.id);
+        if (wordIds.length > 0) {
+          try {
+            const supabase = createClient();
+            const { data: viRows } = await supabase
+              .from("vi_user")
+              .select("word_id, text, status")
+              .in("word_id", wordIds)
+              .is("deleted_at", null);
+
+            const typedRows = (viRows ?? []) as ViUserRowPick[];
+            const fetchedMap: Record<string, SavedViMeaning> = {};
+            for (const row of typedRows) {
+              fetchedMap[row.word_id] = {
+                text: row.text,
+                status: row.status,
+              };
+            }
+
+            setSavedViMap((prev) =>
+              append ? { ...prev, ...fetchedMap } : fetchedMap
+            );
+          } catch {
+            // Bỏ qua nếu không tải được nghĩa đã lưu
+          }
+        } else if (!append) {
+          setSavedViMap({});
+        }
 
         // Lưu đệm vào Dexie (IndexedDB) để dùng ngoại tuyến, không dùng localStorage
         try {
@@ -89,6 +136,13 @@ export default function VocabPage() {
     }
   }
 
+  function handleViSaved(wordId: string, text: string, status: ViUserStatus) {
+    setSavedViMap((prev) => ({
+      ...prev,
+      [wordId]: { text, status },
+    }));
+  }
+
   return (
     <main className="space-y-6">
       <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
@@ -96,7 +150,8 @@ export default function VocabPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Từ vựng HSK</h1>
             <p className="text-sm text-slate-600 mt-0.5">
-              Tra cứu chữ Hán giản thể, Pinyin và nghĩa tiếng Anh.
+              Tra cứu chữ Hán giản thể, Pinyin, nghĩa tiếng Anh và tự luyện nghĩa
+              tiếng Việt.
             </p>
           </div>
 
@@ -212,6 +267,12 @@ export default function VocabPage() {
                   ))}
                 </ul>
               </div>
+
+              <ViPractice
+                wordId={word.id}
+                savedMeaning={savedViMap[word.id] ?? null}
+                onSaved={handleViSaved}
+              />
             </article>
           ))}
         </section>
