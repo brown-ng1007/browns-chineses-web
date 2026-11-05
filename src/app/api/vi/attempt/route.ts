@@ -13,8 +13,11 @@ import type {
  * ra:   { attempt_id, verdict, score, explanation, candidates[], suggested_text }
  *
  * Thứ tự: kiểm tra đăng nhập -> kiểm tra đầu vào -> giới hạn theo ngày
- *         -> so khớp chuỗi (miễn phí) -> nếu chưa chắc thì gọi Claude
+ *         -> so khớp chuỗi (miễn phí) -> nếu chưa chắc thì nhờ AI chấm
  *         -> LƯU lượt thử -> chỉ SAU ĐÓ mới trả candidates.
+ *
+ * AI chấm: mặc định Gemini (có gói miễn phí). Đặt biến môi trường
+ * AI_PROVIDER=claude để chuyển sang Claude (cần credit Anthropic).
  */
 
 export const runtime = "nodejs";
@@ -22,7 +25,8 @@ export const maxDuration = 30;
 
 const MAX_INPUT_LENGTH = 200;
 const DAILY_LIMIT = 300; // số lượt chấm tối đa mỗi tài khoản mỗi 24 giờ
-const DEFAULT_MODEL = "claude-haiku-5-5";
+const CLAUDE_DEFAULT_MODEL = "claude-haiku-5-5";
+const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash-lite";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,19 +78,17 @@ type Graded = {
   model: string;
 };
 
-async function gradeWithClaude(args: {
+type GradeArgs = {
   hanzi: string;
   pinyin: string;
   english: string[];
   candidates: string[];
   input: string;
-}): Promise<Graded> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("missing_api_key");
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+};
 
+function buildUserContent(args: GradeArgs): string {
   const safeInput = args.input.replace(/[<>]/g, " ");
-  const userContent = [
+  return [
     `Từ: ${args.hanzi}`,
     `Pinyin: ${args.pinyin}`,
     `Nghĩa tiếng Anh: ${args.english.slice(0, 8).join(" | ")}`,
@@ -97,36 +99,10 @@ async function gradeWithClaude(args: {
     }`,
     `<nghia_nguoi_hoc>${safeInput}</nghia_nguoi_hoc>`,
   ].join("\n");
+}
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userContent }],
-    }),
-    signal: AbortSignal.timeout(20000),
-  });
-
-  if (!res.ok) {
-    const detail = (await res.text().catch(() => "")).slice(0, 300);
-    throw new Error(`anthropic_${res.status}: ${detail}`);
-  }
-
-  const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-  };
-  const text = (data.content ?? [])
-    .filter((b) => b.type === "text")
-    .map((b) => b.text ?? "")
-    .join("");
-
+/** Đọc JSON từ câu trả lời của AI, kiểm tra chặt rồi chuẩn hóa. */
+function parseGraded(text: string, model: string): Graded {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("bad_json");
@@ -165,6 +141,94 @@ async function gradeWithClaude(args: {
     suggested_text: suggested,
     model,
   };
+}
+
+/* ---------- gọi AI ---------- */
+
+async function gradeWithClaude(args: GradeArgs): Promise<Graded> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("missing_api_key");
+  const model = process.env.ANTHROPIC_MODEL || CLAUDE_DEFAULT_MODEL;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 400,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildUserContent(args) }],
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`anthropic_${res.status}: ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+  };
+  const text = (data.content ?? [])
+    .filter((b) => b.type === "text")
+    .map((b) => b.text ?? "")
+    .join("");
+
+  return parseGraded(text, model);
+}
+
+async function gradeWithGemini(args: GradeArgs): Promise<Graded> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("missing_api_key");
+  const model = process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      model
+    )}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: buildUserContent(args) }] }],
+        generationConfig: {
+          maxOutputTokens: 800,
+          temperature: 0.2,
+          responseMimeType: "application/json",
+        },
+      }),
+      signal: AbortSignal.timeout(20000),
+    }
+  );
+
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`gemini_${res.status}: ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .map((p) => p.text ?? "")
+    .join("");
+
+  return parseGraded(text, model);
+}
+
+function gradeAnswer(args: GradeArgs): Promise<Graded> {
+  return process.env.AI_PROVIDER === "claude"
+    ? gradeWithClaude(args)
+    : gradeWithGemini(args);
 }
 
 /* ---------- route ---------- */
@@ -275,9 +339,9 @@ export async function POST(request: NextRequest) {
       model: "string-match",
     };
   } else {
-    // Bước 2: nhờ Claude đánh giá
+    // Bước 2: nhờ AI đánh giá
     try {
-      graded = await gradeWithClaude({
+      graded = await gradeAnswer({
         hanzi: word.hanzi_simp as string,
         pinyin: word.pinyin as string,
         english: englishMeanings,
