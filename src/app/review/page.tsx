@@ -109,19 +109,42 @@ function newOpId(): string {
   });
 }
 
-async function existingCardWordIds(
-  supabase: SupabaseBrowser,
-  ids: string[]
+const WORD_PAGE = 300;
+
+// Lấy một lần mọi word_id đã có thẻ (thay cho việc hỏi lại sau mỗi trang từ)
+async function allCardWordIds(
+  supabase: SupabaseBrowser
 ): Promise<Set<string>> {
-  const res = await supabase
-    .from("srs_cards")
-    .select("word_id")
-    .in("word_id", ids);
-  const rows = (res.data ?? []) as { word_id: string }[];
-  return new Set(rows.map((r) => r.word_id));
+  const out = new Set<string>();
+  for (let p = 0; p < 20; p++) {
+    const res = await supabase
+      .from("srs_cards")
+      .select("word_id")
+      .order("word_id", { ascending: true })
+      .range(p * 1000, p * 1000 + 999);
+    const rows = (res.data ?? []) as { word_id: string }[];
+    for (const r of rows) out.add(r.word_id);
+    if (rows.length < 1000) break;
+  }
+  return out;
 }
 
-// Chọn từ mới: ưu tiên từ đã lưu nghĩa Việt, rồi lấp bằng từ theo cấp HSK 3.0
+function wordsPage(
+  supabase: SupabaseBrowser,
+  level: number,
+  page: number
+) {
+  return supabase
+    .from("words")
+    .select("id")
+    .eq("hsk_new_level", level)
+    .order("frequency_rank", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(page * WORD_PAGE, page * WORD_PAGE + WORD_PAGE - 1);
+}
+
+// Chọn từ mới: ưu tiên từ đã lưu nghĩa Việt, rồi lấp bằng từ theo cấp HSK 3.0.
+// Ba truy vấn đầu chạy song song; các trang từ sau không phải hỏi lại bảng thẻ.
 async function pickNewWordIds(
   supabase: SupabaseBrowser,
   level: number,
@@ -130,39 +153,37 @@ async function pickNewWordIds(
   if (remaining <= 0) return [];
   const picked: string[] = [];
 
-  const viRes = await supabase
-    .from("vi_user")
-    .select("word_id")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(PAGE);
+  const [viRes, have, firstPage] = await Promise.all([
+    supabase
+      .from("vi_user")
+      .select("word_id")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(PAGE),
+    allCardWordIds(supabase),
+    wordsPage(supabase, level, 0),
+  ]);
+
   const viIds = ((viRes.data ?? []) as { word_id: string }[]).map(
     (r) => r.word_id
   );
-  if (viIds.length > 0) {
-    const have = await existingCardWordIds(supabase, viIds);
-    for (const id of viIds) {
-      if (picked.length >= remaining) break;
-      if (!have.has(id) && !picked.includes(id)) picked.push(id);
-    }
+  for (const id of viIds) {
+    if (picked.length >= remaining) break;
+    if (!have.has(id) && !picked.includes(id)) picked.push(id);
   }
 
+  let ids = ((firstPage.data ?? []) as { id: string }[]).map((r) => r.id);
   for (let p = 0; p < MAX_PAGES && picked.length < remaining; p++) {
-    const res = await supabase
-      .from("words")
-      .select("id")
-      .eq("hsk_new_level", level)
-      .order("frequency_rank", { ascending: true, nullsFirst: false })
-      .order("id", { ascending: true })
-      .range(p * PAGE, p * PAGE + PAGE - 1);
-    const ids = ((res.data ?? []) as { id: string }[]).map((r) => r.id);
+    if (p > 0) {
+      const res = await wordsPage(supabase, level, p);
+      ids = ((res.data ?? []) as { id: string }[]).map((r) => r.id);
+    }
     if (ids.length === 0) break;
-    const have = await existingCardWordIds(supabase, ids);
     for (const id of ids) {
       if (picked.length >= remaining) break;
       if (!have.has(id) && !picked.includes(id)) picked.push(id);
     }
-    if (ids.length < PAGE) break;
+    if (ids.length < WORD_PAGE) break;
   }
 
   return picked;
@@ -348,6 +369,7 @@ export default function ReviewPage() {
       };
 
       try {
+        const settingsPromise = refreshSettings(); // chạy song song
         // Gửi trước những lần chấm còn tồn, để lịch trên máy chủ là mới nhất
         await flushOutbox();
 
@@ -379,7 +401,7 @@ export default function ReviewPage() {
         }
 
         const dueCards = (dueRes.data ?? []) as RawCard[];
-        const limit = (await refreshSettings()).newPerDay; // lấy từ tab Cài đặt
+        const limit = (await settingsPromise).newPerDay; // lấy từ tab Cài đặt
         setNewPerDay(limit);
         const remainingNew = Math.max(0, limit - (countRes.count ?? 0));
         const newIds = await pickNewWordIds(supabase, lv, remainingNew);
