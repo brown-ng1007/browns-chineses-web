@@ -19,6 +19,70 @@ interface ViUserRowPick {
   status: ViUserStatus;
 }
 
+const PAGE_SIZE = 50;
+
+// Đọc danh sách từ đã lưu trên máy (dùng khi mất mạng).
+// Chỉ có những từ bạn đã từng tải khi có mạng.
+async function loadWordsFromDexie(
+  version: "new" | "old",
+  level: number | null,
+  cursor: string | null
+): Promise<WordsResponse | null> {
+  try {
+    const offset = cursor !== null ? Number(cursor) : 0;
+    if (!Number.isInteger(offset) || offset < 0) return null;
+
+    const levelKey = version === "old" ? "hsk_old_level" : "hsk_new_level";
+    const all: Word[] =
+      level !== null
+        ? await db.words.where(levelKey).equals(level).toArray()
+        : await db.words.toArray();
+
+    if (all.length === 0) return null;
+
+    all.sort((a, b) => {
+      const ra = a.frequency_rank ?? Number.MAX_SAFE_INTEGER;
+      const rb = b.frequency_rank ?? Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+
+    const pageWords = all.slice(offset, offset + PAGE_SIZE);
+    if (pageWords.length === 0) {
+      return offset > 0 ? { words: [], next_cursor: null } : null;
+    }
+
+    const ids = pageWords.map((w) => w.id);
+    const meaningRows = await db.word_meanings_en
+      .where("word_id")
+      .anyOf(ids)
+      .toArray();
+
+    const byWord = new Map<string, WordMeaningEn[]>();
+    for (const m of meaningRows) {
+      const list = byWord.get(m.word_id);
+      if (list) {
+        list.push(m);
+      } else {
+        byWord.set(m.word_id, [m]);
+      }
+    }
+
+    return {
+      words: pageWords.map((w) => ({
+        ...w,
+        meanings_en: (byWord.get(w.id) ?? []).sort(
+          (a, b) => a.sort_order - b.sort_order
+        ),
+      })),
+      next_cursor:
+        offset + PAGE_SIZE < all.length ? String(offset + PAGE_SIZE) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function VocabPage() {
   const [version, setVersion] = useState<"new" | "old">("new");
   const [level, setLevel] = useState<number | null>(1);
@@ -27,6 +91,7 @@ export default function VocabPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [offlineData, setOfflineData] = useState<boolean>(false);
   const [savedViMap, setSavedViMap] = useState<Record<string, SavedViMeaning>>(
     {}
   );
@@ -121,12 +186,33 @@ export default function VocabPage() {
           params.set("cursor", cursorToLoad);
         }
 
-        const res = await fetch(`/api/words?${params.toString()}`);
-        if (!res.ok) {
-          throw new Error(`Lỗi tải từ vựng (mã ${res.status})`);
+        let res: Response | null = null;
+        try {
+          res = await fetch(`/api/words?${params.toString()}`);
+        } catch {
+          res = null; // mất mạng
         }
 
-        const data: WordsResponse = await res.json();
+        let data: WordsResponse;
+        let fromCache = false;
+
+        if (res === null) {
+          const cached = await loadWordsFromDexie(version, level, cursorToLoad);
+          if (!cached) {
+            throw new Error(
+              "Không có mạng và chưa có từ nào lưu sẵn trên máy. Hãy mở trang này một lần khi có mạng."
+            );
+          }
+          data = cached;
+          fromCache = true;
+        } else {
+          if (!res.ok) {
+            throw new Error(`Lỗi tải từ vựng (mã ${res.status})`);
+          }
+          data = (await res.json()) as WordsResponse;
+        }
+
+        setOfflineData(fromCache);
 
         // Hiện danh sách từ ngay lập tức
         setWords((prev) => (append ? [...prev, ...data.words] : data.words));
@@ -134,13 +220,15 @@ export default function VocabPage() {
         setLoading(false);
         setLoadingMore(false);
 
-        // Việc phụ chạy ngầm, không chờ
-        void loadSavedMeanings(
-          data.words.map((w) => w.id),
-          append,
-          requestId
-        );
-        void cacheWords(data);
+        // Việc phụ chạy ngầm, không chờ (bỏ qua khi đang xem bản lưu trên máy)
+        if (!fromCache) {
+          void loadSavedMeanings(
+            data.words.map((w) => w.id),
+            append,
+            requestId
+          );
+          void cacheWords(data);
+        }
       } catch (err) {
         setErrorMsg(
           err instanceof Error ? err.message : "Không thể tải danh sách từ vựng."
@@ -398,6 +486,13 @@ export default function VocabPage() {
           </button>
         </div>
       </section>
+
+      {offlineData && (
+        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+          Đang xem từ vựng đã lưu trên máy (ngoại tuyến). Chỉ có những từ bạn
+          từng tải khi có mạng. Nghĩa Việt đã lưu và chấm nghĩa cần có mạng.
+        </div>
+      )}
 
       {errorMsg && (
         <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
