@@ -19,6 +19,7 @@ interface RawRow {
 type Status = "loading" | "ready" | "nodata";
 
 const MAX_CHARS = 30;
+const DEMO_ROUNDS = 3;
 const CJK = /[\u3400-\u4dbf\u4e00-\u9fff]/;
 
 function shuffled<T>(arr: T[]): T[] {
@@ -51,12 +52,44 @@ export default function WritePage() {
   const [completed, setCompleted] = useState<boolean>(false);
   const [results, setResults] = useState<Record<string, number>>({});
 
+  const [demoRound, setDemoRound] = useState<number>(0);
+  const [turnMsg, setTurnMsg] = useState<boolean>(false);
+  const [autoDemo, setAutoDemo] = useState<boolean>(true);
+
+  const autoDemoRef = useRef<boolean>(true);
+  const forceDemoRef = useRef<boolean>(false);
+  const skipRef = useRef<(() => void) | null>(null);
+  const lastListRef = useRef<PracticeChar[] | null>(null);
+  const lastIndexRef = useRef<number>(-1);
+
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const writerRef = useRef<HanziWriter | null>(null);
   const showHintRef = useRef<boolean>(true);
 
   const current = list[index] ?? null;
+
+  // Nhớ lựa chọn "tự mô phỏng" (chỉ là cài đặt giao diện)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("write.autoDemo") === "0") {
+        autoDemoRef.current = false;
+        setAutoDemo(false);
+      }
+    } catch {
+      // bỏ qua
+    }
+  }, []);
+
+  function toggleAutoDemo(v: boolean) {
+    setAutoDemo(v);
+    autoDemoRef.current = v;
+    try {
+      localStorage.setItem("write.autoDemo", v ? "1" : "0");
+    } catch {
+      // bỏ qua
+    }
+  }
 
   // Đo bề rộng bảng viết (vuông, tối đa 460px)
   useEffect(() => {
@@ -140,6 +173,8 @@ export default function WritePage() {
     setStatus("loading");
     setMistakes(0);
     setCompleted(false);
+    setDemoRound(0);
+    setTurnMsg(false);
 
     const writer = HanziWriter.create(el, target.hanzi, {
       width: size,
@@ -147,10 +182,10 @@ export default function WritePage() {
       padding: 12,
       showCharacter: false,
       showOutline: showHintRef.current,
-      strokeColor: "#0f172a",
-      outlineColor: "#cbd5e1",
-      highlightColor: "#4f46e5",
-      drawingColor: "#0f172a",
+      strokeColor: "#2b1a1f",
+      outlineColor: "#f0b4c0",
+      highlightColor: "#16a34a",
+      drawingColor: "#2b1a1f",
       drawingWidth: 8,
       strokeAnimationSpeed: 1,
       delayBetweenStrokes: 150,
@@ -161,28 +196,81 @@ export default function WritePage() {
         if (!cancelled) setStatus("ready");
       },
       onLoadCharDataError: () => {
-        if (!cancelled) setStatus("nodata");
+        if (!cancelled) {
+          setStatus("nodata");
+          setDemoRound(0);
+        }
       },
     });
     writerRef.current = writer;
 
-    writer.quiz({
-      leniency: easy ? 1.6 : 1,
-      onMistake: () => {
-        if (!cancelled) setMistakes((m) => m + 1);
-      },
-      onComplete: (summary: { totalMistakes: number }) => {
-        if (cancelled) return;
-        setCompleted(true);
-        setResults((prev) => ({
-          ...prev,
-          [target.hanzi]: summary.totalMistakes,
-        }));
-      },
-    });
+    // Chữ mới (hoặc bấm "Xem lại") thì mô phỏng 3 lần trước, rồi mới đến lượt người dùng viết
+    const doDemo =
+      forceDemoRef.current ||
+      (autoDemoRef.current &&
+        (lastListRef.current !== list || lastIndexRef.current !== index));
+    lastListRef.current = list;
+    lastIndexRef.current = index;
+    forceDemoRef.current = false;
+
+    const timers: number[] = [];
+    let phase: "demo" | "quiz" = doDemo ? "demo" : "quiz";
+
+    const startQuiz = (fromDemo: boolean) => {
+      if (cancelled) return;
+      phase = "quiz";
+      skipRef.current = null;
+      setDemoRound(0);
+      writer.quiz({
+        leniency: easy ? 1.6 : 1,
+        onMistake: () => {
+          if (!cancelled) setMistakes((m) => m + 1);
+        },
+        onComplete: (summary: { totalMistakes: number }) => {
+          if (cancelled) return;
+          setCompleted(true);
+          setResults((prev) => ({
+            ...prev,
+            [target.hanzi]: summary.totalMistakes,
+          }));
+        },
+      });
+      if (fromDemo) {
+        setTurnMsg(true);
+        timers.push(window.setTimeout(() => setTurnMsg(false), 3500));
+      }
+    };
+
+    const runRound = (round: number) => {
+      if (cancelled || phase !== "demo") return;
+      setDemoRound(round);
+      void writer.animateCharacter({
+        onComplete: (res?: { canceled?: boolean }) => {
+          if (cancelled || phase !== "demo" || res?.canceled) return;
+          if (round < DEMO_ROUNDS) {
+            timers.push(window.setTimeout(() => runRound(round + 1), 900));
+          } else {
+            timers.push(window.setTimeout(() => startQuiz(true), 800));
+          }
+        },
+      });
+    };
+
+    if (doDemo) {
+      skipRef.current = () => {
+        if (phase !== "demo") return;
+        timers.forEach((t) => window.clearTimeout(t));
+        startQuiz(true);
+      };
+      runRound(1);
+    } else {
+      startQuiz(false);
+    }
 
     return () => {
       cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+      skipRef.current = null;
       try {
         writer.cancelQuiz();
       } catch {
@@ -206,17 +294,10 @@ export default function WritePage() {
     setAttempt((a) => a + 1);
   }
 
+  // "Xem lại": dựng lại bảng và mô phỏng 3 lần, rồi trả về chế độ tự viết
   function handleDemo() {
-    const w = writerRef.current;
-    if (!w) return;
-    try {
-      w.cancelQuiz();
-    } catch {
-      // bỏ qua
-    }
-    void w.animateCharacter({
-      onComplete: () => setAttempt((a) => a + 1),
-    });
+    forceDemoRef.current = true;
+    setAttempt((a) => a + 1);
   }
 
   function handleUseCustom() {
@@ -246,7 +327,7 @@ export default function WritePage() {
       <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Tập viết</h1>
         <p className="text-sm text-slate-600 mt-0.5">
-          Viết từng nét theo đúng thứ tự và hướng. App kiểm tra ngay sau mỗi nét:
+          Xem mô phỏng 3 lần rồi tự viết theo. App kiểm tra ngay sau mỗi nét:
           nét đúng thì giữ lại, nét sai thì báo lỗi, sai 3 lần sẽ nhấp nháy gợi ý.
         </p>
       </section>
@@ -279,6 +360,14 @@ export default function WritePage() {
                   className="relative"
                   style={{ width: size, height: size, touchAction: "none" }}
                 />
+                {demoRound > 0 && (
+                  <div
+                    role="presentation"
+                    onPointerDown={() => skipRef.current?.()}
+                    className="absolute inset-0 z-10 cursor-pointer"
+                    style={{ touchAction: "none" }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -290,10 +379,36 @@ export default function WritePage() {
             </div>
           )}
 
-          {status === "ready" && !completed && (
-            <p className="text-sm text-slate-600 text-center">
-              Số lần sai nét: <b className="text-slate-900">{mistakes}</b>
-            </p>
+          {demoRound > 0 && (
+            <div className="flex flex-col items-center gap-1.5 anim-fade-in">
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: DEMO_ROUNDS }).map((_, k) => (
+                  <span
+                    key={k}
+                    className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                      k < demoRound ? "bg-rose-500" : "bg-rose-200"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-slate-600 text-center">
+                Đang mô phỏng lần {demoRound}/{DEMO_ROUNDS}. Chạm vào khung để
+                bỏ qua và viết luôn.
+              </p>
+            </div>
+          )}
+
+          {demoRound === 0 && status === "ready" && !completed && (
+            <div className="space-y-1 text-center">
+              {turnMsg && (
+                <p className="anim-pop text-sm font-bold text-emerald-700">
+                  Đến lượt bạn rồi, viết theo nét mẫu nhé!
+                </p>
+              )}
+              <p className="text-sm text-slate-600">
+                Số lần sai nét: <b className="text-slate-900">{mistakes}</b>
+              </p>
+            </div>
           )}
 
           {completed && (
@@ -385,10 +500,10 @@ export default function WritePage() {
             <button
               type="button"
               onClick={handleDemo}
-              disabled={!current || status !== "ready"}
-              className="rounded-2xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-slate-700 disabled:opacity-50"
+              disabled={!current || status !== "ready" || demoRound > 0}
+              className="rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/25 disabled:opacity-50"
             >
-              Xem nét mẫu
+              Xem lại 3 lần
             </button>
             <button
               type="button"
@@ -407,7 +522,16 @@ export default function WritePage() {
                 type="checkbox"
                 checked={showHint}
                 onChange={(e) => setShowHint(e.target.checked)}
-                className="h-5 w-5"
+                className="h-5 w-5 accent-rose-500"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3">
+              <span>Tự mô phỏng 3 lần khi sang chữ mới</span>
+              <input
+                type="checkbox"
+                checked={autoDemo}
+                onChange={(e) => toggleAutoDemo(e.target.checked)}
+                className="h-5 w-5 accent-rose-500"
               />
             </label>
             <label className="flex items-center justify-between gap-3">
@@ -416,7 +540,7 @@ export default function WritePage() {
                 type="checkbox"
                 checked={easy}
                 onChange={(e) => setEasy(e.target.checked)}
-                className="h-5 w-5"
+                className="h-5 w-5 accent-rose-500"
               />
             </label>
           </div>
@@ -497,7 +621,7 @@ export default function WritePage() {
                       type="button"
                       onClick={() => setIndex(i)}
                       className={`h-9 w-9 rounded-lg border text-lg font-semibold ${tone} ${
-                        i === index ? "ring-2 ring-indigo-500" : ""
+                        i === index ? "ring-2 ring-rose-500" : ""
                       }`}
                     >
                       {c.hanzi}

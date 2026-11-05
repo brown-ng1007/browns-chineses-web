@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/lib/config";
+import Watermelon from "@/components/Watermelon";
 
 const NAV_ITEMS = [
   {
@@ -65,7 +66,6 @@ const NAV_ITEMS = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  const navRef = useRef<HTMLElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [ind, setInd] = useState<{ left: number; width: number } | null>(null);
 
@@ -97,35 +97,30 @@ export default function NavBar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-2">
-      <div className="max-w-5xl mx-auto rounded-2xl bg-white/75 backdrop-blur-xl border border-white/70 shadow-[0_8px_30px_rgb(15,23,42,0.07)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+    <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-3">
+      <div className="max-w-5xl mx-auto rounded-2xl bg-white/80 backdrop-blur-xl border border-white/80 shadow-[0_3px_0_0_#d9f99d,0_6px_0_0_#22a45a,0_16px_30px_rgba(229,51,79,0.12)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         <Link
           href="/"
-          className="flex items-center gap-2.5 group self-start sm:self-auto"
+          className="logo-wrap flex items-center gap-2.5 group self-start sm:self-auto"
         >
-          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-blue-500/25 relative transition-transform duration-500 group-hover:rotate-[-8deg] group-hover:scale-110">
-            汉
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white pulse-dot" />
+          <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-50 to-pink-100 ring-1 ring-rose-200 flex items-center justify-center shadow-sm shadow-rose-500/20">
+            <Watermelon className="logo-slice w-8 h-auto" />
           </span>
           <div className="flex flex-col">
-            <span className="text-base font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 bg-clip-text text-transparent tracking-tight leading-tight">
+            <span className="text-base font-bold bg-gradient-to-r from-rose-700 via-red-600 to-emerald-700 bg-clip-text text-transparent tracking-tight leading-tight">
               {APP_NAME}
             </span>
-            <span className="text-[11px] font-medium text-slate-400 tracking-wider uppercase">
-              Chinese Studio
+            <span className="text-[11px] font-medium text-emerald-700/70 tracking-wide">
+              Góc học của Dưa Hấu
             </span>
           </div>
         </Link>
 
-        <nav
-          ref={navRef}
-          className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-100/70 p-1 rounded-xl border border-slate-200/60"
-        >
-          {/* Viên thuốc trượt theo tab đang chọn */}
+        <nav className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-rose-50/70 p-1 rounded-xl border border-rose-100">
           {ind && (
             <span
               aria-hidden="true"
-              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm ring-1 ring-slate-900/5 transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute top-1 bottom-1 rounded-lg bg-gradient-to-r from-rose-500 to-red-500 shadow-md shadow-rose-500/30 transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{ left: ind.left, width: ind.width }}
             />
           )}
@@ -138,15 +133,15 @@ export default function NavBar() {
                 ref={(el) => {
                   itemRefs.current[item.href] = el;
                 }}
-                className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 active:scale-95 ${
+                className={`nav-link relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${
                   isActive
-                    ? "text-blue-600"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    ? "text-white"
+                    : "text-stone-600 hover:text-rose-700 hover:bg-white/70"
                 }`}
               >
                 <span
-                  className={`transition-transform duration-300 ${
-                    isActive ? "text-blue-600 scale-110" : "text-slate-400"
+                  className={`nav-ico ${
+                    isActive ? "text-white anim-pop" : "text-rose-300"
                   }`}
                 >
                   {item.icon}
