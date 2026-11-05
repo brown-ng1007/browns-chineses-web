@@ -114,7 +114,10 @@ async function gradeWithClaude(args: {
     signal: AbortSignal.timeout(20000),
   });
 
-  if (!res.ok) throw new Error(`anthropic_${res.status}`);
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`anthropic_${res.status}: ${detail}`);
+  }
 
   const data = (await res.json()) as {
     content?: Array<{ type: string; text?: string }>;
@@ -281,9 +284,11 @@ export async function POST(request: NextRequest) {
         candidates,
         input: inputText,
       });
-    } catch {
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : "unknown";
+      console.error("vi/attempt grade failed:", reason);
       return NextResponse.json(
-        { error: "Không chấm được lúc này, vui lòng thử lại" },
+        { error: "Không chấm được lúc này, vui lòng thử lại", reason },
         { status: 502 }
       );
     }
