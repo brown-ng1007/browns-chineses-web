@@ -32,11 +32,18 @@ interface WordLevelRow {
   hsk_new_level: number | null;
   hsk_old_level: number | null;
 }
+interface SkillLogRow {
+  skill: string;
+  minutes: number | string;
+  accuracy: number | string | null;
+  logged_on: string;
+}
 interface LevelPair {
   n: number | null;
   o: number | null;
 }
 interface Loaded {
+  skillLogs: SkillLogRow[];
   cards: CardRow[];
   logs: LogRow[];
   attempts: AttemptRow[];
@@ -148,13 +155,13 @@ function Tile({
   tone?: "slate" | "blue" | "emerald" | "amber";
 }) {
   const tones: Record<string, string> = {
-    slate: "bg-slate-50 border-slate-200 text-slate-800",
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
-    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    amber: "bg-amber-50 border-amber-200 text-amber-800",
+    slate: "bg-slate-50/80 border-slate-200/70 text-slate-800",
+    blue: "bg-indigo-50/80 border-indigo-200/70 text-indigo-700",
+    emerald: "bg-emerald-50/80 border-emerald-200/70 text-emerald-700",
+    amber: "bg-amber-50/80 border-amber-200/70 text-amber-800",
   };
   return (
-    <div className={`rounded-xl border p-3.5 text-center ${tones[tone]}`}>
+    <div className={`rounded-2xl border p-3.5 text-center ${tones[tone]}`}>
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-xs mt-0.5 opacity-90">{label}</div>
     </div>
@@ -185,7 +192,7 @@ export default function SkillsPage() {
       since.setDate(since.getDate() - 29);
       const sinceIso = since.toISOString();
 
-      const [cards, logs, attempts, viRes] = await Promise.all([
+      const [cards, logs, attempts, viRes, skillLogs] = await Promise.all([
         fetchAllRows<CardRow>((from, to) =>
           supabase
             .from("srs_cards")
@@ -218,6 +225,16 @@ export default function SkillsPage() {
           .from("vi_user")
           .select("word_id", { count: "exact", head: true })
           .is("deleted_at", null),
+        fetchAllRows<SkillLogRow>((from, to) =>
+          supabase
+            .from("skill_logs")
+            .select("skill, minutes, accuracy, logged_on")
+            .is("deleted_at", null)
+            .gte("logged_on", dateKey(since))
+            .order("logged_on")
+            .order("id")
+            .range(from, to)
+        ).catch((): SkillLogRow[] => []),
       ]);
 
       if (viRes.error) throw new Error(viRes.error.message);
@@ -248,6 +265,7 @@ export default function SkillsPage() {
       }
 
       setData({
+        skillLogs,
         cards,
         logs,
         attempts,
@@ -371,7 +389,31 @@ export default function SkillsPage() {
       scoreSum += a.score;
     }
 
+    const startKey = dateKey(start);
+    const skillStat = (skill: "listening" | "speaking") => {
+      const rows = data.skillLogs.filter(
+        (r) => r.skill === skill && r.logged_on >= startKey
+      );
+      const minutes = rows.reduce((sum, r) => sum + Number(r.minutes), 0);
+      const withAcc = rows.filter((r) => r.accuracy !== null);
+      const accuracy =
+        withAcc.length > 0
+          ? Math.round(
+              (withAcc.reduce((s, r) => s + Number(r.accuracy), 0) /
+                withAcc.length) *
+                100
+            )
+          : null;
+      return {
+        sessions: rows.length,
+        minutes: Math.round(minutes * 10) / 10,
+        accuracy,
+      };
+    };
+
     return {
+      listening: skillStat("listening"),
+      speaking: skillStat("speaking"),
       days,
       total: logsIn.length,
       good,
@@ -395,16 +437,16 @@ export default function SkillsPage() {
         : String(Math.round(stats.seconds / 60));
 
   return (
-    <main className="space-y-4">
-      <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+    <main className="space-y-4 pb-8">
+      <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kỹ năng</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Kỹ năng</h1>
           <p className="text-sm text-slate-600 mt-0.5">
             Tiến độ học tính từ lịch sử ôn tập và luyện nghĩa Việt thật của bạn.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex rounded-xl bg-slate-100 p-1">
+          <div className="inline-flex rounded-2xl bg-slate-100/80 p-1">
             {([7, 30] as const).map((p) => (
               <button
                 key={p}
@@ -420,7 +462,7 @@ export default function SkillsPage() {
               </button>
             ))}
           </div>
-          <div className="inline-flex rounded-xl bg-slate-100 p-1">
+          <div className="inline-flex rounded-2xl bg-slate-100/80 p-1">
             {(["new", "old"] as const).map((v) => (
               <button
                 key={v}
@@ -440,18 +482,18 @@ export default function SkillsPage() {
       </section>
 
       {status === "loading" && (
-        <div className="rounded-2xl bg-white p-8 text-center text-slate-500 border border-slate-200">
+        <div className="p-8 text-center text-slate-500 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
           Đang tính số liệu...
         </div>
       )}
 
       {status === "error" && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-5 space-y-3">
+        <div className="rounded-3xl bg-red-50/90 backdrop-blur-xl border border-red-200 p-5 space-y-3">
           <p className="text-sm text-red-700">{errorMsg}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20"
           >
             Thử lại
           </button>
@@ -460,7 +502,7 @@ export default function SkillsPage() {
 
       {status === "ready" && stats && (
         <>
-          <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+          <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
             <h2 className="text-base font-semibold text-slate-900">
               Ôn tập trong {period} ngày qua
             </h2>
@@ -505,7 +547,7 @@ export default function SkillsPage() {
             )}
           </section>
 
-          <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+          <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
             <h2 className="text-base font-semibold text-slate-900">
               Thẻ của bạn
             </h2>
@@ -525,7 +567,7 @@ export default function SkillsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-3">
+          <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-3">
             <h2 className="text-base font-semibold text-slate-900">
               Theo cấp {version === "new" ? "HSK 3.0" : "HSK 2.0"}
             </h2>
@@ -579,7 +621,7 @@ export default function SkillsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+          <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
             <h2 className="text-base font-semibold text-slate-900">
               Luyện nghĩa tiếng Việt
             </h2>
@@ -633,9 +675,53 @@ export default function SkillsPage() {
             )}
           </section>
 
-          <section className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
-            Nghe và Nói chưa có tính năng luyện nên chưa có số liệu. Tập viết
-            hiện chưa được ghi lại. Khi có, chúng sẽ hiện ở trang này.
+          <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
+            <h2 className="text-base font-semibold text-slate-900">
+              Nghe và Nói
+            </h2>
+            <div className="grid grid-cols-3 gap-3">
+              <Tile
+                value={String(stats.listening.sessions)}
+                label={`Lượt nghe (${period} ngày)`}
+                tone="blue"
+              />
+              <Tile
+                value={
+                  stats.listening.accuracy !== null
+                    ? `${stats.listening.accuracy}%`
+                    : "—"
+                }
+                label="Nghe đúng"
+                tone="emerald"
+              />
+              <Tile
+                value={String(stats.listening.minutes)}
+                label="Phút nghe"
+                tone="amber"
+              />
+              <Tile
+                value={String(stats.speaking.sessions)}
+                label={`Lượt nói (${period} ngày)`}
+                tone="blue"
+              />
+              <Tile
+                value={
+                  stats.speaking.accuracy !== null
+                    ? `${stats.speaking.accuracy}%`
+                    : "—"
+                }
+                label="Nói chuẩn"
+                tone="emerald"
+              />
+              <Tile
+                value={String(stats.speaking.minutes)}
+                label="Phút nói"
+                tone="amber"
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              Tập viết hiện chưa được ghi lại vào trang này.
+            </p>
           </section>
         </>
       )}

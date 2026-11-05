@@ -149,7 +149,7 @@ export default function WritePage() {
       showOutline: showHintRef.current,
       strokeColor: "#0f172a",
       outlineColor: "#cbd5e1",
-      highlightColor: "#2563eb",
+      highlightColor: "#4f46e5",
       drawingColor: "#0f172a",
       drawingWidth: 8,
       strokeAnimationSpeed: 1,
@@ -242,9 +242,9 @@ export default function WritePage() {
   const doneCount = Object.keys(results).length;
 
   return (
-    <main className="space-y-4">
-      <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900">Tập viết</h1>
+    <main className="space-y-4 pb-8">
+      <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Tập viết</h1>
         <p className="text-sm text-slate-600 mt-0.5">
           Viết từng nét theo đúng thứ tự và hướng. App kiểm tra ngay sau mỗi nét:
           nét đúng thì giữ lại, nét sai thì báo lỗi, sai 3 lần sẽ nhấp nháy gợi ý.
@@ -252,11 +252,11 @@ export default function WritePage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 space-y-3">
+        <section className="p-4 sm:p-5 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-3">
           <div ref={wrapRef} className="w-full flex justify-center">
             {size > 0 && (
               <div
-                className="relative rounded-xl border-2 border-rose-300 bg-white overflow-hidden"
+                className="relative rounded-3xl border-2 border-rose-300/80 bg-white/90 overflow-hidden shadow-[0_8px_30px_rgb(244,63,94,0.10)]"
                 style={{ width: size, height: size, touchAction: "none" }}
               >
                 <svg
@@ -284,7 +284,7 @@ export default function WritePage() {
           </div>
 
           {status === "nodata" && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-sm text-amber-800">
+            <div className="rounded-2xl bg-amber-50/90 border border-amber-200 px-3.5 py-2.5 text-sm text-amber-800">
               Chưa có dữ liệu nét cho chữ này (hoặc chưa tải được dữ liệu, cần có
               mạng). Bấm &ldquo;Sau&rdquo; để sang chữ khác.
             </div>
@@ -298,15 +298,15 @@ export default function WritePage() {
 
           {completed && (
             <div
-              className={`rounded-xl border px-4 py-3 text-center space-y-2 ${
+              className={`rounded-2xl border px-4 py-3 text-center space-y-2 ${
                 mistakes === 0
                   ? "bg-emerald-50 border-emerald-200"
-                  : "bg-blue-50 border-blue-200"
+                  : "bg-indigo-50/90 border-indigo-200"
               }`}
             >
               <p
                 className={`text-base font-bold ${
-                  mistakes === 0 ? "text-emerald-700" : "text-blue-700"
+                  mistakes === 0 ? "text-emerald-700" : "text-indigo-700"
                 }`}
               >
                 {mistakes === 0
@@ -325,7 +325,7 @@ export default function WritePage() {
                   <button
                     type="button"
                     onClick={() => setIndex((i) => i + 1)}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/20"
                   >
                     Chữ tiếp theo →
                   </button>
@@ -335,7 +335,7 @@ export default function WritePage() {
           )}
         </section>
 
-        <section className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 space-y-4">
+        <section className="p-4 sm:p-5 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
           {listLoading ? (
             <p className="text-sm text-slate-500">Đang tải danh sách chữ...</p>
           ) : current ? (
@@ -363,11 +363,11 @@ export default function WritePage() {
                   </button>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-slate-900">
+              <div className="font-hanzi text-4xl font-bold text-slate-900">
                 {current.hanzi}
               </div>
               {current.pinyin && (
-                <div className="text-lg font-medium text-blue-600">
+                <div className="text-lg font-medium text-indigo-600">
                   {current.pinyin}
                 </div>
               )}
@@ -386,7 +386,7 @@ export default function WritePage() {
               type="button"
               onClick={handleDemo}
               disabled={!current || status !== "ready"}
-              className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+              className="rounded-2xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-slate-700 disabled:opacity-50"
             >
               Xem nét mẫu
             </button>
@@ -394,7 +394,7 @@ export default function WritePage() {
               type="button"
               onClick={handleRetry}
               disabled={!current}
-              className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+              className="rounded-2xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
             >
               Xóa / Viết lại
             </button>
@@ -435,10 +435,10 @@ export default function WritePage() {
                     setLevel(lv);
                     void loadLevelList(lv);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${
+                  className={`px-3 py-1.5 rounded-2xl text-sm font-medium transition ${
                     source === "level" && level === lv
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
+                      : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
                   }`}
                 >
                   HSK {lv}
@@ -465,12 +465,12 @@ export default function WritePage() {
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
                 placeholder="Ví dụ: 你好吗"
-                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleUseCustom}
-                className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="shrink-0 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/20"
               >
                 Dùng chữ này
               </button>
@@ -497,7 +497,7 @@ export default function WritePage() {
                       type="button"
                       onClick={() => setIndex(i)}
                       className={`h-9 w-9 rounded-lg border text-lg font-semibold ${tone} ${
-                        i === index ? "ring-2 ring-blue-500" : ""
+                        i === index ? "ring-2 ring-indigo-500" : ""
                       }`}
                     >
                       {c.hanzi}
