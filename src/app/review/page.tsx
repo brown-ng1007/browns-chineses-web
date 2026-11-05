@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  db,
+  type ReviewOutboxItem,
+  type SnapshotItem,
+  type SnapshotWord,
+} from "@/lib/db";
 import ViPractice, { type SavedViMeaning } from "@/components/ViPractice";
 import type { SrsState, ViUserStatus } from "@/types/database.types";
 import {
@@ -15,21 +21,12 @@ const NEW_PER_DAY = 10; // số thẻ mới tối đa mỗi ngày
 const MAX_DUE = 100; // số thẻ đến hạn tối đa mỗi phiên
 const PAGE = 100;
 const MAX_PAGES = 20;
+const NETWORK_ERROR = "Mất kết nối mạng.";
 
 type SupabaseBrowser = ReturnType<typeof createClient>;
 
-interface ReviewWord {
-  id: string;
-  hanzi_simp: string;
-  hanzi_trad: string | null;
-  pinyin: string;
-  meanings: string[];
-}
-
-interface QueueItem {
-  word: ReviewWord;
-  card: CardMemory | null; // null = thẻ mới, chưa có trong srs_cards
-}
+type ReviewWord = SnapshotWord;
+type QueueItem = SnapshotItem;
 
 interface RawCard {
   word_id: string;
@@ -48,14 +45,6 @@ interface RawWord {
   hanzi_trad: string | null;
   pinyin: string;
   word_meanings_en: { text: string; sort_order: number }[] | null;
-}
-
-interface SaveJob {
-  wordId: string;
-  memory: CardMemory;
-  rating: Rating;
-  reviewedAt: string;
-  elapsedSeconds: number;
 }
 
 type Phase = "loading" | "error" | "idle" | "reviewing" | "done";
@@ -87,14 +76,37 @@ const RATING_UI: { rating: Rating; label: string; className: string }[] = [
   },
 ];
 
-function describeDbError(
-  error: { code?: string; message?: string } | null
-): string {
+type DbError = { code?: string; message?: string } | null;
+
+// Lỗi do mất mạng (khác với lỗi quyền hay lỗi dữ liệu)
+function isNetworkIssue(error: DbError): boolean {
+  if (!error) return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return true;
+  }
+  return (
+    !error.code && /fetch|network|load failed/i.test(error.message ?? "")
+  );
+}
+
+function describeDbError(error: DbError): string {
   if (!error) return "Lỗi không rõ.";
+  if (isNetworkIssue(error)) return NETWORK_ERROR;
   if (error.code === "42501" || /row-level security/i.test(error.message ?? "")) {
     return "Chưa có quyền lưu lịch ôn vào cơ sở dữ liệu (cần báo Claude để bật quyền ghi).";
   }
   return "Chưa lưu được lúc này.";
+}
+
+function newOpId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 async function existingCardWordIds(
@@ -156,49 +168,76 @@ async function pickNewWordIds(
   return picked;
 }
 
-// Ghi một lần chấm: cập nhật srs_cards rồi ghi review_logs. Trả về chuỗi lỗi hoặc null.
-async function persistJob(
+// Gửi một lần chấm lên máy chủ. Trả về chuỗi lỗi hoặc null nếu thành công.
+// An toàn khi gửi lại nhiều lần:
+// - srs_cards dùng upsert; nếu máy chủ đã có lần ôn MỚI HƠN thì không ghi đè lịch.
+// - review_logs dùng id = op_id; trùng id (23505) coi như đã ghi xong.
+async function persistOutboxItem(
   supabase: SupabaseBrowser,
-  userId: string,
-  job: SaveJob
+  item: ReviewOutboxItem
 ): Promise<string | null> {
   try {
-    const cardRes = await supabase
+    const existing = await supabase
       .from("srs_cards")
-      .upsert(
-        {
-          user_id: userId,
-          word_id: job.wordId,
-          state: job.memory.state,
-          stability: job.memory.stability,
-          difficulty: job.memory.difficulty,
-          due_at: job.memory.due_at,
-          last_review_at: job.memory.last_review_at,
-          reps: job.memory.reps,
-          lapses: job.memory.lapses,
-        },
-        { onConflict: "user_id,word_id" }
-      )
-      .select("id")
-      .single();
-    if (cardRes.error || !cardRes.data) {
-      return describeDbError(cardRes.error);
+      .select("id, last_review_at")
+      .eq("user_id", item.user_id)
+      .eq("word_id", item.word_id)
+      .maybeSingle();
+    if (existing.error) return describeDbError(existing.error);
+
+    const row = existing.data as {
+      id: string;
+      last_review_at: string | null;
+    } | null;
+
+    let cardId: string | null = row?.id ?? null;
+    const serverIsNewer =
+      row?.last_review_at != null &&
+      new Date(row.last_review_at).getTime() >
+        new Date(item.reviewed_at).getTime();
+
+    if (!serverIsNewer) {
+      const cardRes = await supabase
+        .from("srs_cards")
+        .upsert(
+          {
+            user_id: item.user_id,
+            word_id: item.word_id,
+            state: item.state,
+            stability: item.stability,
+            difficulty: item.difficulty,
+            due_at: item.due_at,
+            last_review_at: item.last_review_at,
+            reps: item.reps,
+            lapses: item.lapses,
+          },
+          { onConflict: "user_id,word_id" }
+        )
+        .select("id")
+        .single();
+      if (cardRes.error || !cardRes.data) {
+        return describeDbError(cardRes.error);
+      }
+      cardId = (cardRes.data as { id: string }).id;
     }
-    const cardId = (cardRes.data as { id: string }).id;
+
+    if (!cardId) return "Chưa lưu được lúc này.";
 
     const logRes = await supabase.from("review_logs").insert({
-      user_id: userId,
+      id: item.op_id,
+      user_id: item.user_id,
       card_id: cardId,
-      rating: job.rating,
-      reviewed_at: job.reviewedAt,
-      elapsed_seconds: job.elapsedSeconds,
+      rating: item.rating,
+      reviewed_at: item.reviewed_at,
+      elapsed_seconds: item.elapsed_seconds,
     });
     if (logRes.error) {
+      if (logRes.error.code === "23505") return null; // đã ghi từ trước
       return describeDbError(logRes.error);
     }
     return null;
   } catch {
-    return "Mất kết nối mạng.";
+    return NETWORK_ERROR;
   }
 }
 
@@ -215,10 +254,12 @@ export default function ReviewPage() {
 
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [saveIssue, setSaveIssue] = useState<string | null>(null);
+  const [offlineWaiting, setOfflineWaiting] = useState<boolean>(false);
+  const [offlineMode, setOfflineMode] = useState<boolean>(false);
+  const [snapshotTime, setSnapshotTime] = useState<string | null>(null);
 
   const shownAtRef = useRef<number>(Date.now());
   const userIdRef = useRef<string | null>(null);
-  const jobsRef = useRef<SaveJob[]>([]);
   const workingRef = useRef<boolean>(false);
 
   const ensureUserId = useCallback(async (): Promise<string | null> => {
@@ -226,34 +267,55 @@ export default function ReviewPage() {
     try {
       const { data } = await supabase.auth.getSession();
       const id = data.session?.user.id ?? null;
-      userIdRef.current = id;
-      return id;
+      if (id) {
+        userIdRef.current = id;
+        return id;
+      }
+    } catch {
+      // Có thể đang mất mạng, thử lấy từ ảnh chụp phiên ôn gần nhất
+    }
+    try {
+      const snap = await db.review_snapshot.get("latest");
+      return snap?.user_id ?? null;
     } catch {
       return null;
     }
   }, [supabase]);
 
-  // Ghi nền theo đúng thứ tự; gặp lỗi thì dừng để không ghi đè bản mới bằng bản cũ
-  const runJobs = useCallback(async () => {
+  // Gửi lần lượt các lần chấm đang chờ (theo thời gian). Gặp lỗi thì dừng,
+  // lần chấm đó vẫn nằm trong hàng đợi trên máy.
+  const flushOutbox = useCallback(async () => {
     if (workingRef.current) return;
     workingRef.current = true;
-    setSaveIssue(null);
     try {
-      while (jobsRef.current.length > 0) {
-        const userId = await ensureUserId();
-        if (!userId) {
-          setSaveIssue("Phiên đăng nhập đã hết hạn. Hãy tải lại trang hoặc đăng nhập lại.");
+      const userId = await ensureUserId();
+      if (!userId) return;
+      for (;;) {
+        const list = await db.review_outbox
+          .where("user_id")
+          .equals(userId)
+          .sortBy("reviewed_at");
+        setPendingCount(list.length);
+        if (list.length === 0) {
+          setSaveIssue(null);
+          setOfflineWaiting(false);
           break;
         }
-        const job = jobsRef.current[0];
-        const err = await persistJob(supabase, userId, job);
+        const err = await persistOutboxItem(supabase, list[0]);
+        if (err === NETWORK_ERROR) {
+          setSaveIssue(null);
+          setOfflineWaiting(true);
+          break;
+        }
         if (err) {
+          setOfflineWaiting(false);
           setSaveIssue(err);
           break;
         }
-        jobsRef.current.shift();
-        setPendingCount(jobsRef.current.length);
+        await db.review_outbox.delete(list[0].op_id);
       }
+    } catch {
+      setSaveIssue("Chưa lưu được lúc này.");
     } finally {
       workingRef.current = false;
     }
@@ -263,7 +325,31 @@ export default function ReviewPage() {
     async (lv: number) => {
       setPhase("loading");
       setErrorMsg(null);
+      setOfflineMode(false);
+
+      // Dùng ảnh chụp phiên ôn đã lưu trên máy (khi mất mạng)
+      const applySnapshot = async (): Promise<boolean> => {
+        try {
+          const snap = await db.review_snapshot.get("latest");
+          const uid = await ensureUserId();
+          if (!snap || !uid || snap.user_id !== uid) return false;
+          setViMap(snap.vi);
+          setQueue(snap.items);
+          setRevealed(false);
+          setReviewedCount(0);
+          setSnapshotTime(snap.saved_at);
+          setOfflineMode(true);
+          setPhase("idle");
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
       try {
+        // Gửi trước những lần chấm còn tồn, để lịch trên máy chủ là mới nhất
+        await flushOutbox();
+
         const nowIso = new Date().toISOString();
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -284,6 +370,8 @@ export default function ReviewPage() {
         ]);
 
         if (dueRes.error || countRes.error) {
+          const e = dueRes.error ?? countRes.error;
+          if (isNetworkIssue(e) && (await applySnapshot())) return;
           setErrorMsg("Chưa tải được thẻ ôn. Hãy thử lại sau ít giây.");
           setPhase("error");
           return;
@@ -316,6 +404,9 @@ export default function ReviewPage() {
           ]);
 
           if (wordsRes.error) {
+            if (isNetworkIssue(wordsRes.error) && (await applySnapshot())) {
+              return;
+            }
             setErrorMsg("Chưa tải được nội dung từ vựng. Hãy thử lại sau ít giây.");
             setPhase("error");
             return;
@@ -343,7 +434,7 @@ export default function ReviewPage() {
           }
         }
 
-        const items: QueueItem[] = [];
+        let items: QueueItem[] = [];
         for (const c of dueCards) {
           const word = wordMap.get(c.word_id);
           if (!word) continue;
@@ -365,27 +456,125 @@ export default function ReviewPage() {
           if (word) items.push({ word, card: null });
         }
 
+        // Từ vừa chấm mà chưa gửi xong thì không đưa lại vào hàng đợi
+        const uid = await ensureUserId();
+        if (uid) {
+          const pending = await db.review_outbox
+            .where("user_id")
+            .equals(uid)
+            .toArray();
+          if (pending.length > 0) {
+            const pendingIds = new Set(pending.map((p) => p.word_id));
+            items = items.filter((i) => !pendingIds.has(i.word.id));
+          }
+          void db.review_snapshot
+            .put({
+              key: "latest",
+              user_id: uid,
+              saved_at: new Date().toISOString(),
+              level: lv,
+              items,
+              vi: nextViMap,
+            })
+            .catch(() => undefined);
+        }
+
         setViMap(nextViMap);
         setQueue(items);
         setRevealed(false);
         setReviewedCount(0);
         setPhase("idle");
       } catch {
-        setErrorMsg("Không thể kết nối mạng. Hãy thử lại khi có mạng.");
+        if (await applySnapshot()) return;
+        setErrorMsg("Không thể kết nối mạng và chưa có thẻ nào lưu sẵn trên máy.");
         setPhase("error");
       }
     },
-    [supabase]
+    [supabase, flushOutbox, ensureUserId]
   );
 
   useEffect(() => {
     void loadQueue(level);
   }, [level, loadQueue]);
 
+  // Có mạng lại thì tự gửi những lần chấm còn tồn
+  useEffect(() => {
+    const onOnline = () => {
+      void flushOutbox();
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushOutbox]);
+
   function handleStart() {
     shownAtRef.current = Date.now();
     setRevealed(false);
     setPhase("reviewing");
+  }
+
+  // Lưu lần chấm vào hàng đợi trên máy rồi gửi nền
+  async function saveRating(
+    wordId: string,
+    memory: CardMemory,
+    rating: Rating,
+    reviewedAt: string,
+    elapsedSeconds: number,
+    nextQueue: QueueItem[]
+  ) {
+    const userId = await ensureUserId();
+    if (!userId) {
+      setSaveIssue(
+        "Phiên đăng nhập đã hết hạn. Hãy tải lại trang hoặc đăng nhập lại."
+      );
+      return;
+    }
+
+    const item: ReviewOutboxItem = {
+      op_id: newOpId(),
+      user_id: userId,
+      word_id: wordId,
+      state: memory.state,
+      stability: memory.stability,
+      difficulty: memory.difficulty,
+      due_at: memory.due_at,
+      last_review_at: memory.last_review_at,
+      reps: memory.reps,
+      lapses: memory.lapses,
+      rating,
+      reviewed_at: reviewedAt,
+      elapsed_seconds: elapsedSeconds,
+    };
+
+    try {
+      await db.review_outbox.put(item);
+    } catch {
+      // Trình duyệt chặn IndexedDB: gửi thẳng một lần
+      const err = await persistOutboxItem(supabase, item);
+      if (err) {
+        setSaveIssue(
+          err === NETWORK_ERROR
+            ? "Mất kết nối mạng và trình duyệt không cho lưu tạm trên máy."
+            : err
+        );
+      }
+      return;
+    }
+
+    void db.review_snapshot
+      .put({
+        key: "latest",
+        user_id: userId,
+        saved_at: new Date().toISOString(),
+        level,
+        items: nextQueue,
+        vi: viMap,
+      })
+      .catch(() => undefined);
+
+    setPendingCount(
+      await db.review_outbox.where("user_id").equals(userId).count()
+    );
+    void flushOutbox();
   }
 
   function handleRate(rating: Rating) {
@@ -404,31 +593,32 @@ export default function ReviewPage() {
       lapses: result.lapses,
     };
 
-    jobsRef.current.push({
-      wordId: current.word.id,
-      memory,
-      rating,
-      reviewedAt: now.toISOString(),
-      elapsedSeconds: Math.max(
-        0,
-        Math.round((Date.now() - shownAtRef.current) / 1000)
-      ),
-    });
-    setPendingCount(jobsRef.current.length);
-    void runJobs();
-
     // Thẻ còn đang học (Quên/Khó) thì xếp lại cuối phiên để ôn ngay trong hôm nay
     const rest = queue.slice(1);
-    const nextQueue =
+    const nextQueue: QueueItem[] =
       result.state === "learning" || result.state === "relearning"
         ? [...rest, { word: current.word, card: memory }]
         : rest;
+
+    const elapsed = Math.max(
+      0,
+      Math.round((Date.now() - shownAtRef.current) / 1000)
+    );
 
     setQueue(nextQueue);
     setReviewedCount((n) => n + 1);
     setRevealed(false);
     shownAtRef.current = Date.now();
     if (nextQueue.length === 0) setPhase("done");
+
+    void saveRating(
+      current.word.id,
+      memory,
+      rating,
+      now.toISOString(),
+      elapsed,
+      nextQueue
+    );
   }
 
   function handleViSaved(wordId: string, text: string, status: ViUserStatus) {
@@ -443,32 +633,73 @@ export default function ReviewPage() {
   const dueCount = queue.filter((q) => q.card !== null).length;
   const newCount = queue.length - dueCount;
 
-  const saveBanner = (pendingCount > 0 || saveIssue) && (
-    <div
-      className={`rounded-xl border px-3.5 py-2.5 text-sm ${
-        saveIssue
-          ? "bg-red-50 border-red-200 text-red-700"
-          : "bg-slate-50 border-slate-200 text-slate-600"
-      }`}
-    >
-      {saveIssue ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span>
-            {saveIssue} Còn {pendingCount} lần chấm chưa lưu.
-          </span>
-          <button
-            type="button"
-            onClick={() => void runJobs()}
-            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
-          >
-            Thử lưu lại
-          </button>
-        </div>
-      ) : (
-        <span>Đang lưu {pendingCount} lần chấm...</span>
-      )}
+  const saveBanner =
+    saveIssue || pendingCount > 0 ? (
+      <div
+        className={`rounded-xl border px-3.5 py-2.5 text-sm ${
+          saveIssue
+            ? "bg-red-50 border-red-200 text-red-700"
+            : offlineWaiting
+              ? "bg-amber-50 border-amber-200 text-amber-800"
+              : "bg-slate-50 border-slate-200 text-slate-600"
+        }`}
+      >
+        {saveIssue ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {saveIssue} Còn {pendingCount} lần chấm chưa lưu.
+            </span>
+            <button
+              type="button"
+              onClick={() => void flushOutbox()}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+            >
+              Thử lưu lại
+            </button>
+          </div>
+        ) : offlineWaiting ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Đang ngoại tuyến. {pendingCount} lần chấm đã lưu trên máy, sẽ tự
+              gửi khi có mạng.
+            </span>
+            <button
+              type="button"
+              onClick={() => void flushOutbox()}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+            >
+              Thử gửi lại
+            </button>
+          </div>
+        ) : (
+          <span>Đang lưu {pendingCount} lần chấm...</span>
+        )}
+      </div>
+    ) : null;
+
+  const offlineBanner = offlineMode ? (
+    <div className="rounded-xl border bg-amber-50 border-amber-200 px-3.5 py-2.5 text-sm text-amber-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span>
+          Đang dùng thẻ đã lưu trên máy
+          {snapshotTime
+            ? ` (lưu lúc ${new Date(snapshotTime).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })})`
+            : ""}
+          . Có mạng thì bấm &ldquo;Kết nối lại&rdquo; để lấy thẻ mới nhất.
+        </span>
+        <button
+          type="button"
+          onClick={() => void loadQueue(level)}
+          className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+        >
+          Kết nối lại
+        </button>
+      </div>
     </div>
-  );
+  ) : null;
 
   return (
     <main className="space-y-4">
@@ -480,6 +711,7 @@ export default function ReviewPage() {
         </p>
       </section>
 
+      {offlineBanner}
       {saveBanner}
 
       {phase === "loading" && (
@@ -665,7 +897,11 @@ export default function ReviewPage() {
             onClick={() => void loadQueue(level)}
             className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {pendingCount > 0 ? "Đang lưu..." : "Xem thẻ còn lại"}
+            {pendingCount > 0
+              ? offlineWaiting
+                ? "Chờ có mạng để lưu..."
+                : "Đang lưu..."
+              : "Xem thẻ còn lại"}
           </button>
         </section>
       )}
