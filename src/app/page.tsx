@@ -38,20 +38,35 @@ const READY = [
     accent: "from-emerald-600 to-teal-600",
     pill: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
   },
-];
-
-const SOON = [
   {
+    href: "/listen",
     title: "Nghe",
     hanzi: "听",
-    desc: "Luyện nghe chữ Hán và câu ví dụ.",
+    subtitle: "Nghe và chọn chữ • Giọng đọc",
+    desc: "Nghe phát âm chữ Hán rồi chọn đúng chữ, có chế độ đọc chậm.",
+    accent: "from-sky-600 to-cyan-600",
+    pill: "bg-sky-50 text-sky-700 border-sky-200/70",
   },
   {
+    href: "/speak",
     title: "Nói",
     hanzi: "说",
-    desc: "Luyện phát âm và đọc theo mẫu.",
+    subtitle: "Đọc theo mẫu • Nhận dạng giọng",
+    desc: "Nghe mẫu, đọc lại bằng micro và xem app có nhận ra đúng chữ không.",
+    accent: "from-amber-500 to-orange-600",
+    pill: "bg-amber-50 text-amber-700 border-amber-200/70",
+  },
+  {
+    href: "/settings",
+    title: "Cài đặt",
+    hanzi: "设",
+    subtitle: "Thẻ mới mỗi ngày • Giọng đọc",
+    desc: "Chỉnh số thẻ mới, tốc độ giọng đọc, cấp HSK và tài khoản.",
+    accent: "from-slate-600 to-slate-800",
+    pill: "bg-slate-100 text-slate-700 border-slate-200/70",
   },
 ];
+
 
 export default function HomePage() {
   return (
@@ -89,7 +104,7 @@ export default function HomePage() {
             Phân khu luyện tập
           </h2>
           <span className="text-xs font-medium text-slate-400">
-            4 tính năng sẵn sàng
+            7 tính năng sẵn sàng
           </span>
         </div>
 
@@ -146,40 +161,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2 Phân khu Sắp có */}
-      <section className="space-y-3 pt-1">
-        <div className="px-1">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Đang hoàn thiện
-          </h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {SOON.map((s) => (
-            <div
-              key={s.title}
-              className="rounded-3xl bg-white/55 backdrop-blur-md p-5 border border-slate-200/70 flex items-start gap-3.5"
-            >
-              <div className="font-hanzi w-11 h-11 rounded-2xl bg-slate-200/70 text-slate-500 flex items-center justify-center text-xl font-bold shrink-0">
-                {s.hanzi}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-slate-600">
-                    {s.title}
-                  </h3>
-                  <span className="rounded-full bg-slate-200/70 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
-                    Sắp có
-                  </span>
-                </div>
-                <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }
