@@ -1,520 +1,510 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
-import type { WordsResponse } from "@/types/database.types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import HanziWriter from "hanzi-writer";
+import { createClient } from "@/lib/supabase/client";
 
-// Tập viết bằng Pointer Events (Apple Pencil, ngón tay, chuột).
-// Bản đầu: không chấm điểm nét, không lưu nét.
-
-interface Pt {
-  x: number; // tọa độ chuẩn hóa 0..1 để giữ nguyên khi đổi kích thước
-  y: number;
-  p: number; // áp lực 0..1
-}
-type Stroke = Pt[];
-
-interface WordInfo {
+interface PracticeChar {
   hanzi: string;
   pinyin: string;
   meaning: string;
 }
 
-const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
-const FONT_STACK =
-  '"Kaiti SC","STKaiti","KaiTi","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif';
-const INK = "#0f172a";
-const MIN_DIST = 0.0012;
-
-function extractChars(text: string): string[] {
-  return Array.from(text.match(CJK_RE) ?? []);
+interface RawRow {
+  hanzi_simp: string;
+  pinyin: string;
+  word_meanings_en: { text: string; sort_order: number }[] | null;
 }
 
-function widthFor(p: number, size: number): number {
-  return size * (0.008 + 0.022 * p);
-}
+type Status = "loading" | "ready" | "nodata";
 
-function mid(a: Pt, b: Pt, size: number): { x: number; y: number } {
-  return { x: ((a.x + b.x) / 2) * size, y: ((a.y + b.y) / 2) * size };
-}
+const MAX_CHARS = 30;
+const CJK = /[\u3400-\u4dbf\u4e00-\u9fff]/;
 
-function styleInk(ctx: CanvasRenderingContext2D) {
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = INK;
-  ctx.fillStyle = INK;
-}
-
-// Vẽ đoạn kết thúc tại điểm thứ i (làm mượt bằng đường cong bậc hai qua trung điểm)
-function drawSegment(
-  ctx: CanvasRenderingContext2D,
-  stroke: Stroke,
-  i: number,
-  size: number
-) {
-  styleInk(ctx);
-  const cur = stroke[i];
-  const prev = stroke[i - 1];
-  ctx.lineWidth = widthFor((cur.p + prev.p) / 2, size);
-  ctx.beginPath();
-  if (i === 1) {
-    const m = mid(prev, cur, size);
-    ctx.moveTo(prev.x * size, prev.y * size);
-    ctx.lineTo(m.x, m.y);
-  } else {
-    const before = stroke[i - 2];
-    const m0 = mid(before, prev, size);
-    const m1 = mid(prev, cur, size);
-    ctx.moveTo(m0.x, m0.y);
-    ctx.quadraticCurveTo(prev.x * size, prev.y * size, m1.x, m1.y);
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  ctx.stroke();
-}
-
-// Đoạn cuối: từ trung điểm đến điểm cuối cùng
-function drawTail(ctx: CanvasRenderingContext2D, stroke: Stroke, size: number) {
-  const n = stroke.length;
-  if (n < 2) return;
-  styleInk(ctx);
-  const last = stroke[n - 1];
-  const m = mid(stroke[n - 2], last, size);
-  ctx.lineWidth = widthFor(last.p, size);
-  ctx.beginPath();
-  ctx.moveTo(m.x, m.y);
-  ctx.lineTo(last.x * size, last.y * size);
-  ctx.stroke();
-}
-
-function drawDot(ctx: CanvasRenderingContext2D, pt: Pt, size: number) {
-  styleInk(ctx);
-  ctx.beginPath();
-  ctx.arc(pt.x * size, pt.y * size, widthFor(pt.p, size) / 2, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, size: number) {
-  if (stroke.length === 0) return;
-  if (stroke.length === 1) {
-    drawDot(ctx, stroke[0], size);
-    return;
-  }
-  for (let i = 1; i < stroke.length; i++) drawSegment(ctx, stroke, i, size);
-  drawTail(ctx, stroke, size);
-}
-
-function setupCanvas(
-  canvas: HTMLCanvasElement,
-  size: number
-): CanvasRenderingContext2D | null {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(size * dpr);
-  canvas.height = Math.round(size * dpr);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return ctx;
-}
-
-// Ô điền tự (田字格) và chữ mẫu mờ
-function drawGuide(
-  ctx: CanvasRenderingContext2D,
-  size: number,
-  ch: string,
-  showGhost: boolean
-) {
-  ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.strokeStyle = "#fda4af";
-  ctx.lineWidth = 3;
-  ctx.setLineDash([]);
-  ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
-
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([8, 8]);
-  ctx.beginPath();
-  ctx.moveTo(size / 2, 0);
-  ctx.lineTo(size / 2, size);
-  ctx.moveTo(0, size / 2);
-  ctx.lineTo(size, size / 2);
-  ctx.moveTo(0, 0);
-  ctx.lineTo(size, size);
-  ctx.moveTo(size, 0);
-  ctx.lineTo(0, size);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  if (showGhost && ch) {
-    ctx.fillStyle = "rgba(15, 23, 42, 0.13)";
-    ctx.font = `${Math.round(size * 0.78)}px ${FONT_STACK}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(ch, size / 2, size / 2 + size * 0.03);
-  }
+  return a;
 }
 
 export default function WritePage() {
-  const [chars, setChars] = useState<string[]>(["永"]);
-  const [idx, setIdx] = useState<number>(0);
-  const [wordInfo, setWordInfo] = useState<WordInfo | null>(null);
-  const [showGhost, setShowGhost] = useState<boolean>(true);
-  const [penOnly, setPenOnly] = useState<boolean>(false);
-  const [strokeCount, setStrokeCount] = useState<number>(0);
+  const supabase = useMemo(() => createClient(), []);
+
+  const [level, setLevel] = useState<number>(1);
+  const [source, setSource] = useState<"level" | "custom">("level");
+  const [list, setList] = useState<PracticeChar[]>([]);
+  const [index, setIndex] = useState<number>(0);
+  const [listLoading, setListLoading] = useState<boolean>(true);
+  const [listError, setListError] = useState<string | null>(null);
+
+  const [showHint, setShowHint] = useState<boolean>(true);
+  const [easy, setEasy] = useState<boolean>(false);
+  const [customText, setCustomText] = useState<string>("");
+
   const [size, setSize] = useState<number>(0);
-  const [manualText, setManualText] = useState<string>("");
-  const [loadingWord, setLoadingWord] = useState<boolean>(false);
-  const [wordError, setWordError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState<number>(0);
+  const [status, setStatus] = useState<Status>("loading");
+  const [mistakes, setMistakes] = useState<number>(0);
+  const [completed, setCompleted] = useState<boolean>(false);
+  const [results, setResults] = useState<Record<string, number>>({});
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const guideRef = useRef<HTMLCanvasElement | null>(null);
-  const inkRef = useRef<HTMLCanvasElement | null>(null);
-  const strokesRef = useRef<Stroke[]>([]);
-  const currentRef = useRef<Stroke | null>(null);
-  const activePointerRef = useRef<number | null>(null);
-  const penSeenRef = useRef<boolean>(false);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const writerRef = useRef<HanziWriter | null>(null);
+  const showHintRef = useRef<boolean>(true);
 
-  const ch = chars[idx] ?? "";
+  const current = list[index] ?? null;
 
-  // Đo kích thước ô viết theo bề rộng khung
+  // Đo bề rộng bảng viết (vuông, tối đa 460px)
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const measure = () => setSize(Math.floor(el.getBoundingClientRect().width));
+    function measure() {
+      const w = wrapRef.current?.clientWidth ?? 0;
+      if (w > 0) setSize(Math.floor(Math.min(w, 460)));
+    }
     measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Vẽ lưới và chữ mẫu
+  // Tải danh sách chữ đơn theo cấp HSK 3.0
+  const loadLevelList = useCallback(
+    async (lv: number) => {
+      setListLoading(true);
+      setListError(null);
+      try {
+        const res = await supabase
+          .from("words")
+          .select("hanzi_simp, pinyin, word_meanings_en(text, sort_order)")
+          .eq("hsk_new_level", lv)
+          .like("hanzi_simp", "_")
+          .order("frequency_rank", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true })
+          .limit(200);
+        if (res.error) {
+          setListError("Chưa tải được danh sách chữ. Hãy thử lại sau ít giây.");
+          setListLoading(false);
+          return;
+        }
+        const rows = (res.data ?? []) as unknown as RawRow[];
+        const map = new Map<string, PracticeChar>();
+        for (const r of rows) {
+          if (!CJK.test(r.hanzi_simp)) continue;
+          const meanings = [...(r.word_meanings_en ?? [])]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((m) => m.text);
+          const existing = map.get(r.hanzi_simp);
+          if (existing) {
+            if (!existing.pinyin.split(" / ").includes(r.pinyin)) {
+              existing.pinyin += " / " + r.pinyin;
+            }
+          } else {
+            map.set(r.hanzi_simp, {
+              hanzi: r.hanzi_simp,
+              pinyin: r.pinyin,
+              meaning: (meanings[0] ?? "").slice(0, 80),
+            });
+          }
+        }
+        const items = Array.from(map.values()).slice(0, MAX_CHARS);
+        setList(items);
+        setIndex(0);
+        setResults({});
+        setSource("level");
+        if (items.length === 0) {
+          setListError("Cấp này chưa có chữ đơn để luyện viết.");
+        }
+      } catch {
+        setListError("Không thể kết nối mạng để tải danh sách chữ.");
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [supabase]
+  );
+
   useEffect(() => {
-    const canvas = guideRef.current;
-    if (!canvas || size === 0) return;
-    const ctx = setupCanvas(canvas, size);
-    if (ctx) drawGuide(ctx, size, ch, showGhost);
-  }, [size, ch, showGhost]);
+    void loadLevelList(1);
+  }, [loadLevelList]);
 
-  // Vẽ lại toàn bộ nét viết
-  const redrawInk = useCallback(() => {
-    const canvas = inkRef.current;
-    if (!canvas || size === 0) return;
-    const ctx = setupCanvas(canvas, size);
-    if (!ctx) return;
-    for (const s of strokesRef.current) drawStroke(ctx, s, size);
-  }, [size]);
-
+  // Tạo bảng viết Hanzi Writer cho chữ hiện tại và bật chế độ kiểm tra từng nét
   useEffect(() => {
-    redrawInk();
-  }, [redrawInk]);
+    const el = boardRef.current;
+    const target = list[index];
+    if (!el || !target || size === 0) return;
 
-  function resetStrokes() {
-    strokesRef.current = [];
-    currentRef.current = null;
-    activePointerRef.current = null;
-    setStrokeCount(0);
-    redrawInk();
-  }
+    let cancelled = false;
+    el.innerHTML = "";
+    setStatus("loading");
+    setMistakes(0);
+    setCompleted(false);
 
-  function undoStroke() {
-    if (strokesRef.current.length === 0) return;
-    strokesRef.current = strokesRef.current.slice(0, -1);
-    setStrokeCount(strokesRef.current.length);
-    redrawInk();
-  }
+    const writer = HanziWriter.create(el, target.hanzi, {
+      width: size,
+      height: size,
+      padding: 12,
+      showCharacter: false,
+      showOutline: showHintRef.current,
+      strokeColor: "#0f172a",
+      outlineColor: "#cbd5e1",
+      highlightColor: "#2563eb",
+      drawingColor: "#0f172a",
+      drawingWidth: 8,
+      strokeAnimationSpeed: 1,
+      delayBetweenStrokes: 150,
+      showHintAfterMisses: 3,
+      highlightOnComplete: true,
+      leniency: easy ? 1.6 : 1,
+      onLoadCharDataSuccess: () => {
+        if (!cancelled) setStatus("ready");
+      },
+      onLoadCharDataError: () => {
+        if (!cancelled) setStatus("nodata");
+      },
+    });
+    writerRef.current = writer;
 
-  function goToChar(next: number) {
-    if (next < 0 || next >= chars.length) return;
-    strokesRef.current = [];
-    currentRef.current = null;
-    activePointerRef.current = null;
-    setStrokeCount(0);
-    setIdx(next);
-    // Ô viết được xóa ngay; lưới/chữ mẫu tự vẽ lại theo chữ mới
-    const canvas = inkRef.current;
-    if (canvas && size > 0) setupCanvas(canvas, size);
-  }
+    writer.quiz({
+      leniency: easy ? 1.6 : 1,
+      onMistake: () => {
+        if (!cancelled) setMistakes((m) => m + 1);
+      },
+      onComplete: (summary: { totalMistakes: number }) => {
+        if (cancelled) return;
+        setCompleted(true);
+        setResults((prev) => ({
+          ...prev,
+          [target.hanzi]: summary.totalMistakes,
+        }));
+      },
+    });
 
-  function applyManual() {
-    const list = extractChars(manualText);
-    if (list.length === 0) {
-      setWordError("Hãy nhập ít nhất một chữ Hán.");
-      return;
-    }
-    setWordError(null);
-    setWordInfo(null);
-    setChars(list);
-    goToChar(0);
-    setIdx(0);
-  }
-
-  async function pickRandomWord(level: number) {
-    setLoadingWord(true);
-    setWordError(null);
-    try {
-      const tryFetch = async (cursor: string | null) => {
-        const params = new URLSearchParams({ version: "new", level: String(level) });
-        if (cursor) params.set("cursor", cursor);
-        const res = await fetch(`/api/words?${params.toString()}`);
-        if (!res.ok) throw new Error("http");
-        return (await res.json()) as WordsResponse;
-      };
-
-      let data = await tryFetch(String(50 * Math.floor(Math.random() * 3)));
-      if (data.words.length === 0) data = await tryFetch(null);
-      if (data.words.length === 0) throw new Error("empty");
-
-      const w = data.words[Math.floor(Math.random() * data.words.length)];
-      const list = extractChars(w.hanzi_simp);
-      if (list.length === 0) throw new Error("nochar");
-
-      setWordInfo({
-        hanzi: w.hanzi_simp,
-        pinyin: w.pinyin,
-        meaning: w.meanings_en[0]?.text ?? "",
-      });
-      setChars(list);
-      goToChar(0);
-      setIdx(0);
-    } catch {
-      setWordError(
-        "Chưa lấy được từ ngẫu nhiên. Cần có mạng; bạn vẫn có thể tự nhập chữ Hán ở ô bên dưới."
-      );
-    } finally {
-      setLoadingWord(false);
-    }
-  }
-
-  function acceptPointer(e: ReactPointerEvent<HTMLCanvasElement>): boolean {
-    if (e.pointerType === "pen") {
-      penSeenRef.current = true;
-      return true;
-    }
-    if (e.pointerType === "touch" && (penOnly || penSeenRef.current)) {
-      return false; // bỏ qua lòng bàn tay / ngón tay
-    }
-    return true;
-  }
-
-  function toPoint(ev: PointerEvent, canvas: HTMLCanvasElement): Pt {
-    const rect = canvas.getBoundingClientRect();
-    const raw = ev.pressure > 0 ? ev.pressure : 0.5;
-    return {
-      x: (ev.clientX - rect.left) / rect.width,
-      y: (ev.clientY - rect.top) / rect.height,
-      p: Math.min(1, Math.max(0.05, raw)),
+    return () => {
+      cancelled = true;
+      try {
+        writer.cancelQuiz();
+      } catch {
+        // bỏ qua
+      }
+      el.innerHTML = "";
+      writerRef.current = null;
     };
+  }, [list, index, size, attempt, easy]);
+
+  // Bật/tắt nét mờ gợi ý mà không làm mất tiến độ đang viết
+  useEffect(() => {
+    showHintRef.current = showHint;
+    const w = writerRef.current;
+    if (!w) return;
+    if (showHint) w.showOutline();
+    else w.hideOutline();
+  }, [showHint]);
+
+  function handleRetry() {
+    setAttempt((a) => a + 1);
   }
 
-  function handleDown(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (!acceptPointer(e)) return;
-    if (activePointerRef.current !== null) return;
-    const canvas = e.currentTarget;
+  function handleDemo() {
+    const w = writerRef.current;
+    if (!w) return;
     try {
-      canvas.setPointerCapture(e.pointerId);
+      w.cancelQuiz();
     } catch {
-      // Bỏ qua nếu trình duyệt không hỗ trợ
+      // bỏ qua
     }
-    activePointerRef.current = e.pointerId;
-    const pt = toPoint(e.nativeEvent, canvas);
-    currentRef.current = [pt];
-    const ctx = canvas.getContext("2d");
-    if (ctx) drawDot(ctx, pt, size);
-    e.preventDefault();
+    void w.animateCharacter({
+      onComplete: () => setAttempt((a) => a + 1),
+    });
   }
 
-  function handleMove(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (e.pointerId !== activePointerRef.current) return;
-    const stroke = currentRef.current;
-    if (!stroke) return;
-    const canvas = e.currentTarget;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const native = e.nativeEvent as PointerEvent & {
-      getCoalescedEvents?: () => PointerEvent[];
-    };
-    const coalesced =
-      typeof native.getCoalescedEvents === "function"
-        ? native.getCoalescedEvents()
-        : [];
-    const events = coalesced.length > 0 ? coalesced : [native];
-
-    for (const ev of events) {
-      const pt = toPoint(ev, canvas);
-      const last = stroke[stroke.length - 1];
-      if (Math.hypot(pt.x - last.x, pt.y - last.y) < MIN_DIST) continue;
-      stroke.push(pt);
-      drawSegment(ctx, stroke, stroke.length - 1, size);
-    }
-    e.preventDefault();
+  function handleUseCustom() {
+    const chars = Array.from(new Set(Array.from(customText))).filter((c) =>
+      CJK.test(c)
+    );
+    if (chars.length === 0) return;
+    setList(
+      chars.slice(0, MAX_CHARS).map((c) => ({ hanzi: c, pinyin: "", meaning: "" }))
+    );
+    setIndex(0);
+    setResults({});
+    setSource("custom");
+    setListError(null);
   }
 
-  function finishStroke(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (e.pointerId !== activePointerRef.current) return;
-    const stroke = currentRef.current;
-    const ctx = e.currentTarget.getContext("2d");
-    if (stroke && ctx) drawTail(ctx, stroke, size);
-    if (stroke && stroke.length > 0) {
-      strokesRef.current = [...strokesRef.current, stroke];
-      setStrokeCount(strokesRef.current.length);
-    }
-    currentRef.current = null;
-    activePointerRef.current = null;
+  function handleShuffle() {
+    setList((prev) => shuffled(prev));
+    setIndex(0);
+    setResults({});
   }
+
+  const doneCount = Object.keys(results).length;
 
   return (
     <main className="space-y-4">
       <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200">
         <h1 className="text-2xl font-bold text-slate-900">Tập viết</h1>
         <p className="text-sm text-slate-600 mt-0.5">
-          Viết vào ô bằng Apple Pencil, ngón tay hoặc chuột. Bản này chưa chấm
-          điểm nét và chưa lưu bài viết.
+          Viết từng nét theo đúng thứ tự và hướng. App kiểm tra ngay sau mỗi nét:
+          nét đúng thì giữ lại, nét sai thì báo lỗi, sai 3 lần sẽ nhấp nháy gợi ý.
         </p>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,560px)_1fr] items-start">
-        <section className="rounded-2xl bg-white p-3 sm:p-4 shadow-xs border border-slate-200">
-          <div
-            ref={wrapRef}
-            className="relative w-full max-w-[560px] aspect-square mx-auto"
-          >
-            <canvas
-              ref={guideRef}
-              className="absolute inset-0 h-full w-full pointer-events-none rounded-lg"
-            />
-            <canvas
-              ref={inkRef}
-              className="absolute inset-0 h-full w-full rounded-lg select-none"
-              style={{ touchAction: "none", WebkitTouchCallout: "none" }}
-              onPointerDown={handleDown}
-              onPointerMove={handleMove}
-              onPointerUp={finishStroke}
-              onPointerCancel={finishStroke}
-              onContextMenu={(e) => e.preventDefault()}
-            />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 space-y-3">
+          <div ref={wrapRef} className="w-full flex justify-center">
+            {size > 0 && (
+              <div
+                className="relative rounded-xl border-2 border-rose-300 bg-white overflow-hidden"
+                style={{ width: size, height: size, touchAction: "none" }}
+              >
+                <svg
+                  className="absolute inset-0 pointer-events-none"
+                  width={size}
+                  height={size}
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <g stroke="#fda4af" strokeWidth="0.4" strokeDasharray="2 2">
+                    <line x1="50" y1="0" x2="50" y2="100" />
+                    <line x1="0" y1="50" x2="100" y2="50" />
+                    <line x1="0" y1="0" x2="100" y2="100" />
+                    <line x1="100" y1="0" x2="0" y2="100" />
+                  </g>
+                </svg>
+                <div
+                  ref={boardRef}
+                  className="relative"
+                  style={{ width: size, height: size, touchAction: "none" }}
+                />
+              </div>
+            )}
           </div>
+
+          {status === "nodata" && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-sm text-amber-800">
+              Chưa có dữ liệu nét cho chữ này (hoặc chưa tải được dữ liệu, cần có
+              mạng). Bấm &ldquo;Sau&rdquo; để sang chữ khác.
+            </div>
+          )}
+
+          {status === "ready" && !completed && (
+            <p className="text-sm text-slate-600 text-center">
+              Số lần sai nét: <b className="text-slate-900">{mistakes}</b>
+            </p>
+          )}
+
+          {completed && (
+            <div
+              className={`rounded-xl border px-4 py-3 text-center space-y-2 ${
+                mistakes === 0
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <p
+                className={`text-base font-bold ${
+                  mistakes === 0 ? "text-emerald-700" : "text-blue-700"
+                }`}
+              >
+                {mistakes === 0
+                  ? "Chuẩn! Viết đúng hết, không sai nét nào."
+                  : `Hoàn thành, sai ${mistakes} lần. Viết lại để đạt 0 lỗi nhé.`}
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="rounded-xl bg-white border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                >
+                  Viết lại
+                </button>
+                {index < list.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setIndex((i) => i + 1)}
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Chữ tiếp theo →
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
-        <section className="rounded-2xl bg-white p-5 shadow-xs border border-slate-200 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs text-slate-500">
-                Chữ {chars.length > 0 ? idx + 1 : 0}/{chars.length}
+        <section className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 space-y-4">
+          {listLoading ? (
+            <p className="text-sm text-slate-500">Đang tải danh sách chữ...</p>
+          ) : current ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-500">
+                  Chữ {index + 1}/{list.length} · đã xong {doneCount}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => setIndex((i) => i - 1)}
+                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                  >
+                    ← Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index >= list.length - 1}
+                    onClick={() => setIndex((i) => i + 1)}
+                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                  >
+                    Sau →
+                  </button>
+                </div>
               </div>
-              <div className="text-3xl font-bold text-slate-900">{ch}</div>
-              {wordInfo && (
-                <div className="text-sm text-slate-600">
-                  {wordInfo.hanzi} · {wordInfo.pinyin}
-                  {wordInfo.meaning ? ` · ${wordInfo.meaning}` : ""}
+              <div className="text-4xl font-bold text-slate-900">
+                {current.hanzi}
+              </div>
+              {current.pinyin && (
+                <div className="text-lg font-medium text-blue-600">
+                  {current.pinyin}
                 </div>
               )}
+              {current.meaning && (
+                <div className="text-sm text-slate-600">{current.meaning}</div>
+              )}
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={idx === 0}
-                onClick={() => goToChar(idx - 1)}
-                className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-              >
-                ← Trước
-              </button>
-              <button
-                type="button"
-                disabled={idx >= chars.length - 1}
-                onClick={() => goToChar(idx + 1)}
-                className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-              >
-                Sau →
-              </button>
-            </div>
-          </div>
+          ) : (
+            <p className="text-sm text-red-700">
+              {listError ?? "Chưa có chữ để luyện."}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              disabled={strokeCount === 0}
-              onClick={undoStroke}
-              className="rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40"
+              onClick={handleDemo}
+              disabled={!current || status !== "ready"}
+              className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
             >
-              Hoàn tác nét
+              Xem nét mẫu
             </button>
             <button
               type="button"
-              disabled={strokeCount === 0}
-              onClick={resetStrokes}
-              className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-40"
+              onClick={handleRetry}
+              disabled={!current}
+              className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
             >
-              Xóa hết / Làm lại
+              Xóa / Viết lại
             </button>
           </div>
 
-          <label className="flex items-center justify-between gap-3 text-sm text-slate-700">
-            <span>Hiện chữ mẫu mờ</span>
-            <input
-              type="checkbox"
-              checked={showGhost}
-              onChange={(e) => setShowGhost(e.target.checked)}
-              className="h-6 w-6 accent-blue-600"
-            />
-          </label>
-          <label className="flex items-center justify-between gap-3 text-sm text-slate-700">
-            <span>Chỉ nhận Apple Pencil (bỏ qua ngón tay)</span>
-            <input
-              type="checkbox"
-              checked={penOnly}
-              onChange={(e) => setPenOnly(e.target.checked)}
-              className="h-6 w-6 accent-blue-600"
-            />
-          </label>
-          <p className="text-xs text-slate-500">
-            Sau lần đầu bút chạm vào ô, lòng bàn tay và ngón tay tự được bỏ qua.
-          </p>
+          <div className="space-y-2 text-sm text-slate-700">
+            <label className="flex items-center justify-between gap-3">
+              <span>Hiện chữ mẫu mờ</span>
+              <input
+                type="checkbox"
+                checked={showHint}
+                onChange={(e) => setShowHint(e.target.checked)}
+                className="h-5 w-5"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3">
+              <span>Chấm dễ tính (cho phép nét lệch hơn)</span>
+              <input
+                type="checkbox"
+                checked={easy}
+                onChange={(e) => setEasy(e.target.checked)}
+                className="h-5 w-5"
+              />
+            </label>
+          </div>
 
-          <div className="space-y-2 pt-1 border-t border-slate-100">
+          <div className="border-t border-slate-100 pt-3 space-y-2">
             <p className="text-xs font-medium text-slate-600">
-              Lấy từ ngẫu nhiên theo cấp HSK 3.0:
+              Lấy chữ đơn theo cấp HSK 3.0 (tối đa {MAX_CHARS} chữ, theo độ phổ
+              biến):
             </p>
             <div className="flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 5, 6].map((lv) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((lv) => (
                 <button
                   key={lv}
                   type="button"
-                  disabled={loadingWord}
-                  onClick={() => void pickRandomWord(lv)}
-                  className="rounded-xl bg-blue-50 border border-blue-200 px-3.5 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                  onClick={() => {
+                    setLevel(lv);
+                    void loadLevelList(lv);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${
+                    source === "level" && level === lv
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                  }`}
                 >
                   HSK {lv}
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={handleShuffle}
+              disabled={list.length < 2}
+              className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+            >
+              Xáo trộn thứ tự
+            </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="border-t border-slate-100 pt-3 space-y-2">
             <p className="text-xs font-medium text-slate-600">
-              Hoặc tự nhập chữ Hán muốn tập:
+              Hoặc tự nhập chữ Hán muốn tập (nhiều chữ cũng được):
             </p>
             <div className="flex gap-2">
               <input
                 type="text"
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-                placeholder="Ví dụ: 你好"
-                className="flex-1 min-w-0 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="Ví dụ: 你好吗"
+                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
               />
               <button
                 type="button"
-                onClick={applyManual}
-                className="shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                onClick={handleUseCustom}
+                className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 Dùng chữ này
               </button>
             </div>
           </div>
 
-          {wordError && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-              {wordError}
+          {list.length > 0 && (
+            <div className="border-t border-slate-100 pt-3 space-y-2">
+              <p className="text-xs font-medium text-slate-600">
+                Tiến độ (xanh: 0 lỗi, vàng: có sai nét):
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {list.map((c, i) => {
+                  const r = results[c.hanzi];
+                  const tone =
+                    r === undefined
+                      ? "bg-slate-50 text-slate-700 border-slate-200"
+                      : r === 0
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : "bg-amber-100 text-amber-800 border-amber-300";
+                  return (
+                    <button
+                      key={c.hanzi}
+                      type="button"
+                      onClick={() => setIndex(i)}
+                      className={`h-9 w-9 rounded-lg border text-lg font-semibold ${tone} ${
+                        i === index ? "ring-2 ring-blue-500" : ""
+                      }`}
+                    >
+                      {c.hanzi}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>
