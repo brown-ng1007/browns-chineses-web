@@ -705,9 +705,9 @@ export default function ReviewPage() {
   ) : null;
 
   return (
-    <main className="space-y-4">
-      <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900">Ôn tập</h1>
+    <main className="space-y-4 pb-8">
+      <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Ôn tập</h1>
         <p className="text-sm text-slate-600 mt-0.5">
           Tự nhớ nghĩa rồi bấm &ldquo;Hiện đáp án&rdquo;, sau đó chấm mức nhớ của
           bạn. Thẻ sẽ quay lại đúng lúc sắp quên.
@@ -718,18 +718,18 @@ export default function ReviewPage() {
       {saveBanner}
 
       {phase === "loading" && (
-        <div className="rounded-2xl bg-white p-8 text-center text-slate-500 border border-slate-200">
+        <div className="p-8 text-center text-slate-500 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
           Đang chuẩn bị thẻ ôn...
         </div>
       )}
 
       {phase === "error" && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-5 space-y-3">
+        <div className="rounded-3xl bg-red-50/90 backdrop-blur-xl border border-red-200 p-5 space-y-3">
           <p className="text-sm text-red-700">{errorMsg}</p>
           <button
             type="button"
             onClick={() => void loadQueue(level)}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20"
           >
             Thử lại
           </button>
@@ -737,13 +737,13 @@ export default function ReviewPage() {
       )}
 
       {phase === "idle" && (
-        <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+        <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-center">
+            <div className="rounded-2xl bg-indigo-50/80 border border-indigo-200/70 p-4 text-center">
               <div className="text-3xl font-bold text-blue-700">{dueCount}</div>
               <div className="text-xs text-blue-700 mt-1">Thẻ đến hạn ôn</div>
             </div>
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center">
+            <div className="rounded-2xl bg-emerald-50/80 border border-emerald-200/70 p-4 text-center">
               <div className="text-3xl font-bold text-emerald-700">
                 {newCount}
               </div>
@@ -763,9 +763,9 @@ export default function ReviewPage() {
                   key={lv}
                   type="button"
                   onClick={() => setLevel(lv)}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+                  className={`px-3.5 py-2 rounded-2xl text-sm font-medium transition ${
                     level === lv
-                      ? "bg-blue-600 text-white"
+                      ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                 >
@@ -779,7 +779,7 @@ export default function ReviewPage() {
             <button
               type="button"
               onClick={handleStart}
-              className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white hover:bg-blue-700 transition"
+              className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all duration-200"
             >
               Bắt đầu ôn ({queue.length} thẻ)
             </button>
@@ -793,14 +793,14 @@ export default function ReviewPage() {
       )}
 
       {phase === "reviewing" && current && (
-        <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-5">
+        <section className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-5">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Còn {queue.length} thẻ</span>
             <span
               className={`px-2 py-0.5 rounded-md font-medium ${
                 current.card === null
                   ? "bg-emerald-50 text-emerald-700"
-                  : "bg-blue-50 text-blue-700"
+                  : "bg-indigo-50 text-indigo-700"
               }`}
             >
               {current.card === null ? "Thẻ mới" : "Ôn lại"}
@@ -808,7 +808,7 @@ export default function ReviewPage() {
           </div>
 
           <div className="text-center space-y-1.5 py-4">
-            <div className="text-6xl font-bold text-slate-900">
+            <div className="font-hanzi text-6xl font-bold text-slate-900">
               {current.word.hanzi_simp}
             </div>
             {current.word.hanzi_trad &&
@@ -817,7 +817,7 @@ export default function ReviewPage() {
                   ({current.word.hanzi_trad})
                 </div>
               )}
-            <div className="text-xl font-medium text-blue-600">
+            <div className="text-xl font-medium text-indigo-600">
               {current.word.pinyin}
             </div>
           </div>
@@ -826,13 +826,13 @@ export default function ReviewPage() {
             <button
               type="button"
               onClick={() => setRevealed(true)}
-              className="w-full rounded-xl bg-slate-900 px-5 py-4 text-base font-semibold text-white hover:bg-slate-700 transition"
+              className="w-full rounded-2xl bg-slate-900 px-5 py-4 text-base font-semibold text-white shadow-md shadow-slate-900/20 hover:bg-slate-700 transition-all duration-200"
             >
               Hiện đáp án
             </button>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3">
+              <div className="rounded-2xl bg-slate-50/80 border border-slate-200/70 p-4 space-y-3">
                 {viMap[current.word.id] ? (
                   <div>
                     <div className="text-xs font-medium text-slate-500">
@@ -866,7 +866,7 @@ export default function ReviewPage() {
                     key={r.rating}
                     type="button"
                     onClick={() => handleRate(r.rating)}
-                    className={`rounded-xl border px-2 py-3 text-center transition ${r.className}`}
+                    className={`rounded-2xl border px-2 py-3 text-center transition-all duration-200 hover:-translate-y-0.5 ${r.className}`}
                   >
                     <div className="text-base font-semibold">{r.label}</div>
                     <div className="text-xs opacity-80">
@@ -888,7 +888,7 @@ export default function ReviewPage() {
       )}
 
       {phase === "done" && (
-        <section className="rounded-2xl bg-white p-6 shadow-xs border border-slate-200 text-center space-y-3">
+        <section className="p-6 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 text-center space-y-3">
           <div className="text-4xl">🎉</div>
           <h2 className="text-xl font-bold text-slate-900">Xong phiên ôn!</h2>
           <p className="text-sm text-slate-600">
@@ -898,7 +898,7 @@ export default function ReviewPage() {
             type="button"
             disabled={pendingCount > 0}
             onClick={() => void loadQueue(level)}
-            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition"
+            className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 disabled:opacity-50 transition-all duration-200"
           >
             {pendingCount > 0
               ? offlineWaiting
