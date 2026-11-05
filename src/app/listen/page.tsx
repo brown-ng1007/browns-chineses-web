@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { loadSettings, type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { refreshSettings, type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
+import { logSkill } from "@/lib/skill-log";
 import {
   loadPracticeWords,
   shuffle,
@@ -32,11 +33,14 @@ export default function ListenPage() {
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [score, setScore] = useState(0);
+  const startedAt = useRef<number>(Date.now());
 
   useEffect(() => {
-    const s = loadSettings();
-    setSettings(s);
-    loadPracticeWords(s.listenLevel)
+    refreshSettings()
+      .then((s) => {
+        setSettings(s);
+        return loadPracticeWords(s.listenLevel);
+      })
       .then(setWords)
       .catch(() => setWords([]));
   }, []);
@@ -46,6 +50,7 @@ export default function ListenPage() {
     setIndex(0);
     setPicked(null);
     setScore(0);
+    startedAt.current = Date.now();
   }
 
   useEffect(() => {
@@ -59,6 +64,18 @@ export default function ListenPage() {
     if (q) speak(q.answer.hanzi, { rate: settings.ttsRate, voiceURI: settings.voiceURI });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
+
+  // Hết lượt thì ghi vào tab Kỹ năng (một lần mỗi lượt)
+  useEffect(() => {
+    if (finished) {
+      void logSkill(
+        "listening",
+        (Date.now() - startedAt.current) / 60000,
+        score / questions.length
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   const progress = useMemo(
     () => (questions.length ? Math.round((index / questions.length) * 100) : 0),

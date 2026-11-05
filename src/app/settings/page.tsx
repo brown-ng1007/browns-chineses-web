@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
+  pushSettingsDebounced,
+  refreshSettings,
   saveSettings,
   type AppSettings,
 } from "@/lib/settings";
@@ -44,6 +46,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setSettings(loadSettings());
+    void refreshSettings().then(setSettings);
     loadInfo();
     if ("speechSynthesis" in window) {
       const load = () =>
@@ -62,6 +65,7 @@ export default function SettingsPage() {
     const next = { ...settings, ...patch };
     setSettings(next);
     saveSettings(next);
+    pushSettingsDebounced(next);
   }
 
   async function handleClearOfflineCache() {

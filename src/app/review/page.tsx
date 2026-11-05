@@ -16,7 +16,7 @@ import {
   type CardMemory,
   type Rating,
 } from "@/lib/srs";
-import { loadSettings } from "@/lib/settings";
+import { refreshSettings } from "@/lib/settings";
 
 const MAX_DUE = 100; // số thẻ đến hạn tối đa mỗi phiên
 const PAGE = 100;
@@ -379,7 +379,7 @@ export default function ReviewPage() {
         }
 
         const dueCards = (dueRes.data ?? []) as RawCard[];
-        const limit = loadSettings().newPerDay; // lấy từ tab Cài đặt
+        const limit = (await refreshSettings()).newPerDay; // lấy từ tab Cài đặt
         setNewPerDay(limit);
         const remainingNew = Math.max(0, limit - (countRes.count ?? 0));
         const newIds = await pickNewWordIds(supabase, lv, remainingNew);

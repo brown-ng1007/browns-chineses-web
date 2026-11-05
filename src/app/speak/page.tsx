@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadSettings, type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
+import { refreshSettings, type AppSettings, DEFAULT_SETTINGS } from "@/lib/settings";
+import { logSkill } from "@/lib/skill-log";
 import {
   loadPracticeWords,
   shuffle,
@@ -68,12 +69,15 @@ export default function SpeakPage() {
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState(true);
   const recRef = useRef<Recognition | null>(null);
+  const lastAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
     setSupported(getRecognition() !== null);
-    const s = loadSettings();
-    setSettings(s);
-    loadPracticeWords(s.listenLevel)
+    refreshSettings()
+      .then((s) => {
+        setSettings(s);
+        return loadPracticeWords(s.listenLevel);
+      })
       .then((w) => {
         setWords(w);
         setOrder(shuffle(w));
@@ -104,8 +108,12 @@ export default function SpeakPage() {
     rec.maxAlternatives = 3;
     rec.onresult = (e) => {
       const text = e.results[0][0].transcript;
+      const v = judge(text, word.hanzi);
       setHeard(text);
-      setVerdict(judge(text, word.hanzi));
+      setVerdict(v);
+      const minutes = Math.min(2, (Date.now() - lastAtRef.current) / 60000);
+      lastAtRef.current = Date.now();
+      void logSkill("speaking", minutes, v === "ok" ? 1 : v === "close" ? 0.5 : 0);
     };
     rec.onerror = (e) => {
       setError(
