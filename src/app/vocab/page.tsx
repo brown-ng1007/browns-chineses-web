@@ -280,13 +280,13 @@ export default function VocabPage() {
     return (
       <div className="flex items-center gap-1.5 shrink-0">
         {word.hsk_new_level !== null && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-            HSK 3.0: {word.hsk_new_level}
+          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50/90 text-blue-700 border border-blue-200/70">
+            HSK 3.0 • {word.hsk_new_level}
           </span>
         )}
         {word.hsk_old_level !== null && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-            2.0: {word.hsk_old_level}
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+            2.0 • {word.hsk_old_level}
           </span>
         )}
       </div>
@@ -298,38 +298,43 @@ export default function VocabPage() {
     return (
       <article
         key={word.id}
-        className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 flex flex-col justify-between gap-2"
+        className="group rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] hover:shadow-[0_14px_36px_rgb(37,99,235,0.08)] border border-white/90 hover:border-blue-200/80 transition-all duration-200 flex flex-col justify-between gap-3"
       >
         <div>
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-wrap items-baseline gap-2.5">
+              <span className="font-hanzi text-3xl sm:text-4xl font-bold text-slate-900 tracking-wide">
                 {word.hanzi_simp}
               </span>
               {word.hanzi_trad && word.hanzi_trad !== word.hanzi_simp && (
-                <span className="text-sm text-slate-400">
+                <span className="font-hanzi text-base text-slate-400">
                   ({word.hanzi_trad})
                 </span>
               )}
-              <span className="text-base font-medium text-blue-600">
+              <span className="text-sm sm:text-base font-semibold text-blue-600 bg-blue-50/80 px-2.5 py-0.5 rounded-lg border border-blue-100">
                 {word.pinyin}
               </span>
             </div>
             {renderHskBadges(word)}
           </div>
 
-          <ul className="mt-2.5 space-y-1 text-sm text-slate-700 list-disc list-inside">
+          <ul className="mt-3.5 space-y-1.5 text-sm text-slate-700">
             {word.meanings_en.map((m) => (
-              <li key={m.id}>{m.text}</li>
+              <li key={m.id} className="flex items-start gap-2 leading-relaxed">
+                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                <span>{m.text}</span>
+              </li>
             ))}
           </ul>
         </div>
 
-        <ViPractice
-          wordId={word.id}
-          savedMeaning={savedViMap[word.id] ?? null}
-          onSaved={handleViSaved}
-        />
+        <div className="pt-2 border-t border-slate-100/90">
+          <ViPractice
+            wordId={word.id}
+            savedMeaning={savedViMap[word.id] ?? null}
+            onSaved={handleViSaved}
+          />
+        </div>
       </article>
     );
   }
@@ -345,16 +350,20 @@ export default function VocabPage() {
     return (
       <article
         key={`group-${first.hanzi_simp}`}
-        className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 flex flex-col gap-3"
+        className="rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] border border-amber-200/70 flex flex-col gap-3.5"
       >
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
           <div className="flex items-baseline gap-2.5">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+            <span className="font-hanzi text-3xl sm:text-4xl font-bold text-slate-900 tracking-wide">
               {first.hanzi_simp}
             </span>
-            {trad && <span className="text-sm text-slate-400">({trad})</span>}
+            {trad && (
+              <span className="font-hanzi text-base text-slate-400">
+                ({trad})
+              </span>
+            )}
           </div>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">
             {group.length} cách đọc
           </span>
         </div>
@@ -362,26 +371,38 @@ export default function VocabPage() {
         {group.map((word, idx) => (
           <div
             key={word.id}
-            className={idx > 0 ? "pt-3 border-t border-slate-200" : ""}
+            className={
+              idx > 0
+                ? "pt-3.5 border-t border-dashed border-slate-200/90"
+                : ""
+            }
           >
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-lg font-semibold text-blue-600">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-base font-semibold text-blue-600 bg-blue-50/80 px-2.5 py-0.5 rounded-lg border border-blue-100">
                 {word.pinyin}
               </span>
               {renderHskBadges(word)}
             </div>
 
-            <ul className="mt-2 space-y-1 text-sm text-slate-700 list-disc list-inside">
+            <ul className="mt-2.5 space-y-1.5 text-sm text-slate-700">
               {word.meanings_en.map((m) => (
-                <li key={m.id}>{m.text}</li>
+                <li
+                  key={m.id}
+                  className="flex items-start gap-2 leading-relaxed"
+                >
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                  <span>{m.text}</span>
+                </li>
               ))}
             </ul>
 
-            <ViPractice
-              wordId={word.id}
-              savedMeaning={savedViMap[word.id] ?? null}
-              onSaved={handleViSaved}
-            />
+            <div className="mt-2">
+              <ViPractice
+                wordId={word.id}
+                savedMeaning={savedViMap[word.id] ?? null}
+                onSaved={handleViSaved}
+              />
+            </div>
           </div>
         ))}
       </article>
@@ -389,24 +410,29 @@ export default function VocabPage() {
   }
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
+    <main className="space-y-6 pb-8">
+      <section className="rounded-3xl bg-white/85 backdrop-blur-xl p-5 sm:p-7 shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Từ vựng HSK</h1>
-            <p className="text-sm text-slate-600 mt-0.5">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600 mb-1">
+              <span>Từ điển &amp; Nghĩa Việt</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Từ vựng HSK
+            </h1>
+            <p className="text-sm text-slate-600 mt-1">
               Tra cứu chữ Hán giản thể, Pinyin, nghĩa tiếng Anh và tự luyện nghĩa
               tiếng Việt.
             </p>
           </div>
 
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 self-start">
+          <div className="inline-flex rounded-2xl bg-slate-100/90 p-1.5 self-start border border-slate-200/60">
             <button
               type="button"
               onClick={() => handleVersionChange("new")}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                 version === "new"
-                  ? "bg-white text-slate-900 shadow-xs"
+                  ? "bg-white text-blue-600 shadow-xs ring-1 ring-slate-900/5"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -415,9 +441,9 @@ export default function VocabPage() {
             <button
               type="button"
               onClick={() => handleVersionChange("old")}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                 version === "old"
-                  ? "bg-white text-slate-900 shadow-xs"
+                  ? "bg-white text-blue-600 shadow-xs ring-1 ring-slate-900/5"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -430,10 +456,10 @@ export default function VocabPage() {
           <button
             type="button"
             onClick={() => setLevel(null)}
-            className={`px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               level === null
-                ? "bg-blue-600 text-white shadow-xs"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25"
+                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/70"
             }`}
           >
             Tất cả
@@ -443,10 +469,10 @@ export default function VocabPage() {
               key={lv}
               type="button"
               onClick={() => setLevel(lv)}
-              className={`px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                 level === lv
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25"
+                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/70"
               }`}
             >
               HSK {lv}
@@ -455,12 +481,12 @@ export default function VocabPage() {
         </div>
 
         {/* Công tắc gộp cách đọc trùng chữ */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-200/60">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-800">
+            <p className="text-sm font-semibold text-slate-800">
               Gộp cách đọc trùng chữ
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 mt-0.5">
               {mergeReadings
                 ? mergedGroupCount > 0
                   ? `Đang gộp: ${mergedGroupCount} chữ có nhiều cách đọc trong danh sách đã tải.`
@@ -474,12 +500,14 @@ export default function VocabPage() {
             aria-checked={mergeReadings}
             aria-label="Gộp cách đọc trùng chữ"
             onClick={() => setMergeReadings((prev) => !prev)}
-            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition ${
-              mergeReadings ? "bg-blue-600" : "bg-slate-300"
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 ${
+              mergeReadings
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600"
+                : "bg-slate-300"
             }`}
           >
             <span
-              className={`inline-block h-6 w-6 rounded-full bg-white shadow-xs transition-transform ${
+              className={`inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200 ${
                 mergeReadings ? "translate-x-5" : "translate-x-0.5"
               }`}
             />
@@ -488,28 +516,28 @@ export default function VocabPage() {
       </section>
 
       {offlineData && (
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+        <div className="rounded-2xl bg-amber-50/90 backdrop-blur-md border border-amber-200/80 p-4 text-sm text-amber-900 shadow-xs">
           Đang xem từ vựng đã lưu trên máy (ngoại tuyến). Chỉ có những từ bạn
           từng tải khi có mạng. Nghĩa Việt đã lưu và chấm nghĩa cần có mạng.
         </div>
       )}
 
       {errorMsg && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+        <div className="rounded-2xl bg-rose-50/90 backdrop-blur-md border border-rose-200/80 p-4 text-sm text-rose-700 shadow-xs">
           {errorMsg}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-2xl bg-white p-8 text-center text-slate-500 border border-slate-200">
+        <div className="rounded-3xl bg-white/80 backdrop-blur-md p-10 text-center text-slate-500 border border-white/90 shadow-xs">
           Đang tải danh sách từ vựng...
         </div>
       ) : words.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 text-center text-slate-500 border border-slate-200">
+        <div className="rounded-3xl bg-white/80 backdrop-blur-md p-10 text-center text-slate-500 border border-white/90 shadow-xs">
           Không tìm thấy từ vựng nào ở bộ lọc này.
         </div>
       ) : (
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           {mergeReadings
             ? groups.map((group) =>
                 group.length === 1
@@ -521,12 +549,12 @@ export default function VocabPage() {
       )}
 
       {nextCursor !== null && !loading && (
-        <div className="flex justify-center pt-2 pb-6">
+        <div className="flex justify-center pt-3 pb-6">
           <button
             type="button"
             disabled={loadingMore}
             onClick={() => fetchWords(nextCursor, true)}
-            className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition"
+            className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 transition-all"
           >
             {loadingMore ? "Đang tải thêm..." : "Tải thêm 50 từ"}
           </button>

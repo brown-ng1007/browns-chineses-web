@@ -28,17 +28,17 @@ const VERDICT_CONFIG: Record<
   correct: {
     label: "Đúng",
     badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
-    boxClass: "bg-emerald-50/70 border-emerald-200",
+    boxClass: "bg-emerald-50/80 border-emerald-200",
   },
   close: {
     label: "Gần đúng",
     badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
-    boxClass: "bg-amber-50/70 border-amber-200",
+    boxClass: "bg-amber-50/80 border-amber-200",
   },
   incorrect: {
     label: "Sai",
-    badgeClass: "bg-red-100 text-red-800 border-red-300",
-    boxClass: "bg-red-50/70 border-red-200",
+    badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
+    boxClass: "bg-rose-50/80 border-rose-200",
   },
 };
 
@@ -86,7 +86,6 @@ export default function ViPractice({
     setChecking(true);
     setErrorMsg(null);
     setSaveSuccess(false);
-    // Xóa kết quả cũ ngay khi bắt đầu chấm lại, để không hiểu nhầm nếu lần này bị lỗi
     setAttemptResult(null);
     setSelectedSuggestion("");
 
@@ -234,58 +233,53 @@ export default function ViPractice({
   }
   const hasSuggestions = allSuggestions.length > 0;
 
-  // Ô nhập đã khác chữ vừa chấm (người dùng đang sửa/gộp)
   const inputChangedSinceCheck =
     attemptResult !== null && inputText.trim() !== checkedInputText;
 
   return (
-    <div className="mt-3 pt-3 border-t border-slate-100 space-y-2.5">
-      {/* Khu vực nút mở Luyện nghĩa Việt & Xem nghĩa đã lưu (ẩn mặc định) */}
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className={`px-3.5 py-2 rounded-xl text-sm font-medium transition ${
+          className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
             isOpen
-              ? "bg-slate-200 text-slate-800"
-              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+              ? "bg-slate-200 text-slate-800 shadow-xs"
+              : "bg-blue-50/80 text-blue-700 hover:bg-blue-100/80 border border-blue-200/60"
           }`}
         >
-          {isOpen ? "Đóng luyện nghĩa" : "Luyện nghĩa Việt"}
+          {isOpen ? "Đóng luyện nghĩa" : "✍️ Luyện nghĩa Việt"}
         </button>
 
         {savedMeaning && (
           <button
             type="button"
             onClick={() => setShowSavedMeaning((prev) => !prev)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200/70 transition"
           >
-            {showSavedMeaning ? "Ẩn nghĩa đã lưu" : "Xem nghĩa tôi đã lưu"}
+            {showSavedMeaning ? "Ẩn nghĩa đã lưu" : "📖 Xem nghĩa đã lưu"}
           </button>
         )}
       </div>
 
-      {/* Nghĩa Việt đã lưu của người dùng: CHỈ hiện khi bấm Xem hoặc sau khi Kiểm tra */}
       {savedMeaning && showSavedMeaning && (
-        <div className="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-sm">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 text-sm shadow-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Nghĩa bạn đã lưu ({STATUS_LABEL[savedMeaning.status]}):
             </span>
           </div>
-          <p className="mt-0.5 font-semibold text-slate-900 break-words">
+          <p className="mt-1 font-semibold text-slate-900 break-words">
             {savedMeaning.text}
           </p>
         </div>
       )}
 
-      {/* Khu vực nhập và chấm nghĩa */}
       {isOpen && (
-        <div className="rounded-xl bg-slate-50/80 border border-slate-200 p-3.5 space-y-3">
-          <form onSubmit={handleCheck} className="space-y-2.5">
-            <label className="block text-xs font-medium text-slate-600">
-              Tự nhập nghĩa tiếng Việt (hoặc chỉnh sửa tại đây trước khi bấm
-              &ldquo;Gộp&rdquo;):
+        <div className="rounded-2xl bg-slate-50/90 border border-slate-200/80 p-4 space-y-3.5 shadow-inner">
+          <form onSubmit={handleCheck} className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-600">
+              Tự nhập nghĩa tiếng Việt (hoặc chỉnh sửa trước khi bấm &ldquo;Gộp&rdquo;):
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -297,35 +291,33 @@ export default function ViPractice({
                 }}
                 placeholder="Nhập nghĩa tiếng Việt..."
                 disabled={checking || savingChoice !== null}
-                className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none disabled:opacity-60"
+                className="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none disabled:opacity-60 shadow-xs"
               />
               <button
                 type="submit"
                 disabled={checking || savingChoice !== null || !inputText.trim()}
-                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition shrink-0"
+                className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:shadow-md disabled:opacity-50 transition shrink-0"
               >
                 {checking ? "Đang chấm..." : "Kiểm tra"}
               </button>
             </div>
           </form>
 
-          {/* Thông báo lỗi thân thiện */}
           {errorMsg && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs sm:text-sm text-red-700">
+            <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs sm:text-sm text-rose-700 shadow-xs">
               {errorMsg}
             </div>
           )}
 
-          {/* Kết quả chấm & đối chiếu (CHỈ hiện sau khi đã gọi API attempt) */}
           {attemptResult && (
             <div
-              className={`rounded-xl border p-3.5 space-y-3 ${
+              className={`rounded-2xl border p-4 space-y-3 shadow-xs ${
                 VERDICT_CONFIG[attemptResult.verdict].boxClass
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold border ${
+                  className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border shadow-xs ${
                     VERDICT_CONFIG[attemptResult.verdict].badgeClass
                   }`}
                 >
@@ -337,21 +329,19 @@ export default function ViPractice({
               </div>
 
               <p className="text-xs text-slate-500 break-words">
-                Kết quả này chấm cho: &ldquo;{checkedInputText}&rdquo;
+                Chấm cho: &ldquo;{checkedInputText}&rdquo;
                 {inputChangedSinceCheck &&
-                  " (ô nhập đã khác, bấm Kiểm tra để chấm lại chữ mới)"}
+                  " (ô nhập đã thay đổi, bấm Kiểm tra lại)"}
               </p>
 
-              <p className="text-sm text-slate-800 leading-relaxed">
+              <p className="text-sm text-slate-800 leading-relaxed font-medium">
                 {attemptResult.explanation}
               </p>
 
-              {/* Phần đối chiếu: suggested_text và candidates (nếu có) */}
               {hasSuggestions && (
-                <div className="rounded-lg bg-white/90 border border-slate-200 p-3 space-y-2">
+                <div className="rounded-xl bg-white/90 border border-slate-200/80 p-3 space-y-2 shadow-xs">
                   <p className="text-xs font-semibold text-slate-600">
-                    Gợi ý đối chiếu (chọn 1 gợi ý nếu muốn nhận hoặc ghép vào ô
-                    nhập):
+                    Gợi ý đối chiếu (chọn 1 gợi ý để nhận hoặc ghép vào ô nhập):
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {allSuggestions.map((item) => {
@@ -361,9 +351,9 @@ export default function ViPractice({
                           key={item}
                           type="button"
                           onClick={() => setSelectedSuggestion(item)}
-                          className={`text-left px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border transition ${
+                          className={`text-left px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all ${
                             isSelected
-                              ? "bg-blue-600 text-white border-blue-600"
+                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
                               : "bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100"
                           }`}
                         >
@@ -378,17 +368,16 @@ export default function ViPractice({
                       onClick={() =>
                         handleAppendSuggestionToInput(selectedSuggestion)
                       }
-                      className="text-xs font-medium text-blue-600 hover:text-blue-800 underline"
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
                     >
-                      + Chép thêm gợi ý này vào ô nhập phía trên để sửa/gộp
+                      + Chép thêm gợi ý này vào ô nhập để sửa/gộp
                     </button>
                   )}
                 </div>
               )}
 
-              {/* Các nút cho người dùng tự quyết định lưu */}
               <div className="pt-1 space-y-2">
-                <p className="text-xs font-medium text-slate-600">
+                <p className="text-xs font-semibold text-slate-600">
                   Chọn cách lưu nghĩa của bạn:
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -396,7 +385,7 @@ export default function ViPractice({
                     type="button"
                     disabled={savingChoice !== null || checking}
                     onClick={() => handleConfirm("keep_mine")}
-                    className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white text-slate-800 border border-slate-300 hover:bg-slate-100 disabled:opacity-50 transition"
+                    className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 transition shadow-xs"
                   >
                     {savingChoice === "keep_mine"
                       ? "Đang lưu..."
@@ -412,7 +401,7 @@ export default function ViPractice({
                         !selectedSuggestion.trim()
                       }
                       onClick={() => handleConfirm("accept_candidate")}
-                      className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition"
+                      className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-xs"
                     >
                       {savingChoice === "accept_candidate"
                         ? "Đang lưu..."
@@ -430,7 +419,7 @@ export default function ViPractice({
                         !inputChangedSinceCheck
                       }
                       onClick={() => handleConfirm("merge")}
-                      className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition"
+                      className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition shadow-xs"
                     >
                       {savingChoice === "merge"
                         ? "Đang lưu..."
@@ -440,15 +429,14 @@ export default function ViPractice({
                 </div>
 
                 {hasSuggestions && !inputChangedSinceCheck && (
-                  <p className="text-xs text-slate-500">
-                    Muốn gộp: bấm &ldquo;+ Chép thêm gợi ý&rdquo; hoặc sửa ô nhập
-                    trước, nút Gộp sẽ sáng lên.
+                  <p className="text-[11px] text-slate-500">
+                    Muốn gộp: bấm &ldquo;+ Chép thêm gợi ý&rdquo; hoặc sửa ô nhập, nút Gộp sẽ sáng lên.
                   </p>
                 )}
 
                 {saveSuccess && (
-                  <p className="text-xs sm:text-sm font-semibold text-emerald-700">
-                    ✓ Đã lưu
+                  <p className="text-xs sm:text-sm font-bold text-emerald-700 flex items-center gap-1">
+                    <span>✓</span> Đã lưu thành công
                   </p>
                 )}
               </div>
