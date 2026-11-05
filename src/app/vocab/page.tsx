@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import type {
   Word,
   WordMeaningEn,
@@ -30,6 +30,8 @@ export default function VocabPage() {
   const [savedViMap, setSavedViMap] = useState<Record<string, SavedViMeaning>>(
     {}
   );
+  // Công tắc gộp cách đọc trùng chữ (chỉ ảnh hưởng hiển thị, mặc định tắt)
+  const [mergeReadings, setMergeReadings] = useState<boolean>(false);
 
   // Đánh số mỗi lần tải để bỏ qua kết quả nghĩa đã lưu của lần tải cũ
   const requestIdRef = useRef<number>(0);
@@ -169,6 +171,135 @@ export default function VocabPage() {
     }));
   }
 
+  // Gom các thẻ cùng chữ Hán giản thể (giữ nguyên thứ tự xuất hiện đầu tiên).
+  // Chỉ dùng để hiển thị, không đổi dữ liệu.
+  const groups = useMemo<WordWithMeanings[][]>(() => {
+    const map = new Map<string, WordWithMeanings[]>();
+    for (const w of words) {
+      const existing = map.get(w.hanzi_simp);
+      if (existing) {
+        existing.push(w);
+      } else {
+        map.set(w.hanzi_simp, [w]);
+      }
+    }
+    return Array.from(map.values());
+  }, [words]);
+
+  const mergedGroupCount = groups.filter((g) => g.length > 1).length;
+
+  function renderHskBadges(word: WordWithMeanings) {
+    return (
+      <div className="flex items-center gap-1.5 shrink-0">
+        {word.hsk_new_level !== null && (
+          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+            HSK 3.0: {word.hsk_new_level}
+          </span>
+        )}
+        {word.hsk_old_level !== null && (
+          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+            2.0: {word.hsk_old_level}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // Thẻ một từ (cách hiển thị gốc)
+  function renderWordCard(word: WordWithMeanings) {
+    return (
+      <article
+        key={word.id}
+        className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 flex flex-col justify-between gap-2"
+      >
+        <div>
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+                {word.hanzi_simp}
+              </span>
+              {word.hanzi_trad && word.hanzi_trad !== word.hanzi_simp && (
+                <span className="text-sm text-slate-400">
+                  ({word.hanzi_trad})
+                </span>
+              )}
+              <span className="text-base font-medium text-blue-600">
+                {word.pinyin}
+              </span>
+            </div>
+            {renderHskBadges(word)}
+          </div>
+
+          <ul className="mt-2.5 space-y-1 text-sm text-slate-700 list-disc list-inside">
+            {word.meanings_en.map((m) => (
+              <li key={m.id}>{m.text}</li>
+            ))}
+          </ul>
+        </div>
+
+        <ViPractice
+          wordId={word.id}
+          savedMeaning={savedViMap[word.id] ?? null}
+          onSaved={handleViSaved}
+        />
+      </article>
+    );
+  }
+
+  // Thẻ gộp: một chữ Hán, nhiều cách đọc. Mỗi cách đọc có khu luyện nghĩa riêng
+  // (mỗi lần vẫn chỉ chấm đúng một word_id).
+  function renderGroupCard(group: WordWithMeanings[]) {
+    const first = group[0];
+    const trad =
+      group.find((w) => w.hanzi_trad && w.hanzi_trad !== w.hanzi_simp)
+        ?.hanzi_trad ?? null;
+
+    return (
+      <article
+        key={`group-${first.hanzi_simp}`}
+        className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 flex flex-col gap-3"
+      >
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+              {first.hanzi_simp}
+            </span>
+            {trad && <span className="text-sm text-slate-400">({trad})</span>}
+          </div>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+            {group.length} cách đọc
+          </span>
+        </div>
+
+        {group.map((word, idx) => (
+          <div
+            key={word.id}
+            className={idx > 0 ? "pt-3 border-t border-slate-200" : ""}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-lg font-semibold text-blue-600">
+                {word.pinyin}
+              </span>
+              {renderHskBadges(word)}
+            </div>
+
+            <ul className="mt-2 space-y-1 text-sm text-slate-700 list-disc list-inside">
+              {word.meanings_en.map((m) => (
+                <li key={m.id}>{m.text}</li>
+              ))}
+            </ul>
+
+            <ViPractice
+              wordId={word.id}
+              savedMeaning={savedViMap[word.id] ?? null}
+              onSaved={handleViSaved}
+            />
+          </div>
+        ))}
+      </article>
+    );
+  }
+
   return (
     <main className="space-y-6">
       <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-xs border border-slate-200 space-y-4">
@@ -234,6 +365,38 @@ export default function VocabPage() {
             </button>
           ))}
         </div>
+
+        {/* Công tắc gộp cách đọc trùng chữ */}
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800">
+              Gộp cách đọc trùng chữ
+            </p>
+            <p className="text-xs text-slate-500">
+              {mergeReadings
+                ? mergedGroupCount > 0
+                  ? `Đang gộp: ${mergedGroupCount} chữ có nhiều cách đọc trong danh sách đã tải.`
+                  : "Chưa có chữ nào trong danh sách đã tải có nhiều cách đọc."
+                : "Tắt: mỗi cách đọc hiện thành một thẻ riêng (ví dụ 的: de, dī, dí, dì)."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mergeReadings}
+            aria-label="Gộp cách đọc trùng chữ"
+            onClick={() => setMergeReadings((prev) => !prev)}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition ${
+              mergeReadings ? "bg-blue-600" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-6 w-6 rounded-full bg-white shadow-xs transition-transform ${
+                mergeReadings ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
       </section>
 
       {errorMsg && (
@@ -251,56 +414,14 @@ export default function VocabPage() {
           Không tìm thấy từ vựng nào ở bộ lọc này.
         </div>
       ) : (
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {words.map((word) => (
-            <article
-              key={word.id}
-              className="rounded-2xl bg-white p-4 sm:p-5 shadow-xs border border-slate-200 flex flex-col justify-between gap-2"
-            >
-              <div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="text-2xl sm:text-3xl font-bold text-slate-900">
-                      {word.hanzi_simp}
-                    </span>
-                    {word.hanzi_trad && word.hanzi_trad !== word.hanzi_simp && (
-                      <span className="text-sm text-slate-400">
-                        ({word.hanzi_trad})
-                      </span>
-                    )}
-                    <span className="text-base font-medium text-blue-600">
-                      {word.pinyin}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {word.hsk_new_level !== null && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                        HSK 3.0: {word.hsk_new_level}
-                      </span>
-                    )}
-                    {word.hsk_old_level !== null && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                        2.0: {word.hsk_old_level}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <ul className="mt-2.5 space-y-1 text-sm text-slate-700 list-disc list-inside">
-                  {word.meanings_en.map((m) => (
-                    <li key={m.id}>{m.text}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <ViPractice
-                wordId={word.id}
-                savedMeaning={savedViMap[word.id] ?? null}
-                onSaved={handleViSaved}
-              />
-            </article>
-          ))}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          {mergeReadings
+            ? groups.map((group) =>
+                group.length === 1
+                  ? renderWordCard(group[0])
+                  : renderGroupCard(group)
+              )
+            : words.map((word) => renderWordCard(word))}
         </section>
       )}
 
