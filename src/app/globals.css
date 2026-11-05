@@ -3,19 +3,219 @@
 :root {
   --bg-primary: #f8fafc;
   --text-primary: #0f172a;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: #f4f6fb;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.07) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(225, 29, 72, 0.05) 0px, transparent 45%),
-    radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-color: #eef1fb;
   color: var(--text-primary);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ============ NỀN ĐỘNG (chỉ dùng transform, nhẹ cho iPad) ============ */
+.bg-stage {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, #f3f5fe 0%, #eaeefb 55%, #f4eefa 100%);
+}
+
+.bg-blob {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.bg-blob.b1 {
+  width: 62vmax; height: 62vmax;
+  left: -18vmax; top: -22vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.30), transparent 62%);
+  animation: drift-a 26s ease-in-out infinite alternate;
+}
+.bg-blob.b2 {
+  width: 54vmax; height: 54vmax;
+  right: -16vmax; top: 6vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(225, 29, 72, 0.20), transparent 62%);
+  animation: drift-b 32s ease-in-out infinite alternate;
+}
+.bg-blob.b3 {
+  width: 58vmax; height: 58vmax;
+  left: 12vmax; bottom: -30vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.24), transparent 62%);
+  animation: drift-c 38s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(14vmax, 10vmax, 0) scale(1.12); }
+}
+@keyframes drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to   { transform: translate3d(-12vmax, 14vmax, 0) scale(0.92); }
+}
+@keyframes drift-c {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-10vmax, -12vmax, 0) scale(1.14); }
+}
+
+/* Chữ Hán mờ trôi nhẹ phía sau */
+.bg-hanzi {
+  position: absolute;
+  font-family: "Songti SC", "STKaiti", "KaiTi", "Noto Serif SC", "PingFang SC", serif;
+  font-weight: 700;
+  color: rgba(67, 56, 202, 0.07);
+  line-height: 1;
+  user-select: none;
+  will-change: transform;
+  animation: float-y var(--dur, 20s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes float-y {
+  from { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+  to   { transform: translate3d(0, -36px, 0) rotate(calc(var(--rot, 0deg) + 5deg)); }
+}
+
+/* ============ CHUYỂN TRANG ============ */
+.page-enter {
+  animation: page-in 0.5s var(--ease-out) backwards;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Thẻ hiện lần lượt (dùng style={{ "--i": số }}) */
+.rise {
+  animation: rise-in 0.6s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translate3d(0, 22px, 0) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============ HERO ============ */
+.hero-shine::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(129, 140, 248, 0.28) 70deg,
+    transparent 140deg,
+    rgba(244, 114, 182, 0.20) 230deg,
+    transparent 300deg
+  );
+  animation: spin-slow 22s linear infinite;
+  pointer-events: none;
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.hero-hanzi {
+  animation: breathe 7s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.05; }
+  50%      { transform: translate3d(-10px, -12px, 0) scale(1.05); opacity: 0.10; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-out infinite;
+}
+@keyframes pulse-dot {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  100% { box-shadow: 0 0 0 9px rgba(52, 211, 153, 0); }
+}
+
+/* ============ THẺ KÍNH: nhấc lên + ánh sáng quét ============ */
+.glass-card {
+  transition:
+    transform 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out),
+    border-color 0.35s ease;
+}
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  transform: skewX(-18deg) translate3d(0, 0, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .glass-card:hover {
+    transform: translate3d(0, -6px, 0);
+  }
+  .glass-card:hover::after {
+    animation: sheen 0.9s var(--ease-out);
+  }
+  .glass-card:hover .card-icon {
+    transform: rotate(-6deg) scale(1.1);
+  }
+  .glass-card:hover .card-arrow {
+    transform: translateX(3px);
+  }
+}
+.glass-card:active {
+  transform: scale(0.975);
+  transition-duration: 0.12s;
+}
+.card-icon,
+.card-arrow {
+  transition: transform 0.4s var(--ease-out), background-color 0.2s, color 0.2s;
+}
+@keyframes sheen {
+  0%   { left: -60%; opacity: 0; }
+  30%  { opacity: 1; }
+  100% { left: 130%; opacity: 0; }
+}
+
+/* ============ PHẢN HỒI CHẠM CHO MỌI NÚT / LIÊN KẾT ============ */
+button, [role="button"] {
+  transition: transform 0.18s var(--ease-out), box-shadow 0.25s ease,
+    background-color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+button:not(:disabled):active, [role="button"]:active {
+  transform: scale(0.96);
+}
+button:not(:disabled):hover {
+  filter: brightness(1.04);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.7);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* ============ TIỆN ÍCH DÙNG Ở CÁC TRANG KHÁC ============ */
+.anim-shake { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.anim-pop { animation: pop 0.45s var(--ease-out); }
+@keyframes pop {
+  0%   { transform: scale(0.9); }
+  55%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.anim-fade-in { animation: page-in 0.4s var(--ease-out) backwards; }
 
 /* Phông chữ Hán nghệ thuật, rõ nét trên iPad/iPhone */
 .font-hanzi {
@@ -23,15 +223,23 @@ body {
 }
 
 /* Ẩn thanh cuộn ngang trên thanh điều hướng di động */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
 ::selection {
-  background-color: rgba(37, 99, 235, 0.15);
-  color: #1e3a8a;
+  background-color: rgba(79, 70, 229, 0.18);
+  color: #1e1b4b;
+}
+
+/* Tôn trọng chế độ "giảm chuyển động" của máy */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

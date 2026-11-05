@@ -72,17 +72,17 @@ export default function HomePage() {
   return (
     <main className="space-y-6 pb-8">
       {/* Thẻ Hero phong cách Studio */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-6 sm:p-8 text-white shadow-[0_20px_50px_rgb(15,23,42,0.14)] border border-white/10">
+      <section className="rise hero-shine relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-6 sm:p-8 text-white shadow-[0_20px_50px_rgb(15,23,42,0.14)] border border-white/10">
         <div
           aria-hidden="true"
-          className="font-hanzi pointer-events-none select-none absolute -right-4 -bottom-8 text-[140px] sm:text-[180px] font-bold text-white/[0.05] leading-none"
+          className="hero-hanzi font-hanzi pointer-events-none select-none absolute -right-4 -bottom-8 text-[140px] sm:text-[180px] font-bold text-white leading-none"
         >
           學
         </div>
 
         <div className="relative z-10 max-w-xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 text-xs font-medium text-blue-200 border border-white/15">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="pulse-dot h-2 w-2 rounded-full bg-emerald-400" />
             Không gian học tiếng Trung cá nhân
           </div>
 
@@ -109,17 +109,18 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {READY.map((s) => (
+          {READY.map((s, i) => (
             <Link
               key={s.href}
               href={s.href}
-              className="group relative overflow-hidden rounded-3xl bg-white/85 backdrop-blur-xl p-5 sm:p-6 border border-white/90 shadow-[0_8px_30px_rgb(15,23,42,0.05)] hover:shadow-[0_16px_40px_rgb(37,99,235,0.12)] hover:border-blue-300/80 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+              style={{ "--i": i + 1 } as React.CSSProperties}
+              className="rise glass-card group relative overflow-hidden rounded-3xl bg-white/85 backdrop-blur-xl p-5 sm:p-6 border border-white/90 shadow-[0_8px_30px_rgb(15,23,42,0.05)] hover:shadow-[0_16px_40px_rgb(37,99,235,0.12)] hover:border-blue-300/80 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5">
                     <div
-                      className={`font-hanzi w-12 h-12 rounded-2xl bg-gradient-to-br ${s.accent} text-white flex items-center justify-center text-2xl font-bold shadow-md shadow-slate-900/10 shrink-0`}
+                      className={`card-icon font-hanzi w-12 h-12 rounded-2xl bg-gradient-to-br ${s.accent} text-white flex items-center justify-center text-2xl font-bold shadow-md shadow-slate-900/10 shrink-0`}
                     >
                       {s.hanzi}
                     </div>
@@ -135,7 +136,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <span className="w-8 h-8 rounded-full bg-slate-100/80 text-slate-400 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center transition-all duration-200 shrink-0">
+                  <span className="card-arrow w-8 h-8 rounded-full bg-slate-100/80 text-slate-400 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center shrink-0">
                     <svg
                       className="w-4 h-4"
                       fill="none"

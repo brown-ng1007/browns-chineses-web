@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/lib/config";
@@ -64,6 +65,32 @@ const NAV_ITEMS = [
 
 export default function NavBar() {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement | null>(null);
+  const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const [ind, setInd] = useState<{ left: number; width: number } | null>(null);
+
+  const isActiveHref = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const activeHref = NAV_ITEMS.find((i) => isActiveHref(i.href))?.href ?? null;
+
+  const measure = () => {
+    const el = activeHref ? itemRefs.current[activeHref] : null;
+    if (el) setInd({ left: el.offsetLeft, width: el.offsetWidth });
+    else setInd(null);
+  };
+
+  useLayoutEffect(() => {
+    measure();
+    const el = activeHref ? itemRefs.current[activeHref] : null;
+    el?.scrollIntoView({ inline: "center", block: "nearest" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   if (pathname.startsWith("/login")) {
     return null;
@@ -71,14 +98,14 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-2">
-      <div className="max-w-5xl mx-auto rounded-2xl bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_8px_30px_rgb(15,23,42,0.06)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div className="max-w-5xl mx-auto rounded-2xl bg-white/75 backdrop-blur-xl border border-white/70 shadow-[0_8px_30px_rgb(15,23,42,0.07)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         <Link
           href="/"
           className="flex items-center gap-2.5 group self-start sm:self-auto"
         >
-          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-blue-500/25 relative">
+          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-blue-500/25 relative transition-transform duration-500 group-hover:rotate-[-8deg] group-hover:scale-110">
             汉
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white pulse-dot" />
           </span>
           <div className="flex flex-col">
             <span className="text-base font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 bg-clip-text text-transparent tracking-tight leading-tight">
@@ -90,24 +117,38 @@ export default function NavBar() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+        <nav
+          ref={navRef}
+          className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-100/70 p-1 rounded-xl border border-slate-200/60"
+        >
+          {/* Viên thuốc trượt theo tab đang chọn */}
+          {ind && (
+            <span
+              aria-hidden="true"
+              className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm ring-1 ring-slate-900/5 transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{ left: ind.left, width: ind.width }}
+            />
+          )}
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
+            const isActive = isActiveHref(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                ref={(el) => {
+                  itemRefs.current[item.href] = el;
+                }}
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 active:scale-95 ${
                   isActive
-                    ? "bg-white text-blue-600 shadow-xs ring-1 ring-slate-900/5"
+                    ? "text-blue-600"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
                 }`}
               >
-                <span className={isActive ? "text-blue-600" : "text-slate-400"}>
+                <span
+                  className={`transition-transform duration-300 ${
+                    isActive ? "text-blue-600 scale-110" : "text-slate-400"
+                  }`}
+                >
                   {item.icon}
                 </span>
                 {item.label}
