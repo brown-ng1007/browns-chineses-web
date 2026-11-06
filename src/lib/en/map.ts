@@ -17,7 +17,10 @@ export interface Stage {
 }
 
 export function buildStages(words: EnWord[]): Stage[] {
-  const worlds = Array.from(new Set(words.map((w) => w.world))).sort((a, b) => a - b);
+  // world 0 là các từ nền tảng (A1 đến A2): không đưa lên bản đồ, vẫn tra được ở trang Từ vựng
+  const worlds = Array.from(new Set(words.map((w) => w.world)))
+    .filter((x) => x > 0)
+    .sort((a, b) => a - b);
   const out: Stage[] = [];
   for (const world of worlds) {
     const ws = words.filter((w) => w.world === world);

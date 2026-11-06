@@ -39,9 +39,12 @@ export function norm(s: string): string {
     .trim();
 }
 
+// Chỉ che khi từ xuất hiện nguyên vẹn (không nằm giữa một từ khác)
 export function blankExample(w: EnWord): string | null {
-  const re = new RegExp(w.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-  return re.test(w.example) ? w.example.replace(re, "_____") : null;
+  if (!w.example) return null;
+  const esc = w.word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp("(^|[^A-Za-z])(" + esc + ")(?![A-Za-z])", "i");
+  return re.test(w.example) ? w.example.replace(re, "$1_____") : null;
 }
 
 // Phần đầu của từ, để nhận ra các dạng như achieved, achieving
@@ -52,8 +55,12 @@ export function stemOf(word: string): string {
 
 function make(type: QType, w: EnWord, pool: EnWord[], part: Part, strict = false): Question {
   if (type === "cloze" && !blankExample(w)) type = "reverse";
+  // chưa có nghĩa tiếng Việt thì không hỏi dịch sang Việt, chuyển sang chọn định nghĩa
+  if (type === "forward" && w.hasVi === false) type = "mcq";
   if (type === "mcq") {
-    const others = shuffle(pool.filter((p) => p.id !== w.id && p.vi[0] !== w.vi[0]));
+    const diff = shuffle(pool.filter((p) => p.id !== w.id && p.vi[0] !== w.vi[0]));
+    // ưu tiên đáp án nhiễu cùng loại từ cho khó hơn
+    const others = [...diff.filter((p) => p.pos === w.pos), ...diff.filter((p) => p.pos !== w.pos)];
     const wrong = others.slice(0, 3).map((p) => p.vi[0]);
     return { type, part, word: w, options: shuffle([w.vi[0], ...wrong]) };
   }

@@ -101,3 +101,33 @@
   .en-pulse, .en-shake, .en-bob, .en-ring { animation: none; }
   .en-node { transition: none; }
 }
+
+/* Nút bấm nổi khối dùng ở các trang luyện tập */
+.en-btn {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #fff;
+  background: #22c55e;
+  box-shadow: 0 5px 0 #15803d;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.en-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #15803d; }
+.en-btn:disabled { opacity: 0.4; pointer-events: none; }
+.en-btn--ghost { background: #fff; color: #57534e; border: 2px solid #e7e5e4; box-shadow: 0 5px 0 #d6d3d1; }
+.en-btn--ghost:active { box-shadow: 0 1px 0 #d6d3d1; }
+.en-btn--red { background: #ef4444; box-shadow: 0 5px 0 #b91c1c; }
+.en-btn--red:active { box-shadow: 0 1px 0 #b91c1c; }
+.en-btn--amber { background: #f59e0b; box-shadow: 0 5px 0 #b45309; }
+.en-btn--amber:active { box-shadow: 0 1px 0 #b45309; }
+.en-btn--blue { background: #0ea5e9; box-shadow: 0 5px 0 #0369a1; }
+.en-btn--blue:active { box-shadow: 0 1px 0 #0369a1; }

@@ -7,7 +7,11 @@ import "@/components/en/en.css";
 import { db, type EnStageProgress } from "@/lib/db";
 import { loadSettings } from "@/lib/settings";
 import { dayKey } from "@/lib/tower";
-import { loadEnWords, type EnWord } from "@/lib/en/words";
+import type { EnWord } from "@/lib/en/words";
+import WordPic from "@/components/en/WordPic";
+import Highlight from "@/components/en/Highlight";
+import { loadEnWords } from "@/lib/en/vocab";
+import { addCards, logActivity } from "@/lib/en/store";
 import { PASS_RATIO, USE_RATIO, bossStars, buildStages, starCount } from "@/lib/en/map";
 import {
   answerText,
@@ -202,6 +206,12 @@ export default function StagePage() {
     } catch {
       // không lưu được trong máy: kết quả vẫn hiện, nhưng chặng sau chưa mở
     }
+    try {
+      if (pass && mode !== "recall") await addCards(stageWords.map((w) => w.id));
+      await logActivity(mode === "recall" ? "review" : "lesson", score, total);
+    } catch {
+      // không ghi được thẻ ôn hoặc thống kê: bỏ qua
+    }
   }
 
   const rate = (() => {
@@ -239,6 +249,11 @@ export default function StagePage() {
           Bài hôm nay · từ mới {learnIdx + 1}/{stageWords.length}
         </p>
         <div className={card}>
+          {(w.image || w.emoji) && (
+            <div className="mb-4">
+              <WordPic w={w} />
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-3xl font-bold text-stone-900">{w.word}</h1>
             <button
@@ -254,8 +269,13 @@ export default function StagePage() {
             {w.ipa} · {w.pos}
           </p>
           <p className="mt-4 text-xl font-semibold text-orange-700">{w.vi.join("; ")}</p>
+          {w.hasVi === false && (
+            <p className="mt-1 text-xs text-stone-400">Định nghĩa tiếng Anh. Nghĩa tiếng Việt sẽ bổ sung sau.</p>
+          )}
           <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-relaxed">
-            <p className="font-medium text-stone-800">{w.example}</p>
+            <p className="font-medium text-stone-800">
+              <Highlight text={w.example} word={w.word} />
+            </p>
             <p className="mt-1 text-stone-500">{w.exampleVi}</p>
             <button
               type="button"
@@ -402,7 +422,9 @@ export default function StagePage() {
       </div>
 
       <div className={`${card} ${fb && !fb.ok ? "en-shake" : ""}`}>
-        <p className="text-sm font-semibold text-orange-700">{TITLES[q.type]}</p>
+        <p className="text-sm font-semibold text-orange-700">
+          {q.type === "reverse" && q.word.hasVi === false ? "Đoán từ từ định nghĩa" : TITLES[q.type]}
+        </p>
 
         {(q.type === "mcq" || q.type === "forward") && (
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -439,7 +461,9 @@ export default function StagePage() {
         )}
         {q.type === "build" && (
           <div className="mt-3">
-            <p className="text-lg font-semibold text-stone-900">{q.word.exampleVi}</p>
+            <p className="text-lg font-semibold text-stone-900">
+              {q.word.exampleVi || "Sắp xếp các mảnh thành câu hoàn chỉnh"}
+            </p>
             <div className="mt-3 flex min-h-[52px] flex-wrap gap-2 rounded-2xl bg-amber-50 p-2">
               {sel.map((ti, pos) => (
                 <button

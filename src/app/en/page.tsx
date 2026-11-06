@@ -5,7 +5,9 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import "@/components/en/en.css";
 import { db } from "@/lib/db";
-import { EN_WORLDS, loadEnWords } from "@/lib/en/words";
+import { EN_WORLDS } from "@/lib/en/words";
+import { getEnStatus, loadEnWords } from "@/lib/en/vocab";
+import { countDue } from "@/lib/en/store";
 import { dayKey } from "@/lib/tower";
 import { STAGE_SIZE, buildStages, stageStates, type Prog, type StageState } from "@/lib/en/map";
 
@@ -18,6 +20,15 @@ const WORLD_THEME = [
   { bg: "#f59e0b", edge: "#b45309" },
 ];
 const themeOf = (world: number) => WORLD_THEME[(world - 1) % WORLD_THEME.length];
+
+const TOOLS = [
+  { href: "/en/vocab", emoji: "📚", label: "Từ vựng" },
+  { href: "/en/review", emoji: "🔁", label: "Ôn tập" },
+  { href: "/en/listen", emoji: "🎧", label: "Nghe" },
+  { href: "/en/speak", emoji: "🎤", label: "Nói" },
+  { href: "/en/games", emoji: "🎮", label: "Trò chơi" },
+  { href: "/en/skills", emoji: "📊", label: "Kỹ năng" },
+];
 
 const NODE = 76;
 const BOSS = 90;
@@ -110,6 +121,8 @@ interface Group {
 export default function EnMapPage() {
   const [states, setStates] = useState<StageState[] | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  const [dueN, setDueN] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -132,7 +145,16 @@ export default function EnMapPage() {
       } catch {
         // chưa đọc được dữ liệu trong máy: coi như chưa có tiến độ
       }
-      if (alive) setStates(stageStates(stages, progress, dayKey(new Date())));
+      let dueCount = 0;
+      try {
+        dueCount = await countDue();
+      } catch {
+        // chưa đọc được thẻ ôn trong máy
+      }
+      if (alive) {
+        setDueN(dueCount);
+        setStates(stageStates(stages, progress, dayKey(new Date())));
+      }
     })();
     return () => {
       alive = false;
@@ -180,6 +202,13 @@ export default function EnMapPage() {
   const wordsTotal = normal.reduce((a, s) => a + s.stage.wordIds.length, 0);
   const wordsLearned = normal.filter((s) => s.stars > 0).reduce((a, s) => a + s.stage.wordIds.length, 0);
   const pct = wordsTotal > 0 ? Math.round((wordsLearned / wordsTotal) * 100) : 0;
+  const st = getEnStatus();
+  const srcText =
+    st.source === "seed"
+      ? `Đang dùng ${st.count} từ mẫu vì chưa đọc được bảng từ vựng: ${st.detail}`
+      : `Từ vựng: ${st.count} từ${st.source === "cache" ? " (bản lưu trong máy)" : " từ Supabase"}.${
+          st.detail ? ` Ghi chú: ${st.detail}.` : ""
+        }${st.noVi > 0 ? ` ${st.noVi} từ chưa có nghĩa tiếng Việt, đang hiện định nghĩa tiếng Anh.` : ""}`;
 
   const card = "rounded-2xl border-2 border-b-4 border-stone-200 bg-white p-4";
   const task = "flex items-center justify-between gap-3 rounded-xl border-2 border-stone-200 px-3 py-2.5 text-sm";
@@ -188,37 +217,42 @@ export default function EnMapPage() {
     <main className="mx-auto w-full max-w-4xl pb-20 pt-2">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section className="mx-auto w-full max-w-[420px]">
-          {groups.map((g) => {
+          {groups.map((g, gi) => {
             const w = EN_WORLDS.find((x) => x.id === g.world);
-            const t = themeOf(g.world);
+            const t = themeOf(gi + 1);
             const done = g.items.filter((s) => s.stars > 0).length;
+            const forced = g.items.some((s) => s.current) || (!cur && gi === groups.length - 1);
+            const shown = open[g.world] ?? forced;
             return (
               <div key={`w${g.world}`} className="mb-6">
-                <div
-                  className="rounded-2xl px-4 py-3 text-white"
+                <button
+                  type="button"
+                  onClick={() => setOpen({ ...open, [g.world]: !shown })}
+                  aria-expanded={shown}
+                  className="block w-full rounded-2xl px-4 py-3 text-left text-white"
                   style={{ background: t.bg, boxShadow: `0 5px 0 ${t.edge}` }}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/80">
-                        Thế giới {g.world} · {w?.tag}
+                        Phần {gi + 1} · {w?.tag}
                       </p>
                       <h2 className="text-lg font-extrabold leading-tight">
                         {w?.emoji} {w?.name}
                       </h2>
                     </div>
                     <span className="rounded-xl bg-white/20 px-2.5 py-1 text-sm font-extrabold">
-                      {done}/{g.items.length}
+                      {done}/{g.items.length} {shown ? "▴" : "▾"}
                     </span>
                   </div>
-                </div>
+                </button>
 
-                <div className="pt-12">
-                  {g.items.map((s) => {
+                <div className="pt-12" hidden={!shown}>
+                  {shown && g.items.map((s) => {
                     const boss = s.stage.boss;
                     const size = boss ? BOSS : NODE;
                     const x = offsetOf(s.stage.n, boss);
-                    const th = themeOf(s.stage.world);
+                    const th = t;
                     const isDone = s.unlocked && s.stars > 0;
                     const kind = !s.unlocked ? "locked" : isDone ? "done" : "current";
                     const href = s.recallDue ? `/en/stage/${s.stage.id}?recall=1` : `/en/stage/${s.stage.id}`;
@@ -348,6 +382,30 @@ export default function EnMapPage() {
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-stone-200">
               <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-stone-500">{srcText}</p>
+          </div>
+
+          <div className={card}>
+            <h2 className="mb-3 text-base font-extrabold text-stone-800">Luyện tập</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {TOOLS.map((t, k) => (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className={`relative flex items-center gap-2 rounded-xl border-2 border-b-4 border-stone-200 px-3 py-3 text-sm font-extrabold text-stone-700 ${
+                    k === TOOLS.length - 1 && TOOLS.length % 2 === 1 ? "col-span-2" : ""
+                  }`}
+                >
+                  <span className="text-xl">{t.emoji}</span>
+                  {t.label}
+                  {t.href === "/en/review" && dueN > 0 && (
+                    <span className="absolute -right-1.5 -top-2 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-extrabold text-white">
+                      {dueN}
+                    </span>
+                  )}
+                </Link>
+              ))}
             </div>
           </div>
         </aside>

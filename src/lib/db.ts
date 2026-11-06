@@ -14,6 +14,7 @@ import type {
   SkillLog,
 } from "@/types/database.types";
 import type { CardMemory, Rating } from "@/lib/srs";
+import type { EnCard } from "@/lib/en/srs";
 
 /**
  * Cơ sở dữ liệu ngoại tuyến (IndexedDB qua Dexie) cho trình duyệt.
@@ -79,6 +80,23 @@ export interface EnStageProgress {
   recall_on?: string; // ngày làm bài nhớ lại
 }
 
+/** Bản lưu bộ từ vựng tiếng Anh đọc từ Supabase (mở nhanh, dùng khi mất mạng). */
+export interface EnVocabCache {
+  key: string; // "vocab"
+  saved_at: string;
+  rows: unknown[];
+}
+
+/** Nhật ký luyện tập tiếng Anh (mỗi lượt học, ôn, nghe, nói là một dòng). */
+export interface EnLog {
+  id?: number;
+  day: string; // YYYY-MM-DD
+  kind: "lesson" | "review" | "listen" | "speak" | "game";
+  ok: number;
+  total: number;
+  at: string;
+}
+
 export class BrownsChinenesDB extends Dexie {
   words!: Table<Word, string>;
   word_meanings_en!: Table<WordMeaningEn, string>;
@@ -93,6 +111,9 @@ export class BrownsChinenesDB extends Dexie {
   review_outbox!: Table<ReviewOutboxItem, string>;
   review_snapshot!: Table<ReviewSnapshot, string>;
   en_progress!: Table<EnStageProgress, string>;
+  en_cache!: Table<EnVocabCache, string>;
+  en_cards!: Table<EnCard, string>;
+  en_logs!: Table<EnLog, number>;
 
   constructor() {
     super("browns_chinenes_db");
@@ -122,6 +143,17 @@ export class BrownsChinenesDB extends Dexie {
     // Version 3: tiến độ bản đồ tiếng Anh (chỉ thêm bảng mới)
     this.version(3).stores({
       en_progress: "stage_id",
+    });
+
+    // Version 4: bản lưu bộ từ vựng tiếng Anh (chỉ thêm bảng mới)
+    this.version(4).stores({
+      en_cache: "key",
+    });
+
+    // Version 5: thẻ ôn tập và nhật ký luyện tập tiếng Anh (chỉ thêm bảng mới)
+    this.version(5).stores({
+      en_cards: "word_id, due_at",
+      en_logs: "++id, day, kind",
     });
   }
 }

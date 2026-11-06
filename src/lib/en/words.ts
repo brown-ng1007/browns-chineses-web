@@ -10,6 +10,11 @@ export interface EnWord {
   example: string; // câu ví dụ, phải chứa đúng dạng từ để dùng cho bài điền từ
   exampleVi: string;
   world: number;
+  hasVi?: boolean; // false: chưa có nghĩa tiếng Việt, mảng vi đang chứa định nghĩa tiếng Anh
+  cefr?: string;
+  topic?: string;
+  image?: string; // đường dẫn ảnh minh họa (nếu có)
+  emoji?: string; // biểu tượng minh họa ngữ cảnh (nếu chưa có ảnh)
 }
 
 export interface EnWorld {
@@ -95,6 +100,129 @@ export const SEED_WORDS: EnWord[] = Object.entries(SEED).flatMap(([w, rows]) =>
   }))
 );
 
-export async function loadEnWords(): Promise<EnWord[]> {
-  return SEED_WORDS;
+// ---------- Chuyển dữ liệu từ bảng english_vocabulary trên Supabase ----------
+// Hàm thuần, không gọi mạng. Việc đọc Supabase nằm ở lib/en/vocab.ts.
+
+export interface RawVocabRow {
+  id: number | string;
+  word: string | null;
+  pos: string | null;
+  ipa: string | null;
+  meaning_vi: string | null;
+  meaning_en: string | null;
+  cefr: string | null;
+  topic: string | null;
+  example_en: string | null;
+  example_vi: string | null;
+  image_url?: string | null;
+  image_emoji?: string | null;
+}
+
+export const UNIT_SIZE = 50; // số từ của một phần (10 chặng thường, rồi một boss)
+export const PATH_FROM_RANK = 3; // bản đồ bắt đầu từ B1 (hợp với TOEIC 635 hướng tới IELTS 6.0); A1 đến A2 để ngoài
+export const UNIT_BASE = 100; // id phần bắt đầu từ 101, không trùng id của bộ từ mẫu (1 đến 3)
+
+const CEFR_RANK: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+const CATS = [
+  { name: "Giao tiếp hằng ngày", emoji: "💬" },
+  { name: "Công việc và cuộc sống", emoji: "🧳" },
+  { name: "Công sở TOEIC", emoji: "🏢" },
+  { name: "Học thuật IELTS", emoji: "🎓" },
+];
+const POS_SHORT: Record<string, string> = {
+  noun: "n.",
+  verb: "v.",
+  adjective: "adj.",
+  adverb: "adv.",
+  preposition: "prep.",
+  conjunction: "conj.",
+  pronoun: "pron.",
+  exclamation: "excl.",
+  determiner: "det.",
+};
+
+function catOf(topic: string): number {
+  const t = topic.toLowerCase();
+  if (t.startsWith("general - daily")) return 0;
+  if (t.startsWith("general")) return 1;
+  if (t.startsWith("toeic")) return 2;
+  return 3;
+}
+
+function top<T extends string | number>(arr: T[]): T {
+  const count = new Map<T, number>();
+  for (const x of arr) count.set(x, (count.get(x) ?? 0) + 1);
+  let best = arr[0];
+  let n = -1;
+  for (const [k, v] of count) {
+    if (v > n) {
+      best = k;
+      n = v;
+    }
+  }
+  return best;
+}
+
+// Sắp theo cấp độ (A1 đến C1), rồi theo nhóm chủ đề, rồi theo id; cắt thành các phần 50 từ.
+// Thứ tự này ổn định, nên id chặng không đổi giữa các lần mở app (miễn là dữ liệu không đổi).
+export function wordsFromRows(rows: RawVocabRow[]): { words: EnWord[]; worlds: EnWorld[]; noVi: number } {
+  const clean = rows.filter((r) => r && r.word && r.word.trim() && (r.meaning_en || r.meaning_vi));
+  const keyed = clean.map((r) => ({
+    r,
+    rank: CEFR_RANK[(r.cefr ?? "").toUpperCase()] ?? 9,
+    cat: catOf(r.topic ?? ""),
+    id: Number(r.id) || 0,
+  }));
+  keyed.sort((a, b) => a.rank - b.rank || a.cat - b.cat || a.id - b.id);
+
+  // Từ nền tảng (A1 đến A2) để ngoài bản đồ, xếp cuối danh sách với world 0.
+  // Nếu cả bảng chỉ toàn từ nền tảng thì vẫn dùng hết để bản đồ không rỗng.
+  let onPath = keyed.filter((k) => k.rank >= PATH_FROM_RANK);
+  if (onPath.length === 0) onPath = keyed;
+  const pathSet = new Set(onPath);
+  const base = keyed.filter((k) => !pathSet.has(k));
+
+  const words: EnWord[] = [];
+  const worlds: EnWorld[] = [];
+  let noVi = 0;
+  const convert = (r: RawVocabRow, world: number): EnWord => {
+    const en = (r.meaning_en ?? "").trim();
+    const viRaw = (r.meaning_vi ?? "").trim();
+    const hasVi = viRaw !== "" && viRaw !== en;
+    if (!hasVi) noVi++;
+    const vi = hasVi
+      ? viRaw
+          .split(/[;；]/)
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [en || viRaw];
+    const ex = (r.example_en ?? "").trim();
+    const exViRaw = (r.example_vi ?? "").trim();
+    const pos = (r.pos ?? "").trim();
+    return {
+      id: `v${r.id}`,
+      word: (r.word ?? "").trim(),
+      ipa: (r.ipa ?? "").trim(),
+      pos: POS_SHORT[pos.toLowerCase()] ?? pos,
+      vi,
+      example: ex,
+      exampleVi: exViRaw && exViRaw !== ex ? exViRaw : "",
+      world,
+      hasVi,
+      cefr: (r.cefr ?? "").toUpperCase() || undefined,
+      topic: (r.topic ?? "").trim() || undefined,
+      image: (r.image_url ?? "").trim() || undefined,
+      emoji: (r.image_emoji ?? "").trim() || undefined,
+    };
+  };
+  for (let i = 0; i < onPath.length; i += UNIT_SIZE) {
+    const chunk = onPath.slice(i, i + UNIT_SIZE);
+    const id = UNIT_BASE + worlds.length + 1;
+    const cat = CATS[top(chunk.map((c) => c.cat))];
+    const level = top(chunk.map((c) => (c.r.cefr ?? "").toUpperCase() || "?"));
+    worlds.push({ id, name: cat.name, tag: level, emoji: cat.emoji });
+    for (const { r } of chunk) words.push(convert(r, id));
+  }
+  for (const { r } of base) words.push(convert(r, 0));
+  return { words, worlds, noVi };
 }
