@@ -1,0 +1,119 @@
+/* Trang Từ vựng: tab trượt, danh sách hiện lần lượt, khung chờ. Lớp bắt đầu bằng wm- */
+
+.wm-tabs {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.wm-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.wm-tab {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #57534e;
+  transition:
+    color 0.25s ease,
+    transform 0.15s ease;
+}
+.wm-tab:hover {
+  color: #e11d48;
+}
+.wm-tab:active {
+  transform: scale(0.95);
+}
+.wm-tab.is-on,
+.wm-tab.is-on:hover {
+  color: #fff;
+}
+
+/* Viên đỏ trượt theo tab đang chọn */
+.wm-tab-ind {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  z-index: 0;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
+  box-shadow: 0 6px 16px rgb(229 51 79 / 0.3);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.5, 1),
+    width 0.4s cubic-bezier(0.34, 1.4, 0.5, 1);
+  will-change: transform, width;
+}
+/* Trước khi đo xong vị trí viên đỏ thì tab đang chọn tự có nền */
+.wm-tabs:not(.has-ind) .wm-tab.is-on {
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
+}
+
+/* Danh sách: hiện từng thẻ lần lượt */
+.wm-list {
+  animation: wm-list-in 0.35s ease-out;
+}
+@keyframes wm-list-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.wm-card {
+  animation: wm-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 45ms) backwards;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+.wm-card:hover {
+  transform: translateY(-3px);
+}
+@keyframes wm-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Khung chờ khi đang tải */
+.wm-sk {
+  background: linear-gradient(
+    100deg,
+    rgb(254 205 211 / 0.45) 30%,
+    rgb(255 255 255 / 0.9) 50%,
+    rgb(254 205 211 / 0.45) 70%
+  );
+  background-size: 220% 100%;
+  animation: wm-shimmer 1.3s linear infinite;
+}
+@keyframes wm-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-tab-ind,
+  .wm-list,
+  .wm-card,
+  .wm-sk {
+    animation: none !important;
+    transition: none !important;
+  }
+}

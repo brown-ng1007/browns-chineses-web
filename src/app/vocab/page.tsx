@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import type {
   Word,
   WordMeaningEn,
@@ -10,6 +17,7 @@ import type {
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 import ViPractice, { type SavedViMeaning } from "@/components/ViPractice";
+import "./vocab.css";
 
 type WordWithMeanings = Word & { meanings_en: WordMeaningEn[] };
 
@@ -81,6 +89,90 @@ async function loadWordsFromDexie(
   } catch {
     return null;
   }
+}
+
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+interface TabItem {
+  key: string;
+  label: string;
+}
+
+// Hàng tab có viên đỏ trượt theo tab đang chọn
+function SlidingTabs({
+  items,
+  value,
+  onChange,
+  scroll = false,
+  label,
+}: {
+  items: TabItem[];
+  value: string;
+  onChange: (key: string) => void;
+  scroll?: boolean;
+  label: string;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [ind, setInd] = useState<{ x: number; w: number } | null>(null);
+
+  const measure = useCallback(() => {
+    const el = btnRefs.current[value];
+    if (el) setInd({ x: el.offsetLeft, w: el.offsetWidth });
+  }, [value]);
+
+  useIsoLayoutEffect(() => {
+    measure();
+    const wrap = wrapRef.current;
+    const el = btnRefs.current[value];
+    if (scroll && wrap && el) {
+      const target = el.offsetLeft - (wrap.clientWidth - el.offsetWidth) / 2;
+      wrap.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+    }
+  }, [measure, scroll, value, items]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  return (
+    <div
+      ref={wrapRef}
+      role="tablist"
+      aria-label={label}
+      className={`wm-tabs relative flex gap-1 rounded-2xl border border-rose-100 bg-rose-50/80 p-1.5 ${
+        ind ? "has-ind" : ""
+      } ${scroll ? "overflow-x-auto" : "self-start"}`}
+    >
+      {ind && (
+        <span
+          aria-hidden="true"
+          className="wm-tab-ind"
+          style={{ width: ind.w, transform: `translateX(${ind.x}px)` }}
+        />
+      )}
+      {items.map((it) => (
+        <button
+          key={it.key}
+          ref={(el) => {
+            btnRefs.current[it.key] = el;
+          }}
+          type="button"
+          role="tab"
+          aria-selected={value === it.key}
+          onClick={() => onChange(it.key)}
+          className={`wm-tab ${value === it.key ? "is-on" : ""}`}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function VocabPage() {
@@ -317,11 +409,12 @@ export default function VocabPage() {
   }
 
   // Thẻ một từ (cách hiển thị gốc)
-  function renderWordCard(word: WordWithMeanings) {
+  function renderWordCard(word: WordWithMeanings, i = 0) {
     return (
       <article
         key={word.id}
-        className="group rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] hover:shadow-[0_14px_36px_rgb(37,99,235,0.08)] border border-white/90 hover:border-blue-200/80 transition-all duration-200 flex flex-col justify-between gap-3"
+        style={{ "--i": i % 10 } as React.CSSProperties}
+        className="wm-card group rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] hover:shadow-[0_14px_36px_rgb(229,51,79,0.14)] border border-white/90 hover:border-rose-200/80 flex flex-col justify-between gap-3"
       >
         <div>
           <div className="flex items-start justify-between gap-2">
@@ -364,7 +457,7 @@ export default function VocabPage() {
 
   // Thẻ gộp: một chữ Hán, nhiều cách đọc. Mỗi cách đọc có khu luyện nghĩa riêng
   // (mỗi lần vẫn chỉ chấm đúng một word_id).
-  function renderGroupCard(group: WordWithMeanings[]) {
+  function renderGroupCard(group: WordWithMeanings[], i = 0) {
     const first = group[0];
     const trad =
       group.find((w) => w.hanzi_trad && w.hanzi_trad !== w.hanzi_simp)
@@ -373,7 +466,8 @@ export default function VocabPage() {
     return (
       <article
         key={`group-${first.hanzi_simp}`}
-        className="rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] border border-amber-200/70 flex flex-col gap-3.5"
+        style={{ "--i": i % 10 } as React.CSSProperties}
+        className="wm-card rounded-3xl bg-white/90 backdrop-blur-xl p-5 sm:p-6 shadow-[0_8px_28px_rgb(15,23,42,0.04)] border border-amber-200/70 flex flex-col gap-3.5"
       >
         <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
           <div className="flex items-baseline gap-2.5">
@@ -449,59 +543,27 @@ export default function VocabPage() {
             </p>
           </div>
 
-          <div className="inline-flex rounded-2xl bg-slate-100/90 p-1.5 self-start border border-slate-200/60">
-            <button
-              type="button"
-              onClick={() => handleVersionChange("new")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                version === "new"
-                  ? "bg-white text-blue-600 shadow-xs ring-1 ring-slate-900/5"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              HSK 3.0 (Mới)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleVersionChange("old")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                version === "old"
-                  ? "bg-white text-blue-600 shadow-xs ring-1 ring-slate-900/5"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              HSK 2.0 (Cũ)
-            </button>
-          </div>
+          <SlidingTabs
+            label="Phiên bản HSK"
+            items={[
+              { key: "new", label: "HSK 3.0 (Mới)" },
+              { key: "old", label: "HSK 2.0 (Cũ)" },
+            ]}
+            value={version}
+            onChange={(k) => handleVersionChange(k as "new" | "old")}
+          />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => setLevel(null)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              level === null
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25"
-                : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/70"
-            }`}
-          >
-            Tất cả
-          </button>
-          {levels.map((lv) => (
-            <button
-              key={lv}
-              type="button"
-              onClick={() => setLevel(lv)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                level === lv
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25"
-                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/70"
-              }`}
-            >
-              HSK {lv}
-            </button>
-          ))}
-        </div>
+        <SlidingTabs
+          scroll
+          label="Cấp HSK"
+          items={[
+            { key: "all", label: "Tất cả" },
+            ...levels.map((lv) => ({ key: String(lv), label: `HSK ${lv}` })),
+          ]}
+          value={level === null ? "all" : String(level)}
+          onChange={(k) => setLevel(k === "all" ? null : Number(k))}
+        />
 
         {/* Công tắc gộp cách đọc trùng chữ */}
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-200/60">
@@ -552,23 +614,46 @@ export default function VocabPage() {
       )}
 
       {loading ? (
-        <div className="rounded-3xl bg-white/80 backdrop-blur-md p-10 text-center text-slate-500 border border-white/90 shadow-xs">
-          Đang tải danh sách từ vựng...
-        </div>
+        <section
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          aria-busy="true"
+          aria-label="Đang tải danh sách từ vựng"
+        >
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="rounded-3xl bg-white/80 backdrop-blur-md border border-white/90 p-5 sm:p-6 space-y-3"
+            >
+              <div className="wm-sk h-10 w-32 rounded-xl" />
+              <div className="wm-sk h-3.5 w-3/4 rounded-md" />
+              <div className="wm-sk h-3.5 w-1/2 rounded-md" />
+              <div className="wm-sk mt-4 h-10 w-full rounded-xl" />
+            </div>
+          ))}
+        </section>
       ) : words.length === 0 ? (
         <div className="rounded-3xl bg-white/80 backdrop-blur-md p-10 text-center text-slate-500 border border-white/90 shadow-xs">
           Không tìm thấy từ vựng nào ở bộ lọc này.
         </div>
       ) : (
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-          {mergeReadings
-            ? groups.map((group) =>
-                group.length === 1
-                  ? renderWordCard(group[0])
-                  : renderGroupCard(group)
-              )
-            : words.map((word) => renderWordCard(word))}
-        </section>
+        <div key={`${version}-${level}`} className="space-y-3">
+          <div className="flex items-center justify-between px-1 text-xs font-medium text-stone-500">
+            <span>
+              HSK {version === "new" ? "3.0" : "2.0"} ·{" "}
+              {level === null ? "Tất cả cấp" : `Cấp ${level}`}
+            </span>
+            <span>{words.length} từ đã tải</span>
+          </div>
+          <section className="wm-list grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            {mergeReadings
+              ? groups.map((group, i) =>
+                  group.length === 1
+                    ? renderWordCard(group[0], i)
+                    : renderGroupCard(group, i)
+                )
+              : words.map((word, i) => renderWordCard(word, i))}
+          </section>
+        </div>
       )}
 
       {nextCursor !== null && !loading && (
@@ -579,7 +664,14 @@ export default function VocabPage() {
             onClick={() => fetchWords(nextCursor, true)}
             className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 transition-all"
           >
-            {loadingMore ? "Đang tải thêm..." : "Tải thêm 50 từ"}
+            {loadingMore ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Đang tải thêm...
+              </span>
+            ) : (
+              "Tải thêm 50 từ"
+            )}
           </button>
         </div>
       )}

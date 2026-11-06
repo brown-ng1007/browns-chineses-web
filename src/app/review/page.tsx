@@ -111,20 +111,37 @@ function newOpId(): string {
 
 const WORD_PAGE = 300;
 
-// Lấy một lần mọi word_id đã có thẻ (thay cho việc hỏi lại sau mỗi trang từ)
+// Lấy một lần mọi word_id đã có thẻ (thay cho việc hỏi lại sau mỗi trang từ).
+// Trang đầu kèm tổng số dòng, các trang còn lại tải song song.
 async function allCardWordIds(
   supabase: SupabaseBrowser
 ): Promise<Set<string>> {
   const out = new Set<string>();
-  for (let p = 0; p < 20; p++) {
-    const res = await supabase
-      .from("srs_cards")
-      .select("word_id")
-      .order("word_id", { ascending: true })
-      .range(p * 1000, p * 1000 + 999);
-    const rows = (res.data ?? []) as { word_id: string }[];
-    for (const r of rows) out.add(r.word_id);
-    if (rows.length < 1000) break;
+  const first = await supabase
+    .from("srs_cards")
+    .select("word_id", { count: "exact" })
+    .order("word_id", { ascending: true })
+    .range(0, 999);
+  for (const r of (first.data ?? []) as { word_id: string }[]) {
+    out.add(r.word_id);
+  }
+  const total = first.count ?? 0;
+  if (total > 1000) {
+    const more = Math.min(19, Math.ceil(total / 1000) - 1);
+    const rest = await Promise.all(
+      Array.from({ length: more }, (_, i) =>
+        supabase
+          .from("srs_cards")
+          .select("word_id")
+          .order("word_id", { ascending: true })
+          .range((i + 1) * 1000, (i + 1) * 1000 + 999)
+      )
+    );
+    for (const res of rest) {
+      for (const r of (res.data ?? []) as { word_id: string }[]) {
+        out.add(r.word_id);
+      }
+    }
   }
   return out;
 }
@@ -143,17 +160,19 @@ function wordsPage(
     .range(page * WORD_PAGE, page * WORD_PAGE + WORD_PAGE - 1);
 }
 
-// Chọn từ mới: ưu tiên từ đã lưu nghĩa Việt, rồi lấp bằng từ theo cấp HSK 3.0.
-// Ba truy vấn đầu chạy song song; các trang từ sau không phải hỏi lại bảng thẻ.
-async function pickNewWordIds(
-  supabase: SupabaseBrowser,
-  level: number,
-  remaining: number
-): Promise<string[]> {
-  if (remaining <= 0) return [];
-  const picked: string[] = [];
+// Kho ứng viên từ mới. Tất cả truy vấn chạy song song, và chạy cùng lúc với
+// việc tải thẻ đến hạn, nên không phải chờ nhau.
+interface NewPool {
+  viIds: string[]; // từ đã lưu nghĩa Việt gần đây
+  have: Set<string>; // từ đã có thẻ
+  pages: string[][]; // hai trang từ đầu của cấp (theo tần suất)
+}
 
-  const [viRes, have, firstPage] = await Promise.all([
+async function fetchNewPool(
+  supabase: SupabaseBrowser,
+  level: number
+): Promise<NewPool> {
+  const [viRes, have, p0, p1] = await Promise.all([
     supabase
       .from("vi_user")
       .select("word_id")
@@ -162,27 +181,47 @@ async function pickNewWordIds(
       .limit(PAGE),
     allCardWordIds(supabase),
     wordsPage(supabase, level, 0),
+    wordsPage(supabase, level, 1),
   ]);
+  const ids = (r: { data: unknown }) =>
+    ((r.data ?? []) as { id: string }[]).map((x) => x.id);
+  return {
+    viIds: ((viRes.data ?? []) as { word_id: string }[]).map((r) => r.word_id),
+    have,
+    pages: [ids(p0), ids(p1)],
+  };
+}
 
-  const viIds = ((viRes.data ?? []) as { word_id: string }[]).map(
-    (r) => r.word_id
-  );
-  for (const id of viIds) {
-    if (picked.length >= remaining) break;
-    if (!have.has(id) && !picked.includes(id)) picked.push(id);
-  }
+// Chọn từ mới: ưu tiên từ đã lưu nghĩa Việt, rồi lấp bằng từ theo cấp HSK 3.0.
+// Chỉ khi hai trang đầu đã có thẻ hết mới phải hỏi thêm trang sau.
+async function pickNewWordIds(
+  supabase: SupabaseBrowser,
+  level: number,
+  remaining: number,
+  pool: NewPool
+): Promise<string[]> {
+  if (remaining <= 0) return [];
+  const picked: string[] = [];
+  const seen = new Set<string>();
+  const add = (id: string) => {
+    if (picked.length >= remaining) return;
+    if (pool.have.has(id) || seen.has(id)) return;
+    seen.add(id);
+    picked.push(id);
+  };
 
-  let ids = ((firstPage.data ?? []) as { id: string }[]).map((r) => r.id);
+  for (const id of pool.viIds) add(id);
+
   for (let p = 0; p < MAX_PAGES && picked.length < remaining; p++) {
-    if (p > 0) {
+    let ids: string[];
+    if (p < pool.pages.length) {
+      ids = pool.pages[p];
+    } else {
       const res = await wordsPage(supabase, level, p);
       ids = ((res.data ?? []) as { id: string }[]).map((r) => r.id);
     }
     if (ids.length === 0) break;
-    for (const id of ids) {
-      if (picked.length >= remaining) break;
-      if (!have.has(id) && !picked.includes(id)) picked.push(id);
-    }
+    for (const id of ids) add(id);
     if (ids.length < WORD_PAGE) break;
   }
 
@@ -279,10 +318,17 @@ export default function ReviewPage() {
   const [offlineWaiting, setOfflineWaiting] = useState<boolean>(false);
   const [offlineMode, setOfflineMode] = useState<boolean>(false);
   const [snapshotTime, setSnapshotTime] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const shownAtRef = useRef<number>(Date.now());
   const userIdRef = useRef<string | null>(null);
   const workingRef = useRef<boolean>(false);
+  const phaseRef = useRef<Phase>("loading");
+  const loadIdRef = useRef<number>(0); // bỏ qua kết quả của lượt tải cũ
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const ensureUserId = useCallback(async (): Promise<string | null> => {
     if (userIdRef.current) return userIdRef.current;
@@ -345,7 +391,7 @@ export default function ReviewPage() {
 
   const loadQueue = useCallback(
     async (lv: number) => {
-      setPhase("loading");
+      const myId = ++loadIdRef.current;
       setErrorMsg(null);
       setOfflineMode(false);
 
@@ -368,16 +414,70 @@ export default function ReviewPage() {
         }
       };
 
+      // Hiện NGAY các thẻ đã lưu trên máy trong hôm nay (nếu có), trong lúc
+      // tải bản mới nhất từ mạng ở phía sau. Cùng cấp HSK và còn thẻ mới dùng.
+      let usedCache = false;
       try {
-        const settingsPromise = refreshSettings(); // chạy song song
-        // Gửi trước những lần chấm còn tồn, để lịch trên máy chủ là mới nhất
-        await flushOutbox();
+        const snap = await db.review_snapshot.get("latest");
+        const uid = await ensureUserId();
+        if (
+          snap &&
+          uid &&
+          snap.user_id === uid &&
+          snap.level === lv &&
+          snap.items.length > 0 &&
+          new Date(snap.saved_at).toDateString() === new Date().toDateString()
+        ) {
+          setViMap(snap.vi);
+          setQueue(snap.items);
+          setRevealed(false);
+          setReviewedCount(0);
+          setSnapshotTime(snap.saved_at);
+          setPhase("idle");
+          setRefreshing(true);
+          usedCache = true;
+        }
+      } catch {
+        // Không đọc được bản lưu thì tải bình thường
+      }
+      if (!usedCache) setPhase("loading");
+
+      // Lỗi khi tải: nếu đã có thẻ trên màn hình thì giữ nguyên, chỉ báo ngoại tuyến
+      const fail = async (e: DbError, msg: string) => {
+        if (loadIdRef.current !== myId) return;
+        if (usedCache) {
+          setOfflineMode(true);
+          return;
+        }
+        if (isNetworkIssue(e) && (await applySnapshot())) return;
+        setErrorMsg(msg);
+        setPhase("error");
+      };
+
+      try {
+        // Những lần chấm còn tồn trên máy lúc mở trang (đọc từ máy, rất nhanh)
+        const uid0 = await ensureUserId();
+        let pendingAtStart: ReviewOutboxItem[] = [];
+        if (uid0) {
+          try {
+            pendingAtStart = await db.review_outbox
+              .where("user_id")
+              .equals(uid0)
+              .toArray();
+          } catch {
+            pendingAtStart = [];
+          }
+        }
+        // Chỉ chờ gửi xong khi thật sự có lần chấm tồn (để đếm thẻ mới hôm nay
+        // cho đúng). Bình thường không có thì bỏ qua, đỡ mất một vòng mạng.
+        if (pendingAtStart.length > 0) await flushOutbox();
 
         const nowIso = new Date().toISOString();
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        const [dueRes, countRes] = await Promise.all([
+        // Một lượt song song: thẻ đến hạn, số thẻ mới hôm nay, cài đặt và kho từ mới
+        const [dueRes, countRes, pool, settings] = await Promise.all([
           supabase
             .from("srs_cards")
             .select(CARD_COLUMNS)
@@ -390,21 +490,23 @@ export default function ReviewPage() {
             .select("id", { count: "exact", head: true })
             .is("deleted_at", null)
             .gte("created_at", startOfDay.toISOString()),
+          fetchNewPool(supabase, lv),
+          refreshSettings().catch(() => null),
         ]);
 
         if (dueRes.error || countRes.error) {
-          const e = dueRes.error ?? countRes.error;
-          if (isNetworkIssue(e) && (await applySnapshot())) return;
-          setErrorMsg("Chưa tải được thẻ ôn. Hãy thử lại sau ít giây.");
-          setPhase("error");
+          await fail(
+            dueRes.error ?? countRes.error,
+            "Chưa tải được thẻ ôn. Hãy thử lại sau ít giây."
+          );
           return;
         }
 
         const dueCards = (dueRes.data ?? []) as RawCard[];
-        const limit = (await settingsPromise).newPerDay; // lấy từ tab Cài đặt
+        const limit = settings?.newPerDay ?? 10; // lấy từ tab Cài đặt
         setNewPerDay(limit);
         const remainingNew = Math.max(0, limit - (countRes.count ?? 0));
-        const newIds = await pickNewWordIds(supabase, lv, remainingNew);
+        const newIds = await pickNewWordIds(supabase, lv, remainingNew, pool);
 
         const allIds = Array.from(
           new Set([...dueCards.map((c) => c.word_id), ...newIds])
@@ -429,11 +531,10 @@ export default function ReviewPage() {
           ]);
 
           if (wordsRes.error) {
-            if (isNetworkIssue(wordsRes.error) && (await applySnapshot())) {
-              return;
-            }
-            setErrorMsg("Chưa tải được nội dung từ vựng. Hãy thử lại sau ít giây.");
-            setPhase("error");
+            await fail(
+              wordsRes.error,
+              "Chưa tải được nội dung từ vựng. Hãy thử lại sau ít giây."
+            );
             return;
           }
 
@@ -484,12 +585,15 @@ export default function ReviewPage() {
         // Từ vừa chấm mà chưa gửi xong thì không đưa lại vào hàng đợi
         const uid = await ensureUserId();
         if (uid) {
-          const pending = await db.review_outbox
+          const pendingNow = await db.review_outbox
             .where("user_id")
             .equals(uid)
             .toArray();
-          if (pending.length > 0) {
-            const pendingIds = new Set(pending.map((p) => p.word_id));
+          const pendingIds = new Set<string>([
+            ...pendingAtStart.map((p) => p.word_id),
+            ...pendingNow.map((p: ReviewOutboxItem) => p.word_id),
+          ]);
+          if (pendingIds.size > 0) {
             items = items.filter((i) => !pendingIds.has(i.word.id));
           }
           void db.review_snapshot
@@ -504,15 +608,27 @@ export default function ReviewPage() {
             .catch(() => undefined);
         }
 
+        // Bạn đã bấm "Bắt đầu ôn" bằng thẻ lưu sẵn thì không đổi hàng đợi giữa chừng
+        if (loadIdRef.current !== myId) return;
+        if (phaseRef.current === "reviewing") return;
+
         setViMap(nextViMap);
         setQueue(items);
         setRevealed(false);
         setReviewedCount(0);
+        setOfflineMode(false);
         setPhase("idle");
       } catch {
+        if (loadIdRef.current !== myId) return;
+        if (usedCache) {
+          setOfflineMode(true);
+          return;
+        }
         if (await applySnapshot()) return;
         setErrorMsg("Không thể kết nối mạng và chưa có thẻ nào lưu sẵn trên máy.");
         setPhase("error");
+      } finally {
+        if (loadIdRef.current === myId) setRefreshing(false);
       }
     },
     [supabase, flushOutbox, ensureUserId]
@@ -740,8 +856,17 @@ export default function ReviewPage() {
       {saveBanner}
 
       {phase === "loading" && (
-        <div className="p-8 text-center text-slate-500 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90">
-          Đang chuẩn bị thẻ ôn...
+        <div
+          className="p-5 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-white/90 space-y-4"
+          aria-busy="true"
+          aria-label="Đang chuẩn bị thẻ ôn"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-[84px] rounded-2xl bg-rose-100/60 animate-pulse" />
+            <div className="h-[84px] rounded-2xl bg-emerald-100/60 animate-pulse" />
+          </div>
+          <div className="h-4 w-2/3 rounded-md bg-stone-200/60 animate-pulse" />
+          <div className="h-[52px] rounded-2xl bg-rose-200/60 animate-pulse" />
         </div>
       )}
 
@@ -796,6 +921,13 @@ export default function ReviewPage() {
               ))}
             </div>
           </div>
+
+          {refreshing && (
+            <p className="flex items-center gap-2 text-xs font-medium text-rose-500">
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-rose-200 border-t-rose-500" />
+              Đang cập nhật thẻ mới nhất...
+            </p>
+          )}
 
           {queue.length > 0 ? (
             <button
