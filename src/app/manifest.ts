@@ -4,13 +4,13 @@ import { APP_NAME } from "@/lib/config";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: APP_NAME,
-    short_name: "Chinenes",
-    description: "Học tiếng Trung và luyện thi HSK",
+    short_name: "Melon",
+    description: "Melon Language: học tiếng Trung, tiếng Anh và luyện thi HSK",
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: "#fff3f5",
-    theme_color: "#e5334f",
+    background_color: "#fff8ec",
+    theme_color: "#064436",
     lang: "vi",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

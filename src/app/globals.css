@@ -1,49 +1,49 @@
 @import "tailwindcss";
 
-/* ===== CHỦ ĐỀ DƯA HẤU =====
-   Đổi bảng màu chàm/tím/xanh dương của Tailwind thành đỏ ruột dưa và hồng,
-   nên các trang cũ (Từ vựng, Ôn tập, Kỹ năng...) tự đổi màu theo. */
+/* ===== MELON LANGUAGE · DƯA HẤU HOÀNG KIM =====
+   Đổi bảng màu chàm/xanh dương của Tailwind thành xanh ngọc và tím thành vàng kim,
+   khớp với khu tiếng Anh (en.css). Màu hồng/đỏ dưa (rose, red) giữ nguyên làm điểm nhấn. */
 @theme {
-  --color-indigo-50: #fff1f3;
-  --color-indigo-100: #ffe1e6;
-  --color-indigo-200: #ffc8d2;
-  --color-indigo-300: #ff9fb1;
-  --color-indigo-400: #ff708a;
-  --color-indigo-500: #f2476a;
-  --color-indigo-600: #e5334f;
-  --color-indigo-700: #c62440;
-  --color-indigo-800: #a01d35;
-  --color-indigo-900: #7e1a2f;
-  --color-indigo-950: #470d1a;
+  --color-indigo-50: #ecfdf5;
+  --color-indigo-100: #d1f2e4;
+  --color-indigo-200: #a3e4cb;
+  --color-indigo-300: #5fc9a6;
+  --color-indigo-400: #25a681;
+  --color-indigo-500: #0f8a6a;
+  --color-indigo-600: #0b6b53;
+  --color-indigo-700: #085a46;
+  --color-indigo-800: #064436;
+  --color-indigo-900: #04362b;
+  --color-indigo-950: #022019;
 
-  --color-blue-50: #fff1f3;
-  --color-blue-100: #ffe1e6;
-  --color-blue-200: #ffc8d2;
-  --color-blue-300: #ff9fb1;
-  --color-blue-400: #ff708a;
-  --color-blue-500: #f2476a;
-  --color-blue-600: #e5334f;
-  --color-blue-700: #c62440;
-  --color-blue-800: #a01d35;
-  --color-blue-900: #7e1a2f;
-  --color-blue-950: #470d1a;
+  --color-blue-50: #ecfdf5;
+  --color-blue-100: #d1f2e4;
+  --color-blue-200: #a3e4cb;
+  --color-blue-300: #5fc9a6;
+  --color-blue-400: #25a681;
+  --color-blue-500: #0f8a6a;
+  --color-blue-600: #0b6b53;
+  --color-blue-700: #085a46;
+  --color-blue-800: #064436;
+  --color-blue-900: #04362b;
+  --color-blue-950: #022019;
 
-  --color-violet-50: #fff0f7;
-  --color-violet-100: #ffe0ef;
-  --color-violet-200: #ffc2dd;
-  --color-violet-300: #ff98c2;
-  --color-violet-400: #fb6fa8;
-  --color-violet-500: #ef4d8f;
-  --color-violet-600: #dc3a7c;
-  --color-violet-700: #bb2a64;
-  --color-violet-800: #96254f;
-  --color-violet-900: #781f42;
-  --color-violet-950: #470f25;
+  --color-violet-50: #fffbeb;
+  --color-violet-100: #fff3cf;
+  --color-violet-200: #fbe5a0;
+  --color-violet-300: #f2cf75;
+  --color-violet-400: #e4b84f;
+  --color-violet-500: #c99a2e;
+  --color-violet-600: #a87c1c;
+  --color-violet-700: #8a6414;
+  --color-violet-800: #7a5410;
+  --color-violet-900: #5e3f0b;
+  --color-violet-950: #3a2606;
 }
 
 :root {
-  --bg-primary: #fff7f8;
-  --text-primary: #2b1a1f;
+  --bg-primary: #fffdf8;
+  --text-primary: #2a1d17;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --flesh: #ff4d6d;
   --rind: #1f9d55;
@@ -54,7 +54,7 @@ html {
 }
 
 body {
-  background-color: #fff3f5;
+  background-color: #fff8ec;
   color: var(--text-primary);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-tap-highlight-color: transparent;
@@ -67,7 +67,7 @@ body {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(180deg, #fff6f7 0%, #ffeef1 55%, #f0fbf3 100%);
+  background: linear-gradient(180deg, #fffdf8 0%, #fff6e3 60%, #f3f8ef 100%);
 }
 
 .bg-blob {
@@ -78,19 +78,19 @@ body {
 .bg-blob.b1 {
   width: 62vmax; height: 62vmax;
   left: -18vmax; top: -22vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 77, 109, 0.30), transparent 62%);
+  background: radial-gradient(circle at 50% 50%, rgba(242, 207, 117, 0.42), transparent 62%);
   animation: drift-a 26s ease-in-out infinite alternate;
 }
 .bg-blob.b2 {
   width: 54vmax; height: 54vmax;
   right: -16vmax; top: 6vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.20), transparent 62%);
+  background: radial-gradient(circle at 50% 50%, rgba(11, 107, 83, 0.16), transparent 62%);
   animation: drift-b 32s ease-in-out infinite alternate;
 }
 .bg-blob.b3 {
   width: 58vmax; height: 58vmax;
   left: 12vmax; bottom: -30vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(251, 146, 160, 0.30), transparent 62%);
+  background: radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.16), transparent 62%);
   animation: drift-c 38s ease-in-out infinite alternate;
 }
 
@@ -111,7 +111,7 @@ body {
   position: absolute;
   font-family: "Songti SC", "STKaiti", "KaiTi", "Noto Serif SC", "PingFang SC", serif;
   font-weight: 700;
-  color: rgba(225, 29, 72, 0.07);
+  color: rgba(122, 84, 16, 0.045);
   line-height: 1;
   user-select: none;
   will-change: transform;
@@ -272,7 +272,7 @@ button:not(:disabled):hover {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(229, 51, 79, 0.7);
+  outline: 2px solid rgba(201, 154, 46, 0.85);
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
@@ -294,6 +294,14 @@ button:not(:disabled):hover {
 }
 .anim-fade-in { animation: page-in 0.4s var(--ease-out) backwards; }
 
+/* Tiêu đề chữ có chân cho cảm giác sang trọng (chữ Hán vẫn dùng font Hán) */
+@layer base {
+  h1, h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+      "Songti SC", "Noto Serif SC", serif;
+  }
+}
+
 .font-hanzi {
   font-family: "Songti SC", "STKaiti", "KaiTi", "Noto Serif SC", "PingFang SC", serif;
 }
@@ -305,8 +313,8 @@ button:not(:disabled):hover {
 }
 
 ::selection {
-  background-color: rgba(255, 77, 109, 0.22);
-  color: #4a0d1a;
+  background-color: rgba(242, 207, 117, 0.5);
+  color: #3b2a05;
 }
 
 @media (prefers-reduced-motion: reduce) {

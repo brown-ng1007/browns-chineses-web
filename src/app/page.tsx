@@ -81,7 +81,7 @@ export default function HomePage() {
   return (
     <main className="space-y-6 pb-8">
       {/* Hero: một lát dưa hấu */}
-      <section className="rise hero-shine relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-500 via-red-500 to-pink-500 p-6 sm:p-8 pb-10 sm:pb-12 text-white shadow-[0_20px_50px_rgb(229,51,79,0.25)]">
+      <section className="rise hero-shine relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#064436] via-[#0b6b53] to-[#12896a] ring-1 ring-[#c99a2e]/60 p-6 sm:p-8 pb-10 sm:pb-12 text-white shadow-[0_20px_50px_-12px_rgba(6,68,54,0.55)]">
         {SEEDS.map((s, i) => (
           <span
             key={i}
@@ -106,19 +106,19 @@ export default function HomePage() {
             Góc học tiếng Trung của Dưa Hấu
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-[#f7dc8a]">
             {APP_NAME}
           </h1>
 
-          <p className="text-sm sm:text-base text-rose-50 leading-relaxed">
+          <p className="text-sm sm:text-base text-emerald-50/90 leading-relaxed">
             Học tiếng Trung đều 4 kỹ năng: nghe, nói, đọc, viết. Tối ưu thao tác
             cảm ứng và Apple Pencil trên iPad &amp; iPhone.
           </p>
         </div>
 
         {/* Vỏ dưa ở mép dưới */}
-        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-3 bg-[#1f9d55]" />
-        <div aria-hidden="true" className="absolute inset-x-0 bottom-3 h-2 bg-lime-200" />
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-3 bg-[#c99a2e]" />
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-3 h-2 bg-[#f2cf75]" />
       </section>
 
       <TowerHome />

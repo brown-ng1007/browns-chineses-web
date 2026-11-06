@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/lib/config";
-import Watermelon from "@/components/Watermelon";
 
 const EMOJI = (e: string) => <span className="text-sm leading-none">{e}</span>;
 
@@ -112,30 +111,30 @@ export default function NavBar() {
   }
 
   return (
+    <>
     <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-3">
-      <div className="max-w-5xl mx-auto rounded-2xl bg-white/80 backdrop-blur-xl border border-white/80 shadow-[0_3px_0_0_#d9f99d,0_6px_0_0_#22a45a,0_16px_30px_rgba(229,51,79,0.12)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div className="max-w-5xl mx-auto rounded-2xl bg-[#fffdf8]/85 backdrop-blur-xl border border-[#c99a2e]/40 shadow-[0_1px_0_0_#fff_inset,0_3px_0_0_#f2cf75,0_16px_30px_-12px_rgba(110,70,20,0.35)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         <Link
           href="/"
           className="logo-wrap flex items-center gap-2.5 group self-start sm:self-auto"
         >
-          <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-50 to-pink-100 ring-1 ring-rose-200 flex items-center justify-center shadow-sm shadow-rose-500/20">
-            <Watermelon className="logo-slice w-8 h-auto" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-192.png" alt="" className="logo-slice w-10 h-10 rounded-xl ring-1 ring-[#c99a2e]/60 shadow-sm shadow-emerald-900/30" />
           <div className="flex flex-col">
-            <span className="text-base font-bold bg-gradient-to-r from-rose-700 via-red-600 to-emerald-700 bg-clip-text text-transparent tracking-tight leading-tight">
+            <span className="text-base font-bold font-serif text-[#064436] tracking-tight leading-tight">
               {APP_NAME}
             </span>
-            <span className="text-[11px] font-medium text-emerald-700/70 tracking-wide">
-              Góc học của Dưa Hấu
+            <span className="text-[11px] font-medium text-[#7a5410]/80 tracking-wide">
+              Trung · Anh · Dưa Hấu
             </span>
           </div>
         </Link>
 
-        <nav className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-rose-50/70 p-1 rounded-xl border border-rose-100">
+        <nav className="relative hidden sm:flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#fff6df]/80 p-1 rounded-xl border border-[#c99a2e]/30">
           {ind && (
             <span
               aria-hidden="true"
-              className="absolute top-1 bottom-1 rounded-lg bg-gradient-to-r from-rose-500 to-red-500 shadow-md shadow-rose-500/30 transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute top-1 bottom-1 rounded-lg bg-gradient-to-b from-[#12896a] to-[#0b6b53] ring-1 ring-[#064436] shadow-md shadow-emerald-900/30 transition-[left,width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{ left: ind.left, width: ind.width }}
             />
           )}
@@ -151,12 +150,12 @@ export default function NavBar() {
                 className={`nav-link relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${
                   isActive
                     ? "text-white"
-                    : "text-stone-600 hover:text-rose-700 hover:bg-white/70"
+                    : "text-stone-600 hover:text-[#064436] hover:bg-white/70"
                 }`}
               >
                 <span
                   className={`nav-ico ${
-                    isActive ? "text-white anim-pop" : "text-rose-300"
+                    isActive ? "text-[#f2cf75] anim-pop" : "text-[#c99a2e]"
                   }`}
                 >
                   {item.icon}
@@ -168,5 +167,39 @@ export default function NavBar() {
         </nav>
       </div>
     </header>
+
+    {/* Thanh tab dưới cùng cho điện thoại: dễ chạm bằng ngón cái */}
+    <nav
+      aria-label="Điều hướng chính"
+      className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#c99a2e]/40 bg-[#fffdf8]/92 backdrop-blur-xl shadow-[0_-10px_30px_-12px_rgba(110,70,20,0.35)] pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="flex overflow-x-auto no-scrollbar px-1 pt-1.5 pb-1.5">
+        {NAV_ITEMS.map((item) => {
+          const isActive = isActiveHref(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`nav-link flex-1 min-w-[52px] flex flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                isActive
+                  ? "bg-gradient-to-b from-[#12896a] to-[#0b6b53] text-white shadow-md shadow-emerald-900/25"
+                  : "text-stone-500 active:bg-[#fff6df]"
+              }`}
+            >
+              <span
+                className={`nav-ico [&_svg]:w-5 [&_svg]:h-5 [&>span]:text-lg ${
+                  isActive ? "text-[#f2cf75]" : "text-[#c99a2e]"
+                }`}
+              >
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+    </>
   );
 }

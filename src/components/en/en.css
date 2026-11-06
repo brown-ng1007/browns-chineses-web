@@ -169,10 +169,6 @@
   background: radial-gradient(120% 140% at 100% 0%, rgba(242, 207, 117, 0.35), transparent 55%), linear-gradient(135deg, #0b6b53 0%, #064436 100%);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 24px 40px -24px rgba(6, 68, 54, 0.8), 0 0 0 1px rgba(242, 207, 117, 0.5);
 }
-.en-hero::after {
-  content: ""; position: absolute; right: -30px; bottom: -60px; width: 200px; height: 200px; border-radius: 9999px;
-  background: radial-gradient(circle, rgba(251, 113, 133, 0.35), transparent 65%); pointer-events: none;
-}
 .en-hero-title { font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; }
 .en-hero .en-eyebrow { color: var(--gold2); }
 .en-task {
@@ -182,6 +178,11 @@
 .en-task--done { background: rgba(242, 207, 117, 0.2); box-shadow: 0 0 0 1px rgba(242, 207, 117, 0.55); }
 .en-tools { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 14px -4px 0; scrollbar-width: none; }
 .en-tools::-webkit-scrollbar { display: none; }
+/* Màn rộng đã có thẻ "Luyện tập" bên phải nên ẩn hàng nút tắt này (class lg:hidden của Tailwind bị en.css đè nên phải ẩn ở đây) */
+@media (min-width: 1024px) { .en-tools { display: none; } }
+.en-tool-ico { width: 18px; height: 18px; flex-shrink: 0; }
+.en-tools .en-tool-ico { color: var(--gold2); }
+.en-tool-card .en-tool-ico { width: 22px; height: 22px; color: var(--emerald); }
 .en-tool {
   position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 6px; border-radius: 9999px; padding: 8px 14px;
   background: rgba(255, 255, 255, 0.12); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2); color: #fff; font-size: 13px; font-weight: 600; text-decoration: none;

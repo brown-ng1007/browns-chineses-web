@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/config";
-import Watermelon from "@/components/Watermelon";
 
 // Supabase bắt buộc có email, nên tên đăng nhập được ghép thành một email nội bộ.
 // Người dùng không bao giờ thấy email này và không có thư nào được gửi đi.
@@ -94,15 +93,14 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="rise w-full max-w-sm rounded-3xl bg-white/85 backdrop-blur-xl p-6 sm:p-8 border border-white/90 shadow-[0_3px_0_0_#d9f99d,0_6px_0_0_#22a45a,0_24px_50px_rgba(229,51,79,0.18)]">
+      <div className="rise w-full max-w-sm rounded-3xl bg-white/85 backdrop-blur-xl p-6 sm:p-8 border border-[#c99a2e]/40 shadow-[0_3px_0_0_#f2cf75,0_24px_50px_-16px_rgba(110,70,20,0.4)]">
         <div className="text-center mb-6">
-          <div className="mx-auto mb-3 w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-50 to-pink-100 ring-1 ring-rose-200 flex items-center justify-center shadow-md shadow-rose-500/20">
-            <Watermelon className="hero-slice w-16 h-auto" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-rose-700 via-red-600 to-emerald-700 bg-clip-text text-transparent">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-192.png" alt="" className="mx-auto mb-3 w-20 h-20 rounded-3xl ring-1 ring-[#c99a2e]/60 shadow-md shadow-emerald-900/30" />
+          <h1 className="text-2xl font-bold tracking-tight font-serif text-[#064436]">
             {APP_NAME}
           </h1>
-          <p className="text-sm text-emerald-700/70 mt-1">Góc học của Dưa Hấu</p>
+          <p className="text-sm text-[#7a5410]/80 mt-1">Trung · Anh · Dưa Hấu</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
