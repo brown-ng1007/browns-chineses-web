@@ -1,3 +1,4 @@
+/* Hiệu ứng dùng chung của khu tiếng Anh */
 @keyframes en-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
@@ -7,8 +8,96 @@
   25% { transform: translateX(-6px); }
   75% { transform: translateX(6px); }
 }
+@keyframes en-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes en-ring {
+  0% { transform: scale(0.96); opacity: 0.55; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
 .en-pulse { animation: en-pulse 1.6s ease-in-out infinite; }
 .en-shake { animation: en-shake 0.35s; }
+.en-bob { animation: en-bob 1.3s ease-in-out infinite; }
+
+/* Nút chặng trên bản đồ: nút tròn nổi khối, bấm thì lún xuống */
+.en-node {
+  --face: #e5e7eb;
+  --edge: #cbd5e1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--face);
+  box-shadow: 0 8px 0 var(--edge), 0 14px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #fff;
+}
+.en-node::after {
+  content: "";
+  position: absolute;
+  top: 9%;
+  left: 17%;
+  width: 40%;
+  height: 24%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(-24deg);
+  pointer-events: none;
+}
+.en-node:active {
+  transform: translateY(6px);
+  box-shadow: 0 2px 0 var(--edge), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.en-node--done { --face: #fbbf24; --edge: #d97706; }
+.en-node--locked { --face: #e5e7eb; --edge: #cbd5e1; color: #9ca3af; }
+.en-node--locked::after { background: rgba(255, 255, 255, 0.55); }
+
+/* Vòng sáng quanh chặng hiện tại */
+.en-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 5px solid var(--face);
+  pointer-events: none;
+  animation: en-ring 1.8s ease-out infinite;
+}
+
+/* Bóng nói: BẮT ĐẦU, báo chặng bị khóa */
+.en-bubble {
+  position: relative;
+  display: block;
+  white-space: nowrap;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  border-bottom-width: 4px;
+  background: #fff;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+.en-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-right: 2px solid #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+  transform: translateX(-50%) rotate(45deg);
+  border-bottom-right-radius: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .en-pulse, .en-shake { animation: none; }
+  .en-pulse, .en-shake, .en-bob, .en-ring { animation: none; }
+  .en-node { transition: none; }
 }

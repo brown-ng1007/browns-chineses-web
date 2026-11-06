@@ -1,56 +1,138 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import "@/components/en/en.css";
 import { db } from "@/lib/db";
 import { EN_WORLDS, loadEnWords } from "@/lib/en/words";
-import { buildStages, stageStates, type StageState } from "@/lib/en/map";
+import { dayKey } from "@/lib/tower";
+import { STAGE_SIZE, buildStages, stageStates, type Prog, type StageState } from "@/lib/en/map";
 
-const ROW = 118; // khoảng cách dọc giữa hai nút
-const PAD_BOTTOM = 90;
-const PAD_TOP = 110;
+// Màu từng thế giới (nền, viền đáy cho cảm giác nổi khối)
+const WORLD_THEME = [
+  { bg: "#22c55e", edge: "#15803d" },
+  { bg: "#a855f7", edge: "#7e22ce" },
+  { bg: "#0ea5e9", edge: "#0369a1" },
+  { bg: "#f43f5e", edge: "#be123c" },
+  { bg: "#f59e0b", edge: "#b45309" },
+];
+const themeOf = (world: number) => WORLD_THEME[(world - 1) % WORLD_THEME.length];
 
-interface NodePos {
-  s: StageState;
-  x: number; // phần trăm chiều ngang
-  y: number; // px từ đáy
+const NODE = 76;
+const BOSS = 90;
+
+// Đường đi uốn lượn kiểu 0, 44, 62, 44, 0, -44, -62, -44 (px)
+function offsetOf(n: number, boss: boolean) {
+  if (boss) return 0;
+  return Math.round(Math.sin(((n - 1) * Math.PI) / 4) * 62);
 }
-interface BannerPos {
-  world: number;
-  y: number;
-  done: number;
-  total: number;
-}
 
-function Stars({ n }: { n: number }) {
+function IconCheck() {
   return (
-    <div className="flex justify-center gap-0.5 text-[13px] leading-none" aria-label={`${n} sao`}>
+    <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconStar({ size = 38, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <polygon
+        points="12,2.5 14.9,8.7 21.6,9.5 16.6,14.1 18,20.8 12,17.4 6,20.8 7.4,14.1 2.4,9.5 9.1,8.7"
+        fill={color}
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+function IconLock() {
+  return (
+    <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
+      <rect x="6" y="11" width="12" height="9" rx="2.2" fill="currentColor" />
+      <path d="M8.5 11V8a3.5 3.5 0 017 0v3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconTrophy({ size = 42 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path d="M7 4h10v4a5 5 0 01-10 0V4z" fill="currentColor" />
+      <path d="M7 6H4.6a2.6 2.6 0 002.9 3.3M17 6h2.4a2.6 2.6 0 01-2.9 3.3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="11" y="13" width="2" height="4" fill="currentColor" />
+      <rect x="8" y="17" width="8" height="3" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Linh vật: nửa quả dưa hấu, đứng cạnh chặng hiện tại
+function Mascot() {
+  return (
+    <svg viewBox="0 0 100 100" width="76" height="76" aria-hidden="true">
+      <path d="M50 44c-1-9-7-14-14-14 1 8 7 13 14 14z" fill="#22c55e" />
+      <path d="M50 44c1-9 7-14 14-14-1 8-7 13-14 14z" fill="#16a34a" />
+      <path d="M8 46a42 42 0 0084 0z" fill="#15803d" />
+      <path d="M12 46a38 38 0 0076 0z" fill="#f0fdf4" />
+      <path d="M15 46a35 35 0 0070 0z" fill="#fb7185" />
+      <ellipse cx="38" cy="60" rx="4.6" ry="5.4" fill="#3f1d2b" />
+      <ellipse cx="62" cy="60" rx="4.6" ry="5.4" fill="#3f1d2b" />
+      <circle cx="39.6" cy="58" r="1.6" fill="#fff" />
+      <circle cx="63.6" cy="58" r="1.6" fill="#fff" />
+      <circle cx="29" cy="68" r="4.4" fill="#f43f5e" opacity="0.45" />
+      <circle cx="71" cy="68" r="4.4" fill="#f43f5e" opacity="0.45" />
+      <path d="M44 68q6 7 12 0" fill="none" stroke="#3f1d2b" strokeWidth="2.6" strokeLinecap="round" />
+      <ellipse cx="50" cy="52" rx="1.7" ry="2.6" fill="#3f1d2b" opacity="0.55" />
+    </svg>
+  );
+}
+
+function SmallStars({ n }: { n: number }) {
+  return (
+    <div
+      className="absolute left-1/2 flex -translate-x-1/2 gap-0.5 rounded-full bg-white px-2 py-1 shadow-md ring-1 ring-stone-200"
+      style={{ bottom: -20 }}
+      aria-label={`${n} sao`}
+    >
       {[1, 2, 3].map((i) => (
-        <span key={i} className={i <= n ? "" : "grayscale opacity-30"}>
-          ⭐
-        </span>
+        <IconStar key={i} size={15} color={i <= n ? "#f59e0b" : "#d6d3d1"} />
       ))}
     </div>
   );
 }
 
+interface Group {
+  world: number;
+  items: StageState[];
+}
+
 export default function EnMapPage() {
   const [states, setStates] = useState<StageState[] | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       const words = await loadEnWords();
       const stages = buildStages(words);
-      const progress: Record<string, number> = {};
+      const progress: Record<string, Prog> = {};
       try {
         const rows = await db.en_progress.toArray();
-        for (const r of rows) progress[r.stage_id] = r.stars;
+        for (const r of rows) {
+          progress[r.stage_id] = {
+            stars: r.stars,
+            doneOn: r.done_on,
+            used: !!r.used,
+            recalled: !!r.recalled,
+            recallOn: r.recall_on,
+          };
+        }
       } catch {
         // chưa đọc được dữ liệu trong máy: coi như chưa có tiến độ
       }
-      if (alive) setStates(stageStates(stages, progress));
+      if (alive) setStates(stageStates(stages, progress, dayKey(new Date())));
     })();
     return () => {
       alive = false;
@@ -61,127 +143,214 @@ export default function EnMapPage() {
     if (states) document.getElementById("en-current")?.scrollIntoView({ block: "center" });
   }, [states]);
 
-  const layout = useMemo(() => {
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  const groups = useMemo<Group[] | null>(() => {
     if (!states) return null;
-    const nodes: NodePos[] = [];
-    const banners: BannerPos[] = [];
-    let cursor = PAD_BOTTOM;
-    states.forEach((s, k) => {
-      nodes.push({ s, x: 50 + 26 * Math.sin(k * 1.15), y: cursor });
-      cursor += ROW;
-      const next = states[k + 1];
-      if (!next || next.stage.world !== s.stage.world) {
-        const inWorld = states.filter((t) => t.stage.world === s.stage.world);
-        banners.push({
-          world: s.stage.world,
-          y: cursor - 8,
-          done: inWorld.filter((t) => t.stars > 0).length,
-          total: inWorld.length,
-        });
-        cursor += ROW * 0.75;
-      }
-    });
-    const height = cursor + PAD_TOP;
-    return { nodes, banners, height };
+    const out: Group[] = [];
+    for (const s of states) {
+      const last = out[out.length - 1];
+      if (last && last.world === s.stage.world) last.items.push(s);
+      else out.push({ world: s.stage.world, items: [s] });
+    }
+    return out;
   }, [states]);
 
-  if (!layout) {
+  function showHint(id: string) {
+    setHint(id);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHint(null), 2200);
+  }
+
+  if (!states || !groups) {
     return <p className="py-20 text-center text-sm text-stone-500">Đang dựng bản đồ...</p>;
   }
 
-  const { nodes, banners, height } = layout;
-  const top = (y: number) => height - y;
-  let d = "";
-  nodes.forEach((n, i) => {
-    const px = n.x;
-    const py = top(n.y);
-    if (i === 0) d = `M ${px} ${py}`;
-    else {
-      const p = nodes[i - 1];
-      const mid = (top(p.y) + py) / 2;
-      d += ` C ${p.x} ${mid}, ${px} ${mid}, ${px} ${py}`;
-    }
-  });
+  const today = dayKey(new Date());
+  const totalStars = states.reduce((a, s) => a + s.stars, 0);
+  const due = states.filter((s) => s.recallDue);
+  const recalledToday = states.filter((s) => s.prog?.recallOn === today).length;
+  const learnedToday = states.some((s) => s.prog?.doneOn === today);
+  const cur = states.find((s) => s.current);
+  const normal = states.filter((s) => !s.stage.boss);
+  const wordsTotal = normal.reduce((a, s) => a + s.stage.wordIds.length, 0);
+  const wordsLearned = normal.filter((s) => s.stars > 0).reduce((a, s) => a + s.stage.wordIds.length, 0);
+  const pct = wordsTotal > 0 ? Math.round((wordsLearned / wordsTotal) * 100) : 0;
 
-  const totalStars = nodes.reduce((a, n) => a + n.s.stars, 0);
+  const card = "rounded-2xl border-2 border-b-4 border-stone-200 bg-white p-4";
+  const task = "flex items-center justify-between gap-3 rounded-xl border-2 border-stone-200 px-3 py-2.5 text-sm";
 
   return (
-    <main className="pb-10">
-      <header className="rounded-3xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 px-5 py-4 text-white shadow-lg shadow-orange-500/20">
-        <h1 className="text-xl font-bold">Bản đồ tiếng Anh</h1>
-        <p className="mt-1 text-sm text-amber-50">
-          Mỗi nút là một chặng nhỏ của một ngày. Đạt từ 60% để qua, 95% để được 3 sao. Đã có {totalStars} sao.
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-4xl pb-20 pt-2">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="mx-auto w-full max-w-[420px]">
+          {groups.map((g) => {
+            const w = EN_WORLDS.find((x) => x.id === g.world);
+            const t = themeOf(g.world);
+            const done = g.items.filter((s) => s.stars > 0).length;
+            return (
+              <div key={`w${g.world}`} className="mb-6">
+                <div
+                  className="rounded-2xl px-4 py-3 text-white"
+                  style={{ background: t.bg, boxShadow: `0 5px 0 ${t.edge}` }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/80">
+                        Thế giới {g.world} · {w?.tag}
+                      </p>
+                      <h2 className="text-lg font-extrabold leading-tight">
+                        {w?.emoji} {w?.name}
+                      </h2>
+                    </div>
+                    <span className="rounded-xl bg-white/20 px-2.5 py-1 text-sm font-extrabold">
+                      {done}/{g.items.length}
+                    </span>
+                  </div>
+                </div>
 
-      <div className="relative mx-auto mt-4 w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-b from-amber-50 via-orange-50 to-rose-100 ring-1 ring-orange-200/60" style={{ height }}>
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full"
-          viewBox={`0 0 100 ${height}`}
-          preserveAspectRatio="none"
-        >
-          <path d={d} fill="none" stroke="#fda4af" strokeWidth="16" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-          <path d={d} fill="none" stroke="#fff7ed" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 14" vectorEffect="non-scaling-stroke" />
-        </svg>
+                <div className="pt-12">
+                  {g.items.map((s) => {
+                    const boss = s.stage.boss;
+                    const size = boss ? BOSS : NODE;
+                    const x = offsetOf(s.stage.n, boss);
+                    const th = themeOf(s.stage.world);
+                    const isDone = s.unlocked && s.stars > 0;
+                    const kind = !s.unlocked ? "locked" : isDone ? "done" : "current";
+                    const href = s.recallDue ? `/en/stage/${s.stage.id}?recall=1` : `/en/stage/${s.stage.id}`;
+                    const faceStyle: CSSProperties | undefined =
+                      kind === "current" ? ({ "--face": th.bg, "--edge": th.edge } as CSSProperties) : undefined;
+                    const cls = `en-node en-node--${kind}`;
+                    const icon =
+                      kind === "locked" ? (
+                        boss ? <IconTrophy /> : <IconLock />
+                      ) : boss ? (
+                        <IconTrophy />
+                      ) : kind === "done" ? (
+                        <IconCheck />
+                      ) : (
+                        <IconStar />
+                      );
+                    const off = x >= 0 ? -118 : 118;
 
-        {banners.map((b) => {
-          const w = EN_WORLDS.find((x) => x.id === b.world);
-          return (
-            <div
-              key={`b${b.world}`}
-              className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-1.5 text-sm font-bold text-orange-700 shadow-md ring-1 ring-orange-200"
-              style={{ top: top(b.y) - 16 }}
-            >
-              {w?.emoji} {w?.tag} · {w?.name} · {b.done}/{b.total}
-            </div>
-          );
-        })}
+                    return (
+                      <div
+                        key={s.stage.id}
+                        id={s.current ? "en-current" : undefined}
+                        className="relative flex justify-center"
+                        style={{ marginBottom: 42, marginTop: s.current ? 40 : 0 }}
+                      >
+                        <div className="relative" style={{ transform: `translateX(${x}px)`, width: size, height: size }}>
+                          {s.current && (
+                            <div className="absolute left-1/2 z-10 -translate-x-1/2" style={{ bottom: size + 18 }}>
+                              <Link href={`/en/stage/${s.stage.id}`} className="en-bubble en-bob" style={{ color: th.edge }}>
+                                BẮT ĐẦU
+                              </Link>
+                            </div>
+                          )}
+                          {s.recallDue && (
+                            <Link
+                              href={href}
+                              className="absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-md"
+                              style={{ bottom: size + 12 }}
+                            >
+                              Ôn lại
+                            </Link>
+                          )}
+                          {kind === "locked" && hint === s.stage.id && (
+                            <div className="absolute left-1/2 z-20 -translate-x-1/2" style={{ bottom: size + 18 }}>
+                              <div className="en-bubble text-stone-500" style={{ letterSpacing: 0, fontWeight: 700 }}>
+                                Hoàn thành chặng trước để mở khóa
+                              </div>
+                            </div>
+                          )}
 
-        {nodes.map(({ s, x, y }) => {
-          const size = s.stage.boss ? 80 : 64;
-          const label = s.stage.boss ? "🏆" : String(s.stage.n);
-          const base = s.stage.boss
-            ? "from-amber-400 to-orange-500"
-            : "from-rose-400 to-red-500";
-          const inner = (
-            <div
-              className={`flex h-full w-full items-center justify-center rounded-full text-xl font-bold shadow-lg ring-4 ring-white ${
-                s.unlocked
-                  ? `bg-gradient-to-br ${base} text-white`
-                  : "bg-stone-200 text-stone-400"
-              } ${s.current ? "en-pulse" : ""}`}
-            >
-              {s.unlocked ? label : "🔒"}
-            </div>
-          );
-          return (
-            <div
-              key={s.stage.id}
-              id={s.current ? "en-current" : undefined}
-              className="absolute"
-              style={{
-                left: `${x}%`,
-                top: top(y),
-                width: size,
-                height: size,
-                marginLeft: -size / 2,
-                marginTop: -size / 2,
-              }}
-            >
-              {s.unlocked ? (
-                <Link href={`/en/stage/${s.stage.id}`} aria-label={`Chặng ${s.stage.n}`} className="block h-full w-full">
-                  {inner}
-                </Link>
-              ) : (
-                inner
-              )}
-              <div className="absolute left-0 right-0" style={{ top: size + 2 }}>
-                <Stars n={s.stars} />
+                          {kind === "locked" ? (
+                            <button
+                              type="button"
+                              onClick={() => showHint(s.stage.id)}
+                              aria-label="Chặng đang khóa"
+                              className={`${cls} ${hint === s.stage.id ? "en-shake" : ""}`}
+                              style={{ width: size, height: size }}
+                            >
+                              {icon}
+                            </button>
+                          ) : (
+                            <Link
+                              href={kind === "current" ? `/en/stage/${s.stage.id}` : href}
+                              aria-label={boss ? "Chặng boss" : `Chặng ${s.stage.n}`}
+                              className={cls}
+                              style={{ ...faceStyle, width: size, height: size }}
+                            >
+                              {kind === "current" && <span className="en-ring" />}
+                              {icon}
+                            </Link>
+                          )}
+                          {isDone && <SmallStars n={s.stars} />}
+                        </div>
+
+                        {s.current && (
+                          <div
+                            className="pointer-events-none absolute"
+                            style={{ left: `calc(50% + ${off}px - 38px)`, top: "50%", marginTop: -38 }}
+                          >
+                            <div className="en-bob">
+                              <Mascot />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            );
+          })}
+        </section>
+
+        <aside className="space-y-4 max-lg:order-first lg:sticky lg:top-24 lg:self-start">
+          <div className={card}>
+            <h2 className="mb-3 text-base font-extrabold text-stone-800">Việc hôm nay</h2>
+            <div className="space-y-2">
+              {due.length + recalledToday > 0 && (
+                <Link href={due[0] ? `/en/stage/${due[0].stage.id}?recall=1` : "/en"} className={task}>
+                  <span className="font-bold text-stone-700">
+                    {due.length === 0 ? "✅" : "⬜"} Ôn lại bài hôm trước, không gợi ý
+                  </span>
+                  <span className="text-xs font-bold text-stone-400">
+                    {recalledToday}/{recalledToday + due.length}
+                  </span>
+                </Link>
+              )}
+              <Link href={cur ? `/en/stage/${cur.stage.id}` : "/en"} className={task}>
+                <span className="font-bold text-stone-700">
+                  {learnedToday ? "✅" : "⬜"} Học {STAGE_SIZE} từ mới và dùng ngay trong câu
+                </span>
+                <span className="text-xs font-bold text-stone-400">{learnedToday ? "1/1" : "0/1"}</span>
+              </Link>
             </div>
-          );
-        })}
+            <p className="mt-3 text-xs leading-relaxed text-stone-500">
+              3 sao của mỗi bài: hoàn thành, dùng được trong câu, nhớ lại được vào hôm sau.
+            </p>
+          </div>
+
+          <div className={card}>
+            <h2 className="mb-3 text-base font-extrabold text-stone-800">Tiến độ</h2>
+            <div className="mb-2 flex items-baseline justify-between text-sm">
+              <span className="font-bold text-stone-700">
+                {wordsLearned}/{wordsTotal} từ
+              </span>
+              <span className="font-extrabold text-amber-600">{totalStars} ⭐</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-stone-200">
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        </aside>
       </div>
     </main>
   );

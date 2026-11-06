@@ -1,14 +1,22 @@
-// Tạo câu hỏi và chấm đáp án cho 4 dạng bài: chọn đáp án, điền từ, dịch xuôi, dịch ngược.
+// Tạo câu hỏi và chấm đáp án. Sáu dạng bài, chia hai nhóm:
+//  Nhận biết: mcq (chọn nghĩa), forward (dịch sang Việt)
+//  Dùng được: cloze (điền từ vào câu), reverse (dịch sang Anh),
+//             build (sắp xếp câu), own (tự đặt câu có từ đó)
 import type { EnWord } from "./words";
 import { BOSS_QUESTIONS } from "./map";
 
-export type QType = "mcq" | "cloze" | "forward" | "reverse";
-const ORDER: QType[] = ["mcq", "cloze", "forward", "reverse"];
+export type QType = "mcq" | "cloze" | "forward" | "reverse" | "build" | "own";
+// A nhận biết, B dùng trong câu, C tự đặt câu, R nhớ lại hôm sau, X chặng boss
+export type Part = "A" | "B" | "C" | "R" | "X";
+export type Mode = "day" | "recall" | "boss";
 
 export interface Question {
   type: QType;
+  part: Part;
   word: EnWord;
-  options?: string[]; // chỉ dùng cho mcq
+  options?: string[]; // mcq
+  tiles?: string[]; // build: các từ đã xáo trộn
+  strict?: boolean; // không gợi ý (bài nhớ lại)
 }
 
 export function shuffle<T>(arr: T[]): T[] {
@@ -36,32 +44,54 @@ export function blankExample(w: EnWord): string | null {
   return re.test(w.example) ? w.example.replace(re, "_____") : null;
 }
 
-function make(type: QType, w: EnWord, pool: EnWord[]): Question {
-  if (type === "cloze" && !blankExample(w)) return { type: "reverse", word: w };
+// Phần đầu của từ, để nhận ra các dạng như achieved, achieving
+export function stemOf(word: string): string {
+  const w = word.toLowerCase();
+  return w.length > 5 ? w.slice(0, w.length - 2) : w.slice(0, Math.max(3, w.length - 1));
+}
+
+function make(type: QType, w: EnWord, pool: EnWord[], part: Part, strict = false): Question {
+  if (type === "cloze" && !blankExample(w)) type = "reverse";
   if (type === "mcq") {
     const others = shuffle(pool.filter((p) => p.id !== w.id && p.vi[0] !== w.vi[0]));
     const wrong = others.slice(0, 3).map((p) => p.vi[0]);
-    return { type, word: w, options: shuffle([w.vi[0], ...wrong]) };
+    return { type, part, word: w, options: shuffle([w.vi[0], ...wrong]) };
   }
-  return { type, word: w };
+  if (type === "build") {
+    const tokens = w.example.split(" ").filter(Boolean);
+    if (tokens.length < 3) return make("cloze", w, pool, part, strict);
+    let tiles = shuffle(tokens);
+    if (tiles.join(" ") === tokens.join(" ")) tiles = shuffle(tokens);
+    return { type, part, word: w, tiles };
+  }
+  return { type, part, word: w, strict };
 }
 
-export function buildQuestions(
-  stageWords: EnWord[],
-  pool: EnWord[],
-  boss: boolean
-): Question[] {
-  if (boss) {
+const BOSS_ORDER: QType[] = ["mcq", "cloze", "forward", "build", "reverse", "own"];
+
+export function buildQuestions(stageWords: EnWord[], pool: EnWord[], mode: Mode): Question[] {
+  if (mode === "boss") {
     return shuffle(stageWords)
       .slice(0, BOSS_QUESTIONS)
-      .map((w, i) => make(ORDER[i % 4], w, pool));
+      .map((w, i) => make(BOSS_ORDER[i % BOSS_ORDER.length], w, pool, "X"));
   }
-  const qs: Question[] = [];
-  stageWords.forEach((w, i) => {
-    qs.push(make(ORDER[i % 4], w, pool));
-    qs.push(make(ORDER[(i + 2) % 4], w, pool));
-  });
-  return shuffle(qs);
+  if (mode === "recall") {
+    return shuffle(
+      stageWords.flatMap((w) => [
+        make("reverse", w, pool, "R", true),
+        make("cloze", w, pool, "R", true),
+      ])
+    );
+  }
+  const a = stageWords.map((w, i) => make(i % 2 === 0 ? "mcq" : "forward", w, pool, "A"));
+  const b = shuffle([
+    ...stageWords.map((w) => make("cloze", w, pool, "B")),
+    ...stageWords.map((w) => make("build", w, pool, "B")),
+  ]);
+  const c = shuffle(stageWords)
+    .slice(0, 2)
+    .map((w) => make("own", w, pool, "C"));
+  return [...a, ...b, ...c];
 }
 
 export function isCorrect(q: Question, input: string): boolean {
@@ -69,12 +99,19 @@ export function isCorrect(q: Question, input: string): boolean {
   if (!n) return false;
   if (q.type === "mcq") return input === q.word.vi[0];
   if (q.type === "forward") return q.word.vi.some((v) => norm(v) === n);
+  if (q.type === "build") return n === norm(q.word.example);
+  if (q.type === "own") {
+    const stem = norm(stemOf(q.word.word));
+    const tokens = n.split(" ");
+    return tokens.length >= 4 && tokens.some((t) => t.startsWith(stem));
+  }
   return norm(q.word.word) === n;
 }
 
 export function answerText(q: Question): string {
   if (q.type === "mcq") return q.word.vi[0];
   if (q.type === "forward") return q.word.vi.join(" / ");
+  if (q.type === "build" || q.type === "own") return q.word.example;
   return q.word.word;
 }
 

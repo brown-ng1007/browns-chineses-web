@@ -73,6 +73,10 @@ export interface EnStageProgress {
   best_accuracy: number; // 0-1
   plays: number;
   updated_at: string;
+  done_on?: string; // ngày đầu tiên hoàn thành bài (YYYY-MM-DD)
+  used?: boolean; // đạt từ 80% ở phần dùng từ trong câu
+  recalled?: boolean; // nhớ lại được vào ngày hôm sau
+  recall_on?: string; // ngày làm bài nhớ lại
 }
 
 export class BrownsChinenesDB extends Dexie {

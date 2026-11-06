@@ -42,6 +42,9 @@ const SEED: Record<number, Row[]> = {
     ["suggest", "/səˈdʒest/", "v.", "đề xuất;gợi ý", "I suggest we leave early.", "Mình đề xuất chúng ta đi sớm."],
     ["valuable", "/ˈvæljuəbl/", "adj.", "quý giá;có giá trị", "Time is valuable.", "Thời gian rất quý giá."],
     ["crowded", "/ˈkraʊdɪd/", "adj.", "đông đúc", "The train was very crowded.", "Chuyến tàu rất đông."],
+    ["attitude", "/ˈætɪtjuːd/", "n.", "thái độ", "A positive attitude helps a lot.", "Thái độ tích cực giúp ích rất nhiều."],
+    ["recommend", "/ˌrekəˈmend/", "v.", "giới thiệu;đề xuất", "Can you recommend a good restaurant?", "Bạn giới thiệu giúp mình một nhà hàng ngon được không?"],
+    ["comfortable", "/ˈkʌmftəbl/", "adj.", "thoải mái", "This chair is very comfortable.", "Chiếc ghế này rất thoải mái."],
   ],
   2: [
     ["appointment", "/əˈpɔɪntmənt/", "n.", "cuộc hẹn", "I have an appointment at ten.", "Mình có cuộc hẹn lúc mười giờ."],
@@ -56,6 +59,9 @@ const SEED: Record<number, Row[]> = {
     ["attach", "/əˈtætʃ/", "v.", "đính kèm", "Please attach the file to your email.", "Vui lòng đính kèm tệp vào email."],
     ["confirm", "/kənˈfɜːm/", "v.", "xác nhận", "Please confirm your reservation.", "Vui lòng xác nhận đặt chỗ."],
     ["revenue", "/ˈrevənjuː/", "n.", "doanh thu", "Our revenue grew this year.", "Doanh thu của chúng tôi tăng trong năm nay."],
+    ["approve", "/əˈpruːv/", "v.", "phê duyệt;chấp thuận", "The manager will approve the budget.", "Quản lý sẽ phê duyệt ngân sách."],
+    ["client", "/ˈklaɪənt/", "n.", "khách hàng", "We have a meeting with a client.", "Chúng tôi có cuộc họp với một khách hàng."],
+    ["delay", "/dɪˈleɪ/", "n.", "sự chậm trễ", "There was a delay at the airport.", "Đã có sự chậm trễ ở sân bay."],
   ],
   3: [
     ["analyse", "/ˈænəlaɪz/", "v.", "phân tích", "Scientists analyse the data carefully.", "Các nhà khoa học phân tích dữ liệu cẩn thận."],
@@ -70,6 +76,9 @@ const SEED: Record<number, Row[]> = {
     ["interpret", "/ɪnˈtɜːprɪt/", "v.", "diễn giải;giải thích", "How do you interpret these results?", "Bạn diễn giải những kết quả này thế nào?"],
     ["consequence", "/ˈkɒnsɪkwəns/", "n.", "hậu quả;kết quả", "Every action has a consequence.", "Mỗi hành động đều có hậu quả."],
     ["reliable", "/rɪˈlaɪəbl/", "adj.", "đáng tin cậy", "This source is reliable.", "Nguồn này đáng tin cậy."],
+    ["ensure", "/ɪnˈʃʊə(r)/", "v.", "đảm bảo", "We must ensure the results are accurate.", "Chúng ta phải đảm bảo kết quả chính xác."],
+    ["emphasise", "/ˈemfəsaɪz/", "v.", "nhấn mạnh", "The report will emphasise safety.", "Báo cáo sẽ nhấn mạnh sự an toàn."],
+    ["potential", "/pəˈtenʃl/", "adj.", "tiềm năng", "There is potential for growth.", "Có tiềm năng tăng trưởng."],
   ],
 };
 
