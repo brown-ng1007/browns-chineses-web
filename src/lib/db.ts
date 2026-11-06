@@ -66,6 +66,15 @@ export interface ReviewOutboxItem {
   elapsed_seconds: number;
 }
 
+/** Tiến độ bản đồ tiếng Anh (mỗi chặng một dòng). */
+export interface EnStageProgress {
+  stage_id: string;
+  stars: number;
+  best_accuracy: number; // 0-1
+  plays: number;
+  updated_at: string;
+}
+
 export class BrownsChinenesDB extends Dexie {
   words!: Table<Word, string>;
   word_meanings_en!: Table<WordMeaningEn, string>;
@@ -79,6 +88,7 @@ export class BrownsChinenesDB extends Dexie {
   skill_logs!: Table<SkillLog, string>;
   review_outbox!: Table<ReviewOutboxItem, string>;
   review_snapshot!: Table<ReviewSnapshot, string>;
+  en_progress!: Table<EnStageProgress, string>;
 
   constructor() {
     super("browns_chinenes_db");
@@ -103,6 +113,11 @@ export class BrownsChinenesDB extends Dexie {
     this.version(2).stores({
       review_outbox: "op_id, user_id, word_id, reviewed_at",
       review_snapshot: "key",
+    });
+
+    // Version 3: tiến độ bản đồ tiếng Anh (chỉ thêm bảng mới)
+    this.version(3).stores({
+      en_progress: "stage_id",
     });
   }
 }

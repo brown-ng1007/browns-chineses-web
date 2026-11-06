@@ -123,6 +123,21 @@ export default function HomePage() {
 
       <TowerHome />
 
+      <Link
+        href="/en"
+        className="rise block rounded-3xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 p-5 sm:p-6 text-white shadow-[0_12px_30px_rgb(251,146,60,0.3)]"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold">Học tiếng Anh theo bản đồ chặng</h2>
+            <p className="mt-1 text-sm text-amber-50">
+              Mỗi ngày một chặng nhỏ, có sao và boss. Mục tiêu TOEIC và IELTS.
+            </p>
+          </div>
+          <span className="text-4xl" aria-hidden="true">🍈</span>
+        </div>
+      </Link>
+
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400">

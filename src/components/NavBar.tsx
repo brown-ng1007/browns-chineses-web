@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/lib/config";
 import Watermelon from "@/components/Watermelon";
 
-const NAV_ITEMS = [
+const EMOJI = (e: string) => <span className="text-sm leading-none">{e}</span>;
+
+const ZH_ITEMS = [
   {
     href: "/",
     label: "Trang chủ",
@@ -53,6 +55,11 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/en",
+    label: "Tiếng Anh",
+    icon: EMOJI("🍈"),
+  },
+  {
     href: "/settings",
     label: "Cài đặt",
     icon: (
@@ -64,8 +71,16 @@ const NAV_ITEMS = [
   },
 ];
 
+const EN_ITEMS = [
+  { href: "/en", label: "Bản đồ", icon: EMOJI("🗺️") },
+  { href: "/", label: "Tiếng Trung", icon: EMOJI("🍉") },
+  ZH_ITEMS[ZH_ITEMS.length - 1],
+];
+
 export default function NavBar() {
   const pathname = usePathname();
+  const isEn = pathname === "/en" || pathname.startsWith("/en/");
+  const NAV_ITEMS = isEn ? EN_ITEMS : ZH_ITEMS;
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [ind, setInd] = useState<{ left: number; width: number } | null>(null);
 

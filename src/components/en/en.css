@@ -1,0 +1,14 @@
+@keyframes en-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes en-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.en-pulse { animation: en-pulse 1.6s ease-in-out infinite; }
+.en-shake { animation: en-shake 0.35s; }
+@media (prefers-reduced-motion: reduce) {
+  .en-pulse, .en-shake { animation: none; }
+}
