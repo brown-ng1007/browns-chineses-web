@@ -8,17 +8,25 @@ import { refreshSettings } from "@/lib/settings";
 import {
   FLOORS,
   FRUITS_PER_BRANCH,
-  MILESTONE_SIZE,
   REVIEW_TARGET,
   LISTEN_TARGET,
   SPEAK_TARGET,
+  SPLIT_COLUMN,
+  SPLIT_LEVEL,
+  SPLIT_PARTS,
   buildFloors,
   calcStreak,
   currentFloorLevel,
   dayKey,
   dayStarsFromDone,
+  floorOfWord,
+  fruitPlan,
+  splitSizes,
+  stageChips,
   weekStrip,
   type FloorStat,
+  type SplitBoundary,
+  type StageChip,
 } from "@/lib/tower";
 
 type SupabaseBrowser = ReturnType<typeof createClient>;
@@ -27,6 +35,7 @@ interface Mission {
   key: string;
   hanzi: string;
   title: string;
+  hint: string;
   href: string;
   value: number;
   target: number;
@@ -41,6 +50,17 @@ interface TowerData {
   listenToday: number;
   speakToday: number;
   active: Set<string>;
+}
+
+interface WordMeta {
+  lv: number;
+  rank: number | null;
+}
+
+interface SplitInfo {
+  sizes: number[]; // số từ của tầng 7, 8, 9
+  bounds: SplitBoundary[]; // từ cuối của tầng 7 và 8
+  useRank: boolean; // false: không có cột rank, chia theo id
 }
 
 const PAGE = 1000;
@@ -63,27 +83,78 @@ async function fetchCards(supabase: SupabaseBrowser) {
   return rows;
 }
 
-// Tra cấp HSK 3.0 của các từ đã có thẻ (chia nhỏ để địa chỉ truy vấn không quá dài)
-async function fetchLevels(supabase: SupabaseBrowser, ids: string[]) {
-  const map = new Map<string, number>();
+// Tra cấp HSK 3.0 (và thứ hạng tần suất) của các từ đã có thẻ
+async function fetchLevels(supabase: SupabaseBrowser, ids: string[], useRank: boolean) {
+  const map = new Map<string, WordMeta>();
   const CHUNK = 100;
   const BATCH = 6;
+  const cols = useRank ? `id, hsk_new_level, ${SPLIT_COLUMN}` : "id, hsk_new_level";
   const chunks: string[][] = [];
   for (let i = 0; i < ids.length; i += CHUNK) chunks.push(ids.slice(i, i + CHUNK));
   for (let i = 0; i < chunks.length; i += BATCH) {
     const results = await Promise.all(
-      chunks
-        .slice(i, i + BATCH)
-        .map((c) => supabase.from("words").select("id, hsk_new_level").in("id", c))
+      chunks.slice(i, i + BATCH).map((c) => supabase.from("words").select(cols).in("id", c))
     );
     for (const r of results) {
       if (r.error) throw r.error;
-      for (const w of (r.data ?? []) as { id: string; hsk_new_level: number | null }[]) {
-        if (w.hsk_new_level) map.set(w.id, w.hsk_new_level);
+      for (const w of (r.data ?? []) as unknown as Record<string, unknown>[]) {
+        const lv = w.hsk_new_level;
+        if (typeof lv !== "number" || lv <= 0) continue;
+        const rk = useRank ? w[SPLIT_COLUMN] : null;
+        map.set(String(w.id), { lv, rank: typeof rk === "number" ? rk : null });
       }
     }
   }
   return map;
+}
+
+function toBoundary(row: Record<string, unknown> | undefined, useRank: boolean): SplitBoundary | null {
+  if (!row) return null;
+  const rk = useRank ? row[SPLIT_COLUMN] : null;
+  return { id: String(row.id), rank: typeof rk === "number" ? rk : null };
+}
+
+// Tìm hai "từ ranh giới" chia HSK 7 làm 3 phần đều nhau (chỉ 2 truy vấn nhỏ)
+async function fetchSplit(supabase: SupabaseBrowser, count7: number): Promise<SplitInfo> {
+  const sizes = splitSizes(count7, SPLIT_PARTS);
+  if (count7 < SPLIT_PARTS) return { sizes, bounds: [], useRank: false };
+  const idxs = [sizes[0] - 1, sizes[0] + sizes[1] - 1];
+
+  const ranked = await Promise.all(
+    idxs.map((i) =>
+      supabase
+        .from("words")
+        .select(`id, ${SPLIT_COLUMN}`)
+        .eq("hsk_new_level", SPLIT_LEVEL)
+        .order(SPLIT_COLUMN, { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(i, i)
+    )
+  );
+  if (!ranked.some((r) => r.error)) {
+    const b = ranked.map((r) =>
+      toBoundary(((r.data ?? []) as unknown as Record<string, unknown>[])[0], true)
+    );
+    if (b.every((x) => x !== null)) return { sizes, bounds: b as SplitBoundary[], useRank: true };
+  }
+
+  // Không có cột rank: chia theo id để tầng 8 và 9 vẫn chạy được
+  const byId = await Promise.all(
+    idxs.map((i) =>
+      supabase
+        .from("words")
+        .select("id")
+        .eq("hsk_new_level", SPLIT_LEVEL)
+        .order("id", { ascending: true })
+        .range(i, i)
+    )
+  );
+  const err = byId.find((r) => r.error);
+  if (err?.error) throw err.error;
+  const b = byId.map((r) =>
+    toBoundary(((r.data ?? []) as unknown as Record<string, unknown>[])[0], false)
+  );
+  return { sizes, bounds: b.filter((x): x is SplitBoundary => x !== null), useRank: false };
 }
 
 async function loadTower(supabase: SupabaseBrowser): Promise<TowerData> {
@@ -94,16 +165,20 @@ async function loadTower(supabase: SupabaseBrowser): Promise<TowerData> {
 
   const settingsPromise = refreshSettings().catch(() => null);
 
+  // Cấp 1-7 của HSK 3.0; cấp 7 sẽ được chia thành tầng 7, 8, 9
   const totalsPromise = Promise.all(
-    FLOORS.map((f) =>
+    Array.from({ length: SPLIT_LEVEL }, (_, i) =>
       supabase
         .from("words")
         .select("id", { count: "exact", head: true })
-        .eq("hsk_new_level", f.level)
+        .eq("hsk_new_level", i + 1)
     )
   );
+  const splitPromise = totalsPromise.then((r) =>
+    fetchSplit(supabase, r[SPLIT_LEVEL - 1].count ?? 0)
+  );
 
-  const [newRes, revCountRes, revRes, skillRes, cards, totalsRes, settings] =
+  const [newRes, revCountRes, revRes, skillRes, cards, totalsRes, split, settings] =
     await Promise.all([
       supabase
         .from("srs_cards")
@@ -131,6 +206,7 @@ async function loadTower(supabase: SupabaseBrowser): Promise<TowerData> {
         .limit(3000),
       fetchCards(supabase),
       totalsPromise,
+      splitPromise,
       settingsPromise,
     ]);
 
@@ -138,16 +214,23 @@ async function loadTower(supabase: SupabaseBrowser): Promise<TowerData> {
     throw newRes.error ?? revCountRes.error ?? revRes.error;
   }
 
-  const levels = await fetchLevels(supabase, cards.map((c) => c.word_id));
+  const levels = await fetchLevels(
+    supabase,
+    cards.map((c) => c.word_id),
+    split.useRank
+  );
   const cardCount = FLOORS.map(() => 0);
   const learned = FLOORS.map(() => 0);
   for (const c of cards) {
-    const lv = levels.get(c.word_id);
-    if (!lv) continue;
-    cardCount[lv - 1]++;
-    if (c.state === "review") learned[lv - 1]++;
+    const m = levels.get(c.word_id);
+    if (!m) continue;
+    const fl = floorOfWord(m.lv, m.rank, c.word_id, split.bounds);
+    if (fl < 1 || fl > FLOORS.length) continue;
+    cardCount[fl - 1]++;
+    if (c.state === "review") learned[fl - 1]++;
   }
-  const totals = totalsRes.map((r) => r.count ?? 0);
+  const counts = totalsRes.map((r) => r.count ?? 0);
+  const totals = [...counts.slice(0, SPLIT_LEVEL - 1), ...split.sizes];
 
   const active = new Set<string>();
   for (const r of (revRes.data ?? []) as { reviewed_at: string }[]) {
@@ -167,7 +250,9 @@ async function loadTower(supabase: SupabaseBrowser): Promise<TowerData> {
   }
 
   const newTarget =
-    settings && typeof settings.newPerDay === "number" ? settings.newPerDay : 10;
+    settings && typeof settings.newPerDay === "number" && settings.newPerDay > 0
+      ? settings.newPerDay
+      : 10;
 
   return {
     floors: buildFloors(totals, cardCount, learned),
@@ -192,13 +277,46 @@ function Stars({ n, size = "text-base" }: { n: number; size?: string }) {
   );
 }
 
-// ===== Hình học cây cổ thụ (đơn vị viewBox; cây co giãn theo bề ngang màn hình) =====
+// Dãy chặng ngày: ✓ đã xong, ô viền hồng là chặng hôm nay, ô xám là chặng sắp tới
+function StageChips({ chips, max = 30 }: { chips: StageChip[]; max?: number }) {
+  const nowIdx = chips.findIndex((c) => c.state === "now");
+  const focus = nowIdx >= 0 ? nowIdx : chips.length - 1;
+  let start = 0;
+  if (chips.length > max) start = Math.max(0, Math.min(chips.length - max, focus - 5));
+  const shown = chips.slice(start, start + max);
+  const after = chips.length - start - shown.length;
+  return (
+    <div className="flex flex-wrap items-center gap-1" role="list" aria-label="Các chặng ngày">
+      {start > 0 && <span className="text-[10px] font-bold text-emerald-700">✓ {start}</span>}
+      {shown.map((c) => {
+        const pct = Math.round(c.fill * 100);
+        return (
+          <span
+            key={c.idx}
+            role="listitem"
+            className={`wm-chip wm-chip-${c.state}`}
+            style={
+              c.state === "now"
+                ? { background: `linear-gradient(to top, #fecdd3 ${pct}%, #fff1f2 ${pct}%)` }
+                : undefined
+            }
+          >
+            {c.state === "done" ? "✓" : c.idx}
+          </span>
+        );
+      })}
+      {after > 0 && <span className="text-[10px] font-bold text-stone-400">+{after}</span>}
+    </div>
+  );
+}
+
+// ===== Hình học cây dây đậu thần kỳ (đơn vị viewBox; cây co giãn theo bề ngang màn hình) =====
 const VB_W = 400;
 const ROW_H = 170; // mỗi tầng (cành) cao 170
-const TOP_H = 230; // tán cây + quả dưa khổng lồ
+const TOP_H = 250; // mây + quả dưa khổng lồ trên đỉnh
 const GROUND_H = 175; // đảo nổi + biển mây
 const VB_H = TOP_H + FLOORS.length * ROW_H + GROUND_H;
-const TRUNK_TOP = TOP_H - 100;
+const TRUNK_TOP = 168;
 const GROUND_Y = VB_H - GROUND_H + 14;
 const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
 const FRUIT_DX = [92, 132, 170]; // khoảng cách 3 quả tới trục thân
@@ -206,84 +324,121 @@ const FRUIT_DX = [92, 132, 170]; // khoảng cách 3 quả tới trục thân
 type Pt = [number, number];
 
 const r1 = (n: number) => Math.round(n * 10) / 10; // làm tròn để máy chủ và trình duyệt vẽ giống nhau
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const rowTop = (level: number) => TOP_H + (FLOORS.length - level) * ROW_H;
 const attachY = (level: number) => rowTop(level) + 52; // chỗ cành bám vào thân
 const sideOf = (level: number): 1 | -1 => (level % 2 === 1 ? 1 : -1);
 const pctX = (x: number) => `${(x / VB_W) * 100}%`;
 const pctY = (y: number) => `${(y / VB_H) * 100}%`;
+const fmt = (p: Pt) => `${r1(p[0])} ${r1(p[1])}`;
 
 // Đường cong mượt đi qua các điểm
 function smooth(pts: Pt[]): string {
-  let d = `M${r1(pts[0][0])} ${r1(pts[0][1])}`;
+  let d = `M${fmt(pts[0])}`;
   for (let i = 1; i < pts.length - 1; i++) {
     const mx = (pts[i][0] + pts[i + 1][0]) / 2;
     const my = (pts[i][1] + pts[i + 1][1]) / 2;
-    d += ` Q${r1(pts[i][0])} ${r1(pts[i][1])} ${r1(mx)} ${r1(my)}`;
+    d += ` Q${fmt(pts[i])} ${r1(mx)} ${r1(my)}`;
   }
-  const last = pts[pts.length - 1];
-  return `${d} L${r1(last[0])} ${r1(last[1])}`;
+  return `${d} L${fmt(pts[pts.length - 1])}`;
 }
 const joinPath = (a: Pt[], b: Pt[]) =>
   `${smooth(a)}${smooth(b.slice().reverse()).replace(/^M/, " L")} Z`;
+const polyPath = (l: Pt[], r: Pt[]) =>
+  `M${l.map(fmt).join(" L")} L${r
+    .slice()
+    .reverse()
+    .map(fmt)
+    .join(" L")}Z`;
 
-// ----- Thân cây: to, hơi cong, thon dần lên ngọn, xòe rễ ở gốc -----
-const trunkCx = (y: number) => 200 + 5 * Math.sin(y / 170);
-const trunkHw = (y: number) => {
-  const t = Math.min(1, Math.max(0, (y - TRUNK_TOP) / (GROUND_Y - TRUNK_TOP)));
-  const flare = t > 0.9 ? 50 * Math.pow((t - 0.9) / 0.1, 2) : 0;
-  return 54 + 18 * t + flare;
+// ----- Thân đậu xoắn: to ở gốc, thon dần lên mây, hơi uốn lượn, xòe rễ -----
+const stalkCx = (y: number) => 200 + 15 * Math.sin(y / 190 + 0.6);
+const stalkHw = (y: number) => {
+  const t = clamp01((y - TRUNK_TOP) / (GROUND_Y - TRUNK_TOP));
+  const flare = t > 0.94 ? 54 * Math.pow((t - 0.94) / 0.06, 2) : 0;
+  return 35 + 30 * Math.pow(t, 0.85) + flare;
 };
-const TRUNK_YS: number[] = (() => {
+const STALK_YS: number[] = (() => {
   const a: number[] = [];
-  for (let y = TRUNK_TOP; y < GROUND_Y; y += 40) a.push(y);
+  for (let y = TRUNK_TOP; y < GROUND_Y - 110; y += 40) a.push(y);
+  for (let y = GROUND_Y - 110; y < GROUND_Y; y += 14) a.push(y);
   a.push(GROUND_Y);
   return a;
 })();
 const edgeLine = (f: number): Pt[] =>
-  TRUNK_YS.map((y) => [trunkCx(y) + f * trunkHw(y), y] as Pt);
+  STALK_YS.map((y) => [stalkCx(y) + f * stalkHw(y), y] as Pt);
+const STALK_PATH = joinPath(edgeLine(-1), edgeLine(1));
+const STALK_LIGHT = joinPath(edgeLine(-1), edgeLine(-0.5));
+const STALK_SHADE = joinPath(edgeLine(0.45), edgeLine(1));
 
-const TRUNK_PATH = joinPath(edgeLine(-1), edgeLine(1));
-const SHADE_PATH = joinPath(edgeLine(0.25), edgeLine(1)); // bên phải tối hơn
-const LIGHT_PATH = joinPath(edgeLine(-1), edgeLine(-0.6)); // bên trái sáng hơn
-const BARK_LINES = [-0.72, -0.4, -0.05, 0.3, 0.62, 0.86].map((f, i) => {
-  const pts: Pt[] = [];
-  for (let y = TRUNK_TOP + 14; y < GROUND_Y - 10; y += 34) {
-    pts.push([trunkCx(y) + f * trunkHw(y) + 3 * Math.sin(y / 23 + i * 2.1), y]);
+// Ba dải xoắn quấn quanh thân: chỉ vẽ phần quay về phía người xem
+const PITCH = 300;
+const HALF_BAND = 0.62;
+const STRAND_FILL = ["#6fb534", "#58a02b", "#86c940"];
+const normAng = (a: number) => {
+  const t = (a + Math.PI) % (Math.PI * 2);
+  return (t < 0 ? t + Math.PI * 2 : t) - Math.PI;
+};
+const clampAng = (a: number) => Math.max(-Math.PI / 2, Math.min(Math.PI / 2, a));
+
+const STRANDS = [0, 1, 2].map((s) => {
+  const bands: string[] = [];
+  const glints: string[] = [];
+  let l: Pt[] = [];
+  let r: Pt[] = [];
+  let c: Pt[] = [];
+  const flush = () => {
+    if (l.length > 3) {
+      bands.push(polyPath(l, r));
+      glints.push(`M${c.map(fmt).join(" L")}`);
+    }
+    l = [];
+    r = [];
+    c = [];
+  };
+  for (let y = TRUNK_TOP; y <= GROUND_Y; y += 6) {
+    const ph = normAng(((y - TRUNK_TOP) / PITCH) * Math.PI * 2 + (s * Math.PI * 2) / 3);
+    if (Math.cos(ph) > -0.55) {
+      const cx = stalkCx(y);
+      const hw = stalkHw(y);
+      l.push([cx + hw * Math.sin(clampAng(ph - HALF_BAND)), y]);
+      r.push([cx + hw * Math.sin(clampAng(ph + HALF_BAND)), y]);
+      c.push([cx + hw * Math.sin(clampAng(ph - 0.28)), y]);
+    } else flush();
   }
-  return smooth(pts);
-});
-const KNOTS = FLOORS.filter((f) => f.level >= 2).map((f) => {
-  const y = rowTop(f.level) + 168;
-  const side = f.level % 2 === 1 ? 1 : -1;
-  return { x: r1(trunkCx(y) + side * 0.5 * trunkHw(y)), y };
+  flush();
+  return { fill: STRAND_FILL[s], bands, glints };
 });
 
-// Dây dưa hấu quấn quanh thân
-const VINE_PTS: Pt[] = (() => {
-  const a: Pt[] = [];
-  for (let y = TRUNK_TOP + 50; y < GROUND_Y - 40; y += 14) {
-    a.push([trunkCx(y) + 0.8 * trunkHw(y) * Math.sin(y / 52), y]);
-  }
-  return a;
-})();
-const VINE_PATH = smooth(VINE_PTS);
-const VINE_LEAVES = VINE_PTS.filter((_, i) => i % 6 === 3).map(([x, y], i) => ({
-  x: r1(x),
-  y,
-  rot: i % 2 === 0 ? -35 : 215,
-}));
+// ----- Cành dây leo: dày ở gốc, thon dần ra ngọn, lá mọc dọc cành -----
+const BR_W0 = 11;
+const BR_W1 = 3.4;
+const LEAF_SPECS: [number, number, number][] = [
+  [0.2, -64, 0.95],
+  [0.4, -40, 1.1],
+  [0.6, -62, 1.0],
+  [0.78, -36, 0.95],
+  [0.94, -18, 0.8],
+];
 
-// ----- Cành: dày ở gốc, thon dần ra ngọn -----
-const BR_W0 = 22;
-const BR_W1 = 6;
+interface LeafPos {
+  x: number;
+  y: number;
+  ang: number;
+  sc: number;
+  s: 1 | -1;
+}
+
+const curl = (x: number, y: number, s: number) =>
+  `M${r1(x)} ${r1(y)} c${s * 4} -8 ${s * 3} -18 ${-s * 6} -20 c${-s * 8} -2 ${-s * 11} 7 ${-s * 4} 10`;
 
 function branchGeometry(level: number) {
   const s = sideOf(level);
   const ay = attachY(level);
-  const x0 = trunkCx(ay) + s * (trunkHw(ay) - 10);
-  const p0: Pt = [x0, ay + 12];
+  const x0 = stalkCx(ay) + s * (stalkHw(ay) - 6);
+  const p0: Pt = [x0, ay + 10];
   const p1: Pt = [x0 + s * 52, ay - 30];
-  const p2: Pt = [200 + s * 188, ay - 14];
+  const p2: Pt = [200 + s * 178, ay - 14];
   const at = (t: number): Pt => [
     (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
     (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
@@ -327,71 +482,80 @@ function branchGeometry(level: number) {
     return [r1(x), r1(y + half(best) * 0.4)] as Pt;
   });
 
-  // Cụm lá dọc cành, và một nhánh nhỏ bên kia thân cho cây đầy đặn
-  const fol = (
-    [
-      [0.3, 1.2],
-      [0.62, 1.35],
-      [0.92, 1.1],
-    ] as [number, number][]
-  ).map(([t, sc]) => {
+  // Lá phía trên cành (quả treo phía dưới nên không vướng nhau)
+  const leaves: LeafPos[] = LEAF_SPECS.map(([t, ang, sc]) => {
     const [x, y] = at(t);
-    return { x: r1(x), y: r1(y - 17), sc };
+    return { x: r1(x), y: r1(y - half(t) * 0.6), ang, sc, s };
   });
+  const [ux, uy] = at(0.12);
+  leaves.push({ x: r1(ux), y: r1(uy + half(0.12) * 0.6), ang: 70, sc: 0.8, s });
+
+  const [tx, ty] = at(1);
+
+  // Nhánh nhỏ bên kia thân cho cây đầy đặn
+  const oy = ay + 70;
+  const ox = stalkCx(oy) - s * (stalkHw(oy) - 6);
+  const twigLeaves: LeafPos[] = [
+    { x: r1(ox - s * 22), y: r1(oy - 13), ang: -55, sc: 0.9, s: (-s) as 1 | -1 },
+    { x: r1(ox - s * 48), y: r1(oy - 10), ang: -22, sc: 1.0, s: (-s) as 1 | -1 },
+  ];
   const [bgx, bgy] = at(0.2);
-  const oy = ay + 60;
-  const ox = trunkCx(oy) - s * (trunkHw(oy) - 6);
+
   return {
     s,
     ay,
     shape: `${smooth(top)}${smooth(bot.slice().reverse()).replace(/^M/, " L")} Z`,
     highlight: smooth(mid),
     hang,
-    bug: [r1(bgx), r1(bgy - 20)] as Pt,
-    fol,
-    twig: `M${r1(ox)} ${r1(oy)} Q${r1(ox - s * 18)} ${r1(oy - 14)} ${r1(ox - s * 36)} ${r1(oy - 8)}`,
-    twigFol: { x: r1(ox - s * 40), y: r1(oy - 16), sc: 1.0 },
+    bug: [r1(bgx), r1(bgy - 24)] as Pt,
+    leaves,
+    tendril: curl(tx, ty, -s),
+    twig: `M${r1(ox)} ${r1(oy)} Q${r1(ox - s * 22)} ${r1(oy - 18)} ${r1(ox - s * 50)} ${r1(oy - 10)}`,
+    twigTendril: curl(ox - s * 50, oy - 10, s),
+    twigLeaves,
   };
 }
 const GEOM = FLOORS.map((f) => branchGeometry(f.level));
 
-const LEAF = "M0 0 C6 -11 20 -13 30 0 C20 13 6 11 0 0Z";
+// Lá hình trái tim nhọn, có gân giữa
+const LEAF = "M0 0 C6 -13 24 -17 38 0 C24 17 6 13 0 0Z";
+const LEAF_HI = "M0 0 C6 -13 24 -17 38 0 C22 -4 8 -3 0 0Z";
+const LEAF_VEIN = "M3 0 L31 0";
 
-// Cụm lá hoạt hình: ba lớp tròn đậm, vừa, sáng
-const FOL_BLOBS: [number, number, number][] = [
-  [0, 0, 15],
-  [-16, 6, 12],
-  [15, 6, 13],
-  [-7, -12, 12],
-  [10, -10, 11],
-];
-
-// Tán cây khổng lồ trên đỉnh
-const CANOPY: [number, number, number][] = [
-  [110, 112, 46],
-  [150, 72, 48],
-  [200, 52, 50],
-  [250, 72, 48],
-  [290, 112, 46],
-  [130, 152, 36],
-  [270, 152, 36],
-  [172, 124, 42],
-  [228, 124, 42],
-  [200, 156, 38],
-  [96, 142, 30],
-  [304, 142, 30],
-];
-
-// Sao trên trời: tạo cố định để máy chủ và trình duyệt vẽ giống nhau
-const STARS = (() => {
-  const out: { x: number; y: number; r: number; d: number }[] = [];
-  let seed = 7;
-  const rnd = () => {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
+// Cỏ ở gốc, ngôi sao lấp lánh: tạo cố định để máy chủ và trình duyệt vẽ giống nhau
+const lcg = (seed: number) => {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
   };
-  for (let i = 0; i < 38; i++) {
-    out.push({ x: r1(8 + rnd() * 384), y: r1(8 + rnd() * 330), r: r1(0.8 + rnd() * 1.6), d: r1(rnd() * 4) });
+};
+const GRASS = (() => {
+  const rnd = lcg(11);
+  const out: string[] = [];
+  for (let i = 0; i < 46; i++) {
+    const x = 30 + i * (340 / 45) + (rnd() - 0.5) * 6;
+    const h = 16 + rnd() * 20;
+    const lean = (rnd() - 0.5) * 16;
+    const y = GROUND_Y + 6 + (rnd() - 0.5) * 8;
+    out.push(
+      `M${r1(x - 4)} ${r1(y)} Q${r1(x + lean * 0.3)} ${r1(y - h * 0.6)} ${r1(x + lean)} ${r1(y - h)} Q${r1(x + 4 + lean * 0.2)} ${r1(y - h * 0.45)} ${r1(x + 4)} ${r1(y)}Z`
+    );
+  }
+  return out;
+})();
+const sparkPath = (r: number) =>
+  `M0 ${-r} Q0 0 ${r} 0 Q0 0 0 ${r} Q0 0 ${-r} 0 Q0 0 0 ${-r}Z`;
+const SPARKLES = (() => {
+  const rnd = lcg(7);
+  const out: { x: number; y: number; r: number; d: number }[] = [];
+  for (let i = 0; i < 34; i++) {
+    out.push({
+      x: r1(70 + rnd() * 260),
+      y: r1(TOP_H + rnd() * (GROUND_Y - TOP_H - 90)),
+      r: r1(3 + rnd() * 4.5),
+      d: r1(rnd() * 4),
+    });
   }
   return out;
 })();
@@ -404,12 +568,25 @@ const BACK_CLOUDS = [
   { x: 60, y: 1520, d: "-7s", sc: 1.1 },
 ];
 // Mây bay ngang thân, nằm ở khoảng trống giữa các cành
-const FRONT_CLOUDS = FLOORS.filter((f) => f.level >= 2 && f.level <= 8).map((f) => ({
-  x: f.level % 2 === 1 ? 52 : 348,
-  y: rowTop(f.level) + 140,
-  d: `${-f.level * 3}s`,
-  sc: 0.9 + (f.level % 3) * 0.15,
-}));
+const FRONT_CLOUDS = FLOORS.filter((f) => f.level >= 2 && f.level <= 8 && f.level % 2 === 0).map(
+  (f) => ({
+    x: 348,
+    y: rowTop(f.level) + 140,
+    d: `${-f.level * 3}s`,
+    sc: 0.9 + (f.level % 3) * 0.15,
+  })
+);
+// Đám mây lớn trên đỉnh đỡ quả dưa khổng lồ
+const CROWN_CLOUD: [number, number, number][] = [
+  [128, 162, 30],
+  [160, 146, 36],
+  [200, 138, 42],
+  [242, 146, 38],
+  [274, 162, 30],
+  [200, 166, 36],
+  [164, 172, 28],
+  [238, 172, 28],
+];
 
 type FruitState = "locked" | "unripe" | "ripe" | "picked";
 
@@ -424,20 +601,17 @@ function fruitState(
   return f.learned >= f.targets[k] ? "ripe" : "unripe";
 }
 
-function Foliage({ x, y, sc, delay }: { x: number; y: number; sc: number; delay: number }) {
+function Leaf({ p, delay }: { p: LeafPos; delay: number }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(${sc})`}>
-      <g className="wm-pop" style={{ "--fd": `${delay}s` } as React.CSSProperties}>
-        <g className="wm-foliage">
-          {FOL_BLOBS.map(([cx, cy, r], i) => (
-            <circle key={`d${i}`} cx={cx} cy={cy + 2} r={r} className="wm-fl-d" />
-          ))}
-          {FOL_BLOBS.map(([cx, cy, r], i) => (
-            <circle key={`m${i}`} cx={cx - 1} cy={cy - 1} r={r * 0.82} className="wm-fl-m" />
-          ))}
-          {FOL_BLOBS.slice(0, 3).map(([cx, cy, r], i) => (
-            <circle key={`l${i}`} cx={cx - 4} cy={cy - 6} r={r * 0.38} className="wm-fl-l" />
-          ))}
+    <g transform={`translate(${p.x} ${p.y}) scale(${p.s} 1) rotate(${p.ang}) scale(${p.sc})`}>
+      <g className="wm-leafpop" style={{ "--fd": `${delay}s` } as React.CSSProperties}>
+        <g className="wm-leafsway">
+          <path d="M0 0 Q5 -2 11 -1" className="wm-lf-stem" />
+          <g transform="translate(10 -1)">
+            <path d={LEAF} className="wm-lf" />
+            <path d={LEAF_HI} className="wm-lf-hi" />
+            <path d={LEAF_VEIN} className="wm-lf-vein" />
+          </g>
         </g>
       </g>
     </g>
@@ -449,7 +623,7 @@ function Cloud({
   y,
   sc,
   d,
-  opacity = 0.8,
+  opacity = 0.85,
 }: {
   x: number;
   y: number;
@@ -459,7 +633,13 @@ function Cloud({
 }) {
   return (
     <g className="wm-cloud" style={{ "--cd": d } as React.CSSProperties}>
-      <g transform={`translate(${x} ${y}) scale(${sc})`} fill="#fff" opacity={opacity}>
+      <g
+        transform={`translate(${x} ${y}) scale(${sc})`}
+        fill="#fff"
+        stroke="#cfe2ee"
+        strokeWidth="1.2"
+        opacity={opacity}
+      >
         <ellipse cx="0" cy="0" rx="28" ry="10" />
         <ellipse cx="-16" cy="-5" rx="14" ry="9" />
         <ellipse cx="12" cy="-8" rx="16" ry="11" />
@@ -558,13 +738,60 @@ export default function TowerHome() {
   const today = new Date();
   const floors = data?.floors ?? buildFloors([], [], []);
   const current = data ? currentFloorLevel(floors) : 0;
+  const pace = Math.max(1, data?.newTarget ?? 10); // số từ mỗi chặng = số từ mới mỗi ngày
+
+  // Quả tiếp theo trên cành đang leo, và kế hoạch chặng ngày của nó
+  const curFloor = data ? floors[current - 1] : null;
+  const nextPlan =
+    curFloor && curFloor.total > 0 && curFloor.stars < 3
+      ? fruitPlan(curFloor, curFloor.stars, pace)
+      : null;
+  const nextChips = curFloor && nextPlan ? stageChips(curFloor, nextPlan.k, pace) : [];
 
   const missions: Mission[] = data
     ? [
-        { key: "new", hanzi: "词", title: "Học từ mới", href: "/review", value: data.newToday, target: data.newTarget, unit: "từ" },
-        { key: "review", hanzi: "忆", title: "Chấm thẻ ôn", href: "/review", value: data.reviewToday, target: REVIEW_TARGET, unit: "lượt" },
-        { key: "listen", hanzi: "听", title: "Nghe", href: "/listen", value: data.listenToday, target: LISTEN_TARGET, unit: "lượt" },
-        { key: "speak", hanzi: "说", title: "Nói", href: "/speak", value: data.speakToday, target: SPEAK_TARGET, unit: "lần đọc" },
+        {
+          key: "new",
+          hanzi: "词",
+          title: "Học từ mới",
+          hint: nextPlan
+            ? `Thêm thẻ cho tầng ${current}, hướng tới quả ${nextPlan.k + 1}`
+            : "Thêm thẻ mới mỗi ngày",
+          href: "/review",
+          value: data.newToday,
+          target: data.newTarget,
+          unit: "từ",
+        },
+        {
+          key: "review",
+          hanzi: "忆",
+          title: "Chấm thẻ ôn",
+          hint: "Ôn đều để thẻ thành “đã thuộc”, quả mới chín",
+          href: "/review",
+          value: data.reviewToday,
+          target: REVIEW_TARGET,
+          unit: "lượt",
+        },
+        {
+          key: "listen",
+          hanzi: "听",
+          title: "Nghe",
+          hint: "Luyện tai, góp sao cho ngày",
+          href: "/listen",
+          value: data.listenToday,
+          target: LISTEN_TARGET,
+          unit: "lượt",
+        },
+        {
+          key: "speak",
+          hanzi: "说",
+          title: "Nói",
+          hint: "Luyện miệng, góp sao cho ngày",
+          href: "/speak",
+          value: data.speakToday,
+          target: SPEAK_TARGET,
+          unit: "lần đọc",
+        },
       ]
     : [];
   const doneCount = missions.filter((m) => m.value >= m.target).length;
@@ -578,10 +805,14 @@ export default function TowerHome() {
   const selDef = selected ? FLOORS[selected.level - 1] : null;
 
   let ripeWaiting = 0;
+  let firstRipe: { level: number; k: number } | null = null;
   for (const f of floors) {
     if (f.total === 0) continue;
     for (let k = 0; k < FRUITS_PER_BRANCH; k++) {
-      if (f.learned >= f.targets[k] && !picked.has(`${f.level}-${k}`)) ripeWaiting++;
+      if (f.learned >= f.targets[k] && !picked.has(`${f.level}-${k}`)) {
+        ripeWaiting++;
+        if (!firstRipe) firstRipe = { level: f.level, k };
+      }
     }
   }
 
@@ -613,10 +844,24 @@ export default function TowerHome() {
     setSelected({ level, fruit: k });
   };
 
-  const goCurrent = () => {
+  const scrollToFloor = (level: number) => {
     document
-      .getElementById(`wm-floor-${current}`)
+      .getElementById(`wm-floor-${level}`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const goCurrent = () => scrollToFloor(current);
+
+  const viewNext = () => {
+    if (!nextPlan) return;
+    setSelected({ level: current, fruit: nextPlan.k });
+    scrollToFloor(current);
+  };
+
+  const goRipe = () => {
+    if (!firstRipe) return;
+    setSelected({ level: firstRipe.level, fruit: firstRipe.k });
+    scrollToFloor(firstRipe.level);
   };
 
   return (
@@ -639,6 +884,74 @@ export default function TowerHome() {
             </div>
           </div>
         </div>
+
+        {/* Quả tiếp theo: nối nhiệm vụ ngày với tiến trình trên cây */}
+        {data && (
+          <div className="space-y-3 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
+            {ripeWaiting > 0 && (
+              <button
+                type="button"
+                onClick={goRipe}
+                className="flex w-full items-center justify-between gap-2 rounded-xl bg-rose-500 px-3 py-2 text-sm font-semibold text-white shadow-md shadow-rose-500/25"
+              >
+                <span>🍉 {ripeWaiting} quả chín đang chờ hái</span>
+                <span className="text-xs">Hái ngay →</span>
+              </button>
+            )}
+            {nextPlan && curFloor ? (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700/80">
+                      Quả tiếp theo
+                    </p>
+                    <p className="text-base font-bold text-stone-900">
+                      🍉 Quả {nextPlan.k + 1} · Tầng {current} {FLOORS[current - 1].name}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={viewNext}
+                    className="shrink-0 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/25"
+                  >
+                    Xem trên cây
+                  </button>
+                </div>
+
+                <div>
+                  <div className="flex items-baseline justify-between text-xs font-semibold text-emerald-800">
+                    <span>
+                      Đã thuộc {curFloor.learned}/{nextPlan.target} từ
+                    </span>
+                    <span>còn {nextPlan.need} từ</span>
+                  </div>
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/80">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-lime-400 to-emerald-500 transition-[width] duration-700"
+                      style={{
+                        width: `${Math.round(clamp01(curFloor.learned / nextPlan.target) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-sm text-stone-700">
+                  <span className="font-bold text-rose-600">
+                    Chặng {nextPlan.stageNow}/{nextPlan.stageTotal}:
+                  </span>{" "}
+                  thuộc thêm <span className="font-bold">{nextPlan.stageLeft} từ</span> là xong chặng
+                  hôm nay. Giữ nhịp {pace} từ/ngày, khoảng{" "}
+                  <span className="font-bold">{nextPlan.days} ngày</span> nữa hái được.
+                </p>
+                <StageChips chips={nextChips} />
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-emerald-800">
+                Cây đã đủ 3 quả ở mọi tầng. Giữ chuỗi ngày để dưa luôn tươi!
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-2.5 sm:grid-cols-2">
           {(data ? missions : ([null, null, null, null] as (Mission | null)[])).map((m, i) => {
@@ -678,6 +991,9 @@ export default function TowerHome() {
                       {Math.min(m.value, 999)}/{m.target} {m.unit}
                     </span>
                   </span>
+                  <span className="mt-1 block text-[11px] leading-tight text-stone-500">
+                    {m.hint}
+                  </span>
                   <span className="mt-1.5 block h-2 rounded-full bg-stone-200/70 overflow-hidden">
                     <span
                       className={`block h-full rounded-full transition-[width] duration-700 ${
@@ -716,12 +1032,12 @@ export default function TowerHome() {
         )}
       </section>
 
-      {/* ===== Cây Dưa Hấu cổ thụ ===== */}
+      {/* ===== Cây Dưa Hấu thần kỳ ===== */}
       <section className="space-y-3">
         <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400">
-              Cây Dưa Hấu cổ thụ · HSK 3.0
+              Cây Dưa Hấu thần kỳ · HSK 3.0
             </h2>
             <p className="mt-0.5 text-xs text-emerald-700/70">
               {data ? `Đang leo tầng ${current}` : "Đang tải cây..."}
@@ -764,31 +1080,16 @@ export default function TowerHome() {
 
         <div className="relative mx-auto max-w-[620px]">
           <div
-            className="wm-tree relative overflow-hidden rounded-3xl border border-white/80 shadow-[0_20px_60px_rgb(120,40,90,0.25)]"
+            className="wm-tree relative overflow-hidden rounded-3xl border border-white/80 shadow-[0_20px_60px_rgb(60,110,60,0.25)]"
             style={{ aspectRatio: `${VB_W} / ${VB_H}` }}
           >
             <svg
               viewBox={`0 0 ${VB_W} ${VB_H}`}
               className="absolute inset-0 h-full w-full"
               role="img"
-              aria-label="Cây dưa hấu cổ thụ, mỗi tầng là một cành có ba quả dưa"
+              aria-label="Cây dưa hấu thần kỳ có thân xoắn, mỗi tầng là một cành có ba quả dưa"
             >
-              {/* Trời: sao, trăng, mây phía sau */}
-              {STARS.map((st, i) => (
-                <circle
-                  key={i}
-                  cx={st.x}
-                  cy={st.y}
-                  r={st.r}
-                  fill="#fff"
-                  className="wm-star"
-                  style={{ "--sd": `${st.d}s` } as React.CSSProperties}
-                />
-              ))}
-              <circle cx="46" cy="70" r="32" fill="#fff4c9" opacity="0.14" />
-              <circle cx="46" cy="70" r="20" fill="#fff4c9" />
-              <circle cx="40" cy="64" r="4" fill="#f0e3a8" />
-              <circle cx="53" cy="76" r="3" fill="#f0e3a8" />
+              {/* Mây phía sau */}
               {BACK_CLOUDS.map((c, i) => (
                 <Cloud key={i} x={c.x} y={c.y} sc={c.sc} d={c.d} />
               ))}
@@ -818,11 +1119,11 @@ export default function TowerHome() {
               ))}
               <path
                 d={`M14 ${GROUND_Y + 2} C70 ${GROUND_Y - 30} 330 ${GROUND_Y - 30} 386 ${GROUND_Y + 2} C384 ${GROUND_Y + 18} 300 ${GROUND_Y + 26} 200 ${GROUND_Y + 26} C100 ${GROUND_Y + 26} 16 ${GROUND_Y + 18} 14 ${GROUND_Y + 2} Z`}
-                fill="#58b947"
-                stroke="#2c7a34"
+                fill="#7cc24a"
+                stroke="#3f8a2c"
                 strokeWidth="2.5"
               />
-              <path d={`M40 ${GROUND_Y - 4} C100 ${GROUND_Y - 24} 300 ${GROUND_Y - 24} 360 ${GROUND_Y - 4}`} fill="none" stroke="#9be476" strokeWidth="4" opacity="0.7" strokeLinecap="round" />
+              <path d={`M40 ${GROUND_Y - 4} C100 ${GROUND_Y - 24} 300 ${GROUND_Y - 24} 360 ${GROUND_Y - 4}`} fill="none" stroke="#b6ec84" strokeWidth="4" opacity="0.7" strokeLinecap="round" />
 
               {/* Từng cành = từng tầng */}
               {FLOORS.map((def) => {
@@ -837,67 +1138,60 @@ export default function TowerHome() {
                     className={locked ? "wm-locked" : undefined}
                     style={{ "--d": `${d}s` } as React.CSSProperties}
                   >
-                    <path d={g.twig} fill="none" strokeWidth="7" strokeLinecap="round" className="wm-twig" />
-                    <Foliage x={g.twigFol.x} y={g.twigFol.y} sc={g.twigFol.sc} delay={d + 0.8} />
-                    <path d={g.shape} strokeWidth="2.5" strokeLinejoin="round" className={`wm-bark ${ext}`} />
-                    <path d={g.highlight} fill="none" strokeWidth="3" strokeLinecap="round" className={`wm-bark-hl ${ext}`} />
-                    {g.fol.map((fo, i) => (
-                      <Foliage key={i} x={fo.x} y={fo.y} sc={fo.sc} delay={d + 0.6 + i * 0.12} />
+                    <path d={g.twig} fill="none" strokeWidth="5" strokeLinecap="round" className="wm-twig" />
+                    <path d={g.twigTendril} fill="none" strokeWidth="2.2" strokeLinecap="round" className="wm-tendril" />
+                    {g.twigLeaves.map((p, i) => (
+                      <Leaf key={`t${i}`} p={p} delay={d + 0.8 + i * 0.12} />
+                    ))}
+                    <path d={g.shape} strokeWidth="1.8" strokeLinejoin="round" className={`wm-stem ${ext}`} />
+                    <path d={g.highlight} fill="none" strokeWidth="2.4" strokeLinecap="round" className={`wm-stem-hl ${ext}`} />
+                    <path d={g.tendril} fill="none" strokeWidth="2.4" strokeLinecap="round" className="wm-tendril" />
+                    {g.leaves.map((p, i) => (
+                      <Leaf key={i} p={p} delay={d + 0.6 + i * 0.1} />
                     ))}
                   </g>
                 );
               })}
 
-              {/* Thân cổ thụ */}
-              <path d={TRUNK_PATH} fill="#8a5a34" />
-              <path d={LIGHT_PATH} fill="#c08a58" opacity="0.5" />
-              <path d={SHADE_PATH} fill="#5e3b20" opacity="0.5" />
-              {BARK_LINES.map((d, i) => (
+              {/* Thân đậu xoắn */}
+              <path d={STALK_PATH} fill="#3f7a1f" />
+              {STRANDS.map((st, si) => (
+                <g key={si}>
+                  {st.bands.map((b, i) => (
+                    <path key={i} d={b} fill={st.fill} stroke="#2c5a16" strokeWidth="1.3" strokeLinejoin="round" />
+                  ))}
+                  {st.glints.map((gl, i) => (
+                    <path key={`g${i}`} d={gl} fill="none" stroke="#d2f59a" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+                </g>
+              ))}
+              <path d={STALK_LIGHT} fill="#d9f7a5" opacity="0.22" />
+              <path d={STALK_SHADE} fill="#1d3f0c" opacity="0.22" />
+              <path d={STALK_PATH} fill="none" stroke="#2c5a16" strokeWidth="2.6" strokeLinejoin="round" />
+
+              {/* Cỏ ở gốc */}
+              {GRASS.map((gp, i) => (
+                <path key={i} d={gp} fill={i % 3 === 0 ? "#86cf52" : "#6bb83f"} stroke="#3f8a2c" strokeWidth="1.2" strokeLinejoin="round" />
+              ))}
+
+              {/* Sợi râu cuộn ở ngọn thân */}
+              <path d={curl(stalkCx(236) - 22, 236, -1)} fill="none" stroke="#79b53a" strokeWidth="3" strokeLinecap="round" />
+              <path d={curl(stalkCx(232) + 22, 232, 1)} fill="none" stroke="#79b53a" strokeWidth="3" strokeLinecap="round" />
+
+              {/* Lấp lánh */}
+              {SPARKLES.map((sp, i) => (
                 <path
                   key={i}
-                  d={d}
-                  fill="none"
-                  stroke="#3d2412"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  opacity={0.28 + (i % 3) * 0.08}
-                  strokeDasharray={i % 2 === 1 ? "46 16" : undefined}
+                  d={sparkPath(sp.r)}
+                  transform={`translate(${sp.x} ${sp.y})`}
+                  fill="#ffd95a"
+                  className="wm-star"
+                  style={{ "--sd": `${sp.d}s` } as React.CSSProperties}
                 />
               ))}
-              <path d={TRUNK_PATH} fill="none" stroke="#3d2412" strokeWidth="3" strokeLinejoin="round" />
-              {KNOTS.map((k, i) => (
-                <g key={i}>
-                  <ellipse cx={k.x} cy={k.y} rx="12" ry="15" fill="none" stroke="#6b4226" strokeWidth="2" />
-                  <ellipse cx={k.x} cy={k.y} rx="9" ry="12" fill="#4a2c15" />
-                  <ellipse cx={k.x} cy={k.y} rx="5" ry="7" fill="#2e1a0a" />
-                </g>
-              ))}
-              {/* Dây dưa hấu quấn thân */}
-              <path d={VINE_PATH} fill="none" stroke="#1f6e35" strokeWidth="6" strokeLinecap="round" />
-              <path d={VINE_PATH} fill="none" stroke="#5cc46a" strokeWidth="2.6" strokeLinecap="round" />
-              {VINE_LEAVES.map((l, i) => (
-                <g key={i} transform={`translate(${l.x} ${l.y}) rotate(${l.rot}) scale(0.6)`}>
-                  <path d={LEAF} fill="#43b35b" stroke="#1f6e35" strokeWidth="1.5" />
-                </g>
-              ))}
-              {/* Bụi cỏ ở gốc */}
-              {[96, 140, 172, 228, 260, 304].map((x, i) => (
-                <circle key={i} cx={x} cy={GROUND_Y + 4} r={i % 2 === 0 ? 10 : 8} fill="#58b947" stroke="#2c7a34" strokeWidth="2" />
-              ))}
 
-              {/* Tán cây khổng lồ */}
-              {CANOPY.map(([cx, cy, r], i) => (
-                <circle key={`cd${i}`} cx={cx} cy={cy} r={r} className="wm-fl-d" />
-              ))}
-              {CANOPY.map(([cx, cy, r], i) => (
-                <circle key={`cm${i}`} cx={cx - 3} cy={cy - 4} r={r * 0.84} className="wm-fl-m" />
-              ))}
-              {CANOPY.slice(0, 6).map(([cx, cy, r], i) => (
-                <circle key={`cl${i}`} cx={cx - 12} cy={cy - 16} r={r * 0.3} className="wm-fl-l" />
-              ))}
-
-              {/* Quả dưa khổng lồ nằm giữa tán */}
-              <g transform="translate(200 106) scale(0.92)">
+              {/* Quả dưa khổng lồ nằm trên mây, nơi dây đậu dẫn tới */}
+              <g transform="translate(200 66) scale(0.8)">
                 {crownReady && (
                   <g className="wm-rays">
                     {Array.from({ length: 12 }, (_, i) => (
@@ -934,6 +1228,17 @@ export default function TowerHome() {
                   )}
                 </g>
               </g>
+              <g stroke="#ddd6bf" strokeWidth="1.5">
+                {CROWN_CLOUD.map(([cx, cy, r], i) => (
+                  <circle key={i} cx={cx} cy={cy} r={r} fill="#fffdf6" />
+                ))}
+              </g>
+              <g fill="#fffdf6">
+                {CROWN_CLOUD.map(([cx, cy, r], i) => (
+                  <circle key={i} cx={cx} cy={cy} r={r - 1.5} />
+                ))}
+              </g>
+              <ellipse cx="200" cy="186" rx="78" ry="9" fill="#efe9d2" opacity="0.7" />
 
               {/* Mây bay ngang thân và biển mây dưới đảo */}
               {FRONT_CLOUDS.map((c, i) => (
@@ -952,7 +1257,7 @@ export default function TowerHome() {
               <rect x="-40" y={VB_H - 30} width="480" height="40" fill="#fff" />
             </svg>
 
-            {/* Lớp chạm: biển gỗ tên tầng gắn trên thân, quả dưa, bọ rùa */}
+            {/* Lớp chạm: biển tên tầng gắn trên thân, quả dưa, bọ rùa */}
             {FLOORS.map((def) => {
               const f = floors[def.level - 1];
               const g = GEOM[def.level - 1];
@@ -961,15 +1266,25 @@ export default function TowerHome() {
               const isCurrent = !loading && def.level === current;
               const d = (def.level - 1) * 0.14;
               const top = rowTop(def.level);
-              const cx = trunkCx(top + 100);
+              const cx = stalkCx(top + 100);
+              // Thanh tiến độ của biển = tiến độ tới quả tiếp theo của tầng
+              const nk = Math.min(2, f.stars);
+              const full = f.stars >= 3;
+              const nPrev = nk > 0 ? f.targets[nk - 1] : 0;
+              const nTarget = f.targets[nk];
+              const barPct = loading || empty
+                ? 0
+                : full
+                  ? 100
+                  : Math.round(clamp01((f.learned - nPrev) / Math.max(1, nTarget - nPrev)) * 100);
               return (
                 <div key={def.level} className="contents">
                   <button
                     type="button"
                     id={`wm-floor-${def.level}`}
                     onClick={() => setSelected({ level: def.level, fruit: null })}
-                    className={`wm-label rounded-xl border-2 bg-[#fff8ea]/95 p-1.5 shadow-[0_5px_14px_rgb(60,30,10,0.35)] ${
-                      isCurrent ? "border-rose-500 ring-4 ring-rose-400/35" : "border-[#8a5a34]"
+                    className={`wm-label rounded-xl border-2 bg-[#fffbee] p-1.5 shadow-[0_5px_14px_rgb(30,70,20,0.3)] ${
+                      isCurrent ? "border-rose-500 ring-4 ring-rose-400/35" : "border-[#5d9a2a]"
                     } ${locked ? "opacity-90" : ""}`}
                     style={
                       {
@@ -979,35 +1294,43 @@ export default function TowerHome() {
                       } as React.CSSProperties
                     }
                   >
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${def.grad} text-[11px] font-extrabold text-white ${
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${def.grad} text-xs font-extrabold text-white ${
                           locked ? "grayscale" : ""
                         }`}
                       >
                         {locked ? "🔒" : def.level}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[8px] font-bold uppercase leading-none tracking-wider text-[#a0622f]">
+                        <span className="block text-[9px] font-bold uppercase leading-none tracking-wider text-[#4a8a26]">
                           Tầng {def.level}
                         </span>
-                        <span className="block truncate text-[11.5px] font-bold leading-tight text-[#3d2412]">
+                        <span className="block truncate text-[12.5px] font-bold leading-tight text-[#1f4a12]">
                           {def.name}
                         </span>
                       </span>
                     </span>
-                    <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-[#e6d3b3]">
+                    <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-[#dfe9c9]">
                       <span
                         className={`block h-full rounded-full bg-gradient-to-r ${def.grad} transition-[width] duration-700`}
-                        style={{ width: `${Math.round(f.pct * 100)}%` }}
+                        style={{ width: `${barPct}%` }}
                       />
                     </span>
-                    <span className="mt-0.5 flex items-center justify-between text-[9px] font-medium text-[#7a5a3a]">
-                      <span>{loading ? "..." : empty ? "Đang ươm" : `${f.learned}/${f.total}`}</span>
+                    <span className="mt-0.5 flex items-center justify-between text-[10.5px] font-semibold text-[#4f6b3a]">
+                      <span>
+                        {loading
+                          ? "..."
+                          : empty
+                            ? "Đang ươm"
+                            : full
+                              ? "Đủ 3 quả"
+                              : `${f.learned}/${nTarget} từ`}
+                      </span>
                       <span>🍉{f.stars}/3</span>
                     </span>
                     {isCurrent && (
-                      <span className="absolute -right-1.5 -top-3 whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                      <span className="absolute -right-1.5 -top-3 whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
                         Đang leo
                       </span>
                     )}
@@ -1081,10 +1404,10 @@ export default function TowerHome() {
 
           {/* Bảng chi tiết, dính ở đáy màn hình khi đang xem cây */}
           {selected && sel && selDef && (
-            <div className="wm-sheet sticky bottom-3 z-30 mt-3 rounded-3xl border border-rose-100 bg-white/95 p-4 shadow-[0_-10px_40px_rgb(229,51,79,0.2)] backdrop-blur-xl">
+            <div className="wm-sheet sticky bottom-3 z-30 mt-3 max-h-[75vh] overflow-y-auto rounded-3xl border border-emerald-100 bg-white/95 p-4 shadow-[0_-10px_40px_rgb(60,130,60,0.25)] backdrop-blur-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-rose-400">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
                     Tầng {selDef.level}
                   </p>
                   <h3 className="text-lg font-bold text-stone-900">{selDef.name}</h3>
@@ -1101,7 +1424,7 @@ export default function TowerHome() {
 
               {sel.total === 0 ? (
                 <p className="mt-3 text-sm text-stone-600">
-                  Cành này đang ươm: chưa có từ nào ở cấp này trong dữ liệu HSK 3.0 hiện tại.
+                  Cành này đang ươm: chưa có từ nào ở tầng này trong dữ liệu HSK 3.0 hiện tại.
                 </p>
               ) : !sel.unlocked ? (
                 <p className="mt-3 text-sm text-stone-600">
@@ -1109,33 +1432,52 @@ export default function TowerHome() {
                 </p>
               ) : (
                 <>
-                  <ul className="mt-3 space-y-1.5">
+                  <p className="mt-2 text-xs text-stone-500">
+                    Mỗi chặng = 1 ngày = {pace} từ (đổi số từ mới mỗi ngày trong Cài đặt). Xong chặng
+                    nào thì ô đó hiện ✓.
+                  </p>
+                  <ul className="mt-3 space-y-2">
                     {sel.targets.map((t, k) => {
-                      const ripe = sel.learned >= t;
+                      const plan = fruitPlan(sel, k, pace);
                       const isPicked = picked.has(`${sel.level}-${k}`);
                       const focus = selected.fruit === k;
                       return (
                         <li
                           key={k}
-                          className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm ${
-                            focus ? "bg-rose-50 ring-2 ring-rose-200" : "bg-stone-50"
+                          className={`space-y-2 rounded-xl px-3 py-2.5 text-sm ${
+                            focus ? "bg-emerald-50 ring-2 ring-emerald-200" : "bg-stone-50"
                           }`}
                         >
-                          <span>🍉 Quả {k + 1}</span>
-                          <span className={ripe ? "font-semibold text-emerald-700" : "text-stone-600"}>
-                            {isPicked
-                              ? "Đã hái ✓"
-                              : ripe
-                                ? "Chín rồi, chạm để hái!"
-                                : `Cần thuộc ${t} từ · còn ${t - sel.learned}`}
-                          </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold">🍉 Quả {k + 1}</span>
+                            <span className={plan.ripe ? "font-semibold text-emerald-700" : "text-stone-600"}>
+                              {isPicked
+                                ? "Đã hái ✓"
+                                : plan.ripe
+                                  ? "Chín rồi, chạm để hái!"
+                                  : `Cần thuộc ${t} từ · còn ${plan.need}`}
+                            </span>
+                          </div>
+                          {!plan.ripe && (
+                            <>
+                              <p className="text-[11px] text-stone-500">
+                                {plan.stageTotal} chặng · chặng {plan.stageNow} cần thuộc đến{" "}
+                                {plan.stageGoal} từ (còn {plan.stageLeft})
+                              </p>
+                              <StageChips chips={stageChips(sel, k, pace)} />
+                            </>
+                          )}
                         </li>
                       );
                     })}
                   </ul>
                   <p className="mt-3 text-xs text-stone-500">
-                    Đã có thẻ {sel.cards} từ · đã thuộc {sel.learned}/{sel.total} từ · mốc{" "}
-                    {sel.milestonesDone}/{sel.milestonesTotal} (mỗi mốc {MILESTONE_SIZE} từ).
+                    Đã có thẻ {sel.cards} từ · đã thuộc {sel.learned}/{sel.total} từ.
+                    {selDef.level >= SPLIT_LEVEL
+                      ? ` HSK ${SPLIT_LEVEL} rất lớn nên được chia thành ${SPLIT_PARTS} tầng (${SPLIT_LEVEL} đến ${
+                          SPLIT_LEVEL + SPLIT_PARTS - 1
+                        }), từ thường gặp xếp trước.`
+                      : ""}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link

@@ -147,3 +147,113 @@ export function weekStrip(active: Set<string>, today: Date) {
   }
   return out;
 }
+
+/* =====================================================================
+   Chia HSK 7 thành 3 tầng (7, 8, 9) và chia nhỏ mỗi quả thành các chặng ngày
+   ===================================================================== */
+
+// HSK 3.0 cấp 7 có ~5.700 từ, quá lớn cho một tầng nên chia 3 phần đều nhau
+// theo thứ tự tần suất (cột rank trong bảng words, từ thường gặp xếp trước).
+// Nếu tên cột khác, đổi SPLIT_COLUMN. Cột không có thì tự chia theo id.
+export const SPLIT_LEVEL = 7;
+export const SPLIT_PARTS = 3;
+export const SPLIT_COLUMN = "rank";
+
+export function splitSizes(n: number, parts: number = SPLIT_PARTS): number[] {
+  const base = Math.floor(n / parts);
+  const extra = n % parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+// Từ cuối cùng (tính cả nó) của tầng 7 và tầng 8; phần còn lại thuộc tầng 9
+export interface SplitBoundary {
+  rank: number | null;
+  id: string;
+}
+
+function cmpWord(ar: number | null, aid: string, br: number | null, bid: string): number {
+  const x = ar ?? Infinity;
+  const y = br ?? Infinity;
+  if (x !== y) return x < y ? -1 : 1;
+  return aid < bid ? -1 : aid > bid ? 1 : 0;
+}
+
+/** Từ thuộc tầng nào (1-9). Cấp 1-6 là tầng 1-6; cấp 7 chia theo mốc; cấp khác trả 0. */
+export function floorOfWord(
+  level: number,
+  rank: number | null,
+  id: string,
+  bounds: SplitBoundary[]
+): number {
+  if (level >= 1 && level < SPLIT_LEVEL) return level;
+  if (level !== SPLIT_LEVEL) return 0;
+  for (let i = 0; i < bounds.length; i++) {
+    if (cmpWord(rank, id, bounds[i].rank, bounds[i].id) <= 0) return SPLIT_LEVEL + i;
+  }
+  return SPLIT_LEVEL + bounds.length;
+}
+
+/* ---------- Chặng ngày ---------- */
+// Một chặng = số từ mới mỗi ngày (newPerDay trong Cài đặt). Mỗi quả dưa được
+// chia thành các chặng liên tiếp; xong chặng nào là xong mục tiêu của ngày đó.
+
+export interface FruitPlan {
+  k: number; // 0, 1, 2
+  target: number; // số từ đã thuộc để quả chín
+  prev: number; // mốc của quả trước (0 nếu là quả đầu)
+  need: number; // còn thiếu bao nhiêu từ
+  days: number; // còn ước chừng bao nhiêu ngày
+  stageTotal: number; // quả này có bao nhiêu chặng
+  stageNow: number; // đang ở chặng thứ mấy (1..stageTotal)
+  stageGoal: number; // mốc số từ đã thuộc để xong chặng hôm nay
+  stageLeft: number; // còn bao nhiêu từ để xong chặng hôm nay
+  ripe: boolean;
+}
+
+export function fruitPlan(f: FloorStat, k: number, pace: number): FruitPlan {
+  const p = Math.max(1, Math.round(pace));
+  const target = f.targets[k];
+  const prev = k > 0 ? f.targets[k - 1] : 0;
+  const span = Math.max(1, target - prev);
+  const stageTotal = Math.max(1, Math.ceil(span / p));
+  const ripe = f.learned >= target;
+  const stageNow = ripe
+    ? stageTotal
+    : Math.min(stageTotal, Math.floor(Math.max(0, f.learned - prev) / p) + 1);
+  const stageGoal = ripe ? target : Math.min(target, prev + stageNow * p);
+  const need = Math.max(0, target - f.learned);
+  return {
+    k,
+    target,
+    prev,
+    need,
+    days: Math.ceil(need / p),
+    stageTotal,
+    stageNow,
+    stageGoal,
+    stageLeft: Math.max(0, stageGoal - f.learned),
+    ripe,
+  };
+}
+
+export interface StageChip {
+  idx: number; // 1..stageTotal
+  state: "done" | "now" | "todo";
+  fill: number; // 0-1, chỉ dùng cho chặng đang làm
+}
+
+export function stageChips(f: FloorStat, k: number, pace: number): StageChip[] {
+  const p = Math.max(1, Math.round(pace));
+  const plan = fruitPlan(f, k, p);
+  const out: StageChip[] = [];
+  for (let i = 1; i <= plan.stageTotal; i++) {
+    const start = plan.prev + (i - 1) * p;
+    const end = Math.min(plan.target, plan.prev + i * p);
+    if (f.learned >= end) out.push({ idx: i, state: "done", fill: 1 });
+    else if (!plan.ripe && i === plan.stageNow) {
+      const size = Math.max(1, end - start);
+      out.push({ idx: i, state: "now", fill: Math.max(0, Math.min(1, (f.learned - start) / size)) });
+    } else out.push({ idx: i, state: "todo", fill: 0 });
+  }
+  return out;
+}

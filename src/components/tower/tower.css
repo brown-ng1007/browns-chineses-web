@@ -1,19 +1,10 @@
-/* Cây Dưa Hấu khổng lồ. Mọi lớp bắt đầu bằng wm- để không đụng globals.css.
+/* Cây Dưa Hấu thần kỳ (thân xoắn, lá xanh, mây). Mọi lớp bắt đầu bằng wm- để không đụng globals.css.
    Chỉ dùng transform / opacity cho nhẹ iPad. */
 
 .wm-tree {
-  background: linear-gradient(
-    to bottom,
-    #140d3a 0%,
-    #2d1b69 8%,
-    #7a3b8c 17%,
-    #ff7a9c 28%,
-    #ffc0a8 38%,
-    #9edbff 52%,
-    #bfe8ff 72%,
-    #e8f7ff 90%,
-    #ffffff 100%
-  );
+  background:
+    radial-gradient(circle at 50% 7%, #fff3bd 0%, rgba(255, 243, 189, 0) 36%),
+    linear-gradient(to bottom, #dff0ff 0%, #eef7f1 22%, #fbf7e4 55%, #eef8e2 80%, #ffffff 100%);
   isolation: isolate;
 }
 
@@ -25,7 +16,7 @@
 @keyframes wm-twinkle {
   0%,
   100% {
-    opacity: 0.25;
+    opacity: 0.2;
   }
   50% {
     opacity: 1;
@@ -45,18 +36,22 @@
   }
 }
 
-/* ---------- Cành, tán lá ---------- */
-.wm-bark {
-  fill: #8a5a34;
-  stroke: #3d2412;
+/* ---------- Thân xoắn, cành, lá ---------- */
+.wm-stem {
+  fill: #5d9a2a;
+  stroke: #2f5d17;
 }
-.wm-bark-hl {
-  stroke: #c08a58;
-  opacity: 0.55;
+.wm-stem-hl {
+  stroke: #b4e36a;
+  opacity: 0.6;
 }
 .wm-twig {
-  stroke: #8a5a34;
+  stroke: #5d9a2a;
 }
+.wm-tendril {
+  stroke: #79b53a;
+}
+
 .wm-ext {
   transform-box: fill-box;
   animation: wm-extend 0.9s cubic-bezier(0.22, 0.8, 0.3, 1) var(--d, 0s) backwards;
@@ -76,24 +71,36 @@
   }
 }
 
-.wm-fl-d {
-  fill: #2a8a45;
-  stroke: #1e6b36;
-  stroke-width: 1.6;
+.wm-lf {
+  fill: #5fae3a;
+  stroke: #2f6d22;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
-.wm-fl-m {
-  fill: #43b35b;
+.wm-lf-hi {
+  fill: #9bdc5c;
+  opacity: 0.7;
 }
-.wm-fl-l {
-  fill: #9be8a0;
-  opacity: 0.75;
+.wm-lf-vein {
+  fill: none;
+  stroke: #2f6d22;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  opacity: 0.45;
 }
-.wm-pop {
+.wm-lf-stem {
+  fill: none;
+  stroke: #4a8a26;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.wm-leafpop {
   transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: wm-fol-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) var(--fd, 0s) backwards;
+  transform-origin: 0% 50%;
+  animation: wm-leaf-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) var(--fd, 0s) backwards;
 }
-@keyframes wm-fol-in {
+@keyframes wm-leaf-in {
   from {
     opacity: 0;
     transform: scale(0.15);
@@ -103,40 +110,44 @@
     transform: scale(1);
   }
 }
-.wm-foliage {
+.wm-leafsway {
   transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: wm-sway 5s ease-in-out calc(var(--fd, 0s) + 0.8s) infinite alternate;
+  transform-origin: 0% 50%;
+  animation: wm-sway 4.6s ease-in-out calc(var(--fd, 0s) + 0.8s) infinite alternate;
 }
 @keyframes wm-sway {
   from {
-    transform: rotate(-2.5deg);
+    transform: rotate(-3deg);
   }
   to {
-    transform: rotate(2.5deg);
+    transform: rotate(3deg);
   }
 }
 
 /* Cành chưa mở: xám, héo */
-.wm-locked .wm-bark {
-  fill: #8d8a85;
-  stroke: #55524d;
+.wm-locked .wm-stem {
+  fill: #9a9c93;
+  stroke: #66685f;
 }
-.wm-locked .wm-bark-hl {
-  stroke: #bdbab5;
+.wm-locked .wm-stem-hl {
+  stroke: #c9cbc2;
 }
-.wm-locked .wm-twig {
-  stroke: #8d8a85;
+.wm-locked .wm-twig,
+.wm-locked .wm-tendril {
+  stroke: #9a9c93;
 }
-.wm-locked .wm-fl-d {
-  fill: #7f8a7e;
-  stroke: #5d675c;
+.wm-locked .wm-lf {
+  fill: #a7ad9f;
+  stroke: #747a6c;
 }
-.wm-locked .wm-fl-m {
-  fill: #a3ada2;
+.wm-locked .wm-lf-hi {
+  fill: #cdd2c5;
 }
-.wm-locked .wm-fl-l {
-  fill: #c7cfc6;
+.wm-locked .wm-lf-vein {
+  stroke: #747a6c;
+}
+.wm-locked .wm-lf-stem {
+  stroke: #8d9285;
 }
 
 /* ---------- Quả dưa ---------- */
@@ -268,11 +279,11 @@
   }
 }
 
-/* ---------- Thẻ tên tầng ---------- */
+/* ---------- Biển tên tầng ---------- */
 .wm-label {
   position: absolute;
-  width: 30%;
-  margin-left: -15%;
+  width: 35%;
+  margin-left: -17.5%;
   text-align: left;
   animation: wm-fade-up 0.5s ease-out calc(var(--d, 0s) + 0.4s) backwards;
   transition:
@@ -359,13 +370,38 @@
   }
 }
 
+/* ---------- Chặng ngày ---------- */
+.wm-chip {
+  display: inline-flex;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.wm-chip-done {
+  background: #d1f0d6;
+  color: #1f7a3a;
+}
+.wm-chip-todo {
+  background: #f1efe9;
+  color: #a8a49a;
+}
+.wm-chip-now {
+  color: #9f1239;
+  box-shadow: 0 0 0 2px #fb7185;
+}
+
 /* ---------- Giảm chuyển động ---------- */
 @media (prefers-reduced-motion: reduce) {
   .wm-star,
   .wm-cloud,
   .wm-ext,
-  .wm-pop,
-  .wm-foliage,
+  .wm-leafpop,
+  .wm-leafsway,
   .wm-fruit,
   .wm-fruit-ripe::before,
   .wm-fruit-ripe svg,
