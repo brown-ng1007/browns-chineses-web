@@ -5,14 +5,14 @@
   background: linear-gradient(
     to bottom,
     #140d3a 0%,
-    #2d1b69 9%,
-    #7a3b8c 19%,
-    #ff7a9c 32%,
-    #ffc0a8 44%,
-    #bfe8ff 60%,
-    #d9f3ff 78%,
-    #e6f9d8 93%,
-    #b7e08a 100%
+    #2d1b69 8%,
+    #7a3b8c 17%,
+    #ff7a9c 28%,
+    #ffc0a8 38%,
+    #9edbff 52%,
+    #bfe8ff 72%,
+    #e8f7ff 90%,
+    #ffffff 100%
   );
   isolation: isolate;
 }
@@ -45,77 +45,98 @@
   }
 }
 
-/* ---------- Cành, lá ---------- */
-.wm-vine {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: wm-grow 1.1s cubic-bezier(0.22, 0.8, 0.3, 1) var(--d, 0s) backwards;
+/* ---------- Cành, tán lá ---------- */
+.wm-bark {
+  fill: #8a5a34;
+  stroke: #3d2412;
 }
-@keyframes wm-grow {
+.wm-bark-hl {
+  stroke: #c08a58;
+  opacity: 0.55;
+}
+.wm-twig {
+  stroke: #8a5a34;
+}
+.wm-ext {
+  transform-box: fill-box;
+  animation: wm-extend 0.9s cubic-bezier(0.22, 0.8, 0.3, 1) var(--d, 0s) backwards;
+}
+.wm-ext-r {
+  transform-origin: 0% 50%;
+}
+.wm-ext-l {
+  transform-origin: 100% 50%;
+}
+@keyframes wm-extend {
   from {
-    stroke-dashoffset: 1;
+    transform: scaleX(0);
   }
   to {
-    stroke-dashoffset: 0;
+    transform: scaleX(1);
   }
 }
-.wm-vine-a {
-  stroke: #2f7d3a;
-}
-.wm-vine-b {
-  stroke: #62c562;
-}
-.wm-locked .wm-vine-a {
-  stroke: #7d887c;
-}
-.wm-locked .wm-vine-b {
-  stroke: #b3bcb1;
-}
-.wm-tendril {
-  stroke: #7fd67c;
-}
-.wm-locked .wm-tendril {
-  stroke: #c5ccc3;
-}
 
-.wm-leaf {
-  fill: #4cc06a;
+.wm-fl-d {
+  fill: #2a8a45;
+  stroke: #1e6b36;
+  stroke-width: 1.6;
+}
+.wm-fl-m {
+  fill: #43b35b;
+}
+.wm-fl-l {
+  fill: #9be8a0;
+  opacity: 0.75;
+}
+.wm-pop {
   transform-box: fill-box;
-  transform-origin: 0% 50%;
-  animation:
-    wm-leaf-in 0.6s ease-out calc(var(--d, 0s) + 0.7s) backwards,
-    wm-sway 4.8s ease-in-out calc(var(--d, 0s) + 1.3s) infinite alternate;
+  transform-origin: 50% 100%;
+  animation: wm-fol-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) var(--fd, 0s) backwards;
 }
-.wm-leaf-2 {
-  fill: #2fa24f;
-}
-.wm-locked .wm-leaf {
-  fill: #a9b2a7;
-}
-.wm-locked .wm-leaf-2 {
-  fill: #929c90;
-}
-@keyframes wm-leaf-in {
+@keyframes wm-fol-in {
   from {
     opacity: 0;
-    transform: scale(0.2);
+    transform: scale(0.15);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
+.wm-foliage {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: wm-sway 5s ease-in-out calc(var(--fd, 0s) + 0.8s) infinite alternate;
+}
 @keyframes wm-sway {
   from {
-    transform: rotate(-4deg);
+    transform: rotate(-2.5deg);
   }
   to {
-    transform: rotate(4deg);
+    transform: rotate(2.5deg);
   }
 }
 
-.wm-locked {
-  opacity: 0.8;
+/* Cành chưa mở: xám, héo */
+.wm-locked .wm-bark {
+  fill: #8d8a85;
+  stroke: #55524d;
+}
+.wm-locked .wm-bark-hl {
+  stroke: #bdbab5;
+}
+.wm-locked .wm-twig {
+  stroke: #8d8a85;
+}
+.wm-locked .wm-fl-d {
+  fill: #7f8a7e;
+  stroke: #5d675c;
+}
+.wm-locked .wm-fl-m {
+  fill: #a3ada2;
+}
+.wm-locked .wm-fl-l {
+  fill: #c7cfc6;
 }
 
 /* ---------- Quả dưa ---------- */
@@ -250,7 +271,8 @@
 /* ---------- Thẻ tên tầng ---------- */
 .wm-label {
   position: absolute;
-  width: 39%;
+  width: 30%;
+  margin-left: -15%;
   text-align: left;
   animation: wm-fade-up 0.5s ease-out calc(var(--d, 0s) + 0.4s) backwards;
   transition:
@@ -341,8 +363,9 @@
 @media (prefers-reduced-motion: reduce) {
   .wm-star,
   .wm-cloud,
-  .wm-vine,
-  .wm-leaf,
+  .wm-ext,
+  .wm-pop,
+  .wm-foliage,
   .wm-fruit,
   .wm-fruit-ripe::before,
   .wm-fruit-ripe svg,

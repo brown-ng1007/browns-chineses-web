@@ -192,38 +192,195 @@ function Stars({ n, size = "text-base" }: { n: number; size?: string }) {
   );
 }
 
-// ===== Hình học của cây (đơn vị viewBox; cây co giãn theo bề ngang màn hình) =====
+// ===== Hình học cây cổ thụ (đơn vị viewBox; cây co giãn theo bề ngang màn hình) =====
 const VB_W = 400;
-const ROW_H = 170; // chiều cao mỗi tầng (cành)
-const TOP_H = 170; // phần trời phía trên có quả dưa khổng lồ
-const GROUND_H = 120; // phần đất phía dưới
+const ROW_H = 170; // mỗi tầng (cành) cao 170
+const TOP_H = 230; // tán cây + quả dưa khổng lồ
+const GROUND_H = 175; // đảo nổi + biển mây
 const VB_H = TOP_H + FLOORS.length * ROW_H + GROUND_H;
-const TRUNK_X = 200;
-const TRUNK_TOP = TOP_H - 40;
+const TRUNK_TOP = TOP_H - 100;
 const GROUND_Y = VB_H - GROUND_H + 14;
+const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
+const FRUIT_DX = [92, 132, 170]; // khoảng cách 3 quả tới trục thân
 
+type Pt = [number, number];
+
+const r1 = (n: number) => Math.round(n * 10) / 10; // làm tròn để máy chủ và trình duyệt vẽ giống nhau
 const rowTop = (level: number) => TOP_H + (FLOORS.length - level) * ROW_H;
-const attachY = (level: number) => rowTop(level) + 92; // chỗ cành bám vào thân
+const attachY = (level: number) => rowTop(level) + 52; // chỗ cành bám vào thân
 const sideOf = (level: number): 1 | -1 => (level % 2 === 1 ? 1 : -1);
 const pctX = (x: number) => `${(x / VB_W) * 100}%`;
 const pctY = (y: number) => `${(y / VB_H) * 100}%`;
 
-// Vị trí 3 quả dọc theo cành (tính từ điểm bám vào thân)
-const FRUIT_POS = [
-  { dx: 53, dy: -4 },
-  { dx: 91, dy: -8 },
-  { dx: 132, dy: -7 },
-];
-const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
+// Đường cong mượt đi qua các điểm
+function smooth(pts: Pt[]): string {
+  let d = `M${r1(pts[0][0])} ${r1(pts[0][1])}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
+    const my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += ` Q${r1(pts[i][0])} ${r1(pts[i][1])} ${r1(mx)} ${r1(my)}`;
+  }
+  const last = pts[pts.length - 1];
+  return `${d} L${r1(last[0])} ${r1(last[1])}`;
+}
+const joinPath = (a: Pt[], b: Pt[]) =>
+  `${smooth(a)}${smooth(b.slice().reverse()).replace(/^M/, " L")} Z`;
 
-const TRUNK_PATH = `M186 ${TRUNK_TOP} C186 ${TRUNK_TOP + 520} 178 ${GROUND_Y - 520} 163 ${GROUND_Y} L237 ${GROUND_Y} C222 ${GROUND_Y - 520} 214 ${TRUNK_TOP + 520} 214 ${TRUNK_TOP} Z`;
-const TRUNK_STRIPES = [-1, -0.5, 0, 0.5, 1].map(
-  (a) =>
-    `M${TRUNK_X + a * 9} ${TRUNK_TOP} C${TRUNK_X + a * 9} ${TRUNK_TOP + 520} ${
-      TRUNK_X + a * 15
-    } ${GROUND_Y - 520} ${TRUNK_X + a * 28} ${GROUND_Y}`
-);
+// ----- Thân cây: to, hơi cong, thon dần lên ngọn, xòe rễ ở gốc -----
+const trunkCx = (y: number) => 200 + 5 * Math.sin(y / 170);
+const trunkHw = (y: number) => {
+  const t = Math.min(1, Math.max(0, (y - TRUNK_TOP) / (GROUND_Y - TRUNK_TOP)));
+  const flare = t > 0.9 ? 50 * Math.pow((t - 0.9) / 0.1, 2) : 0;
+  return 54 + 18 * t + flare;
+};
+const TRUNK_YS: number[] = (() => {
+  const a: number[] = [];
+  for (let y = TRUNK_TOP; y < GROUND_Y; y += 40) a.push(y);
+  a.push(GROUND_Y);
+  return a;
+})();
+const edgeLine = (f: number): Pt[] =>
+  TRUNK_YS.map((y) => [trunkCx(y) + f * trunkHw(y), y] as Pt);
+
+const TRUNK_PATH = joinPath(edgeLine(-1), edgeLine(1));
+const SHADE_PATH = joinPath(edgeLine(0.25), edgeLine(1)); // bên phải tối hơn
+const LIGHT_PATH = joinPath(edgeLine(-1), edgeLine(-0.6)); // bên trái sáng hơn
+const BARK_LINES = [-0.72, -0.4, -0.05, 0.3, 0.62, 0.86].map((f, i) => {
+  const pts: Pt[] = [];
+  for (let y = TRUNK_TOP + 14; y < GROUND_Y - 10; y += 34) {
+    pts.push([trunkCx(y) + f * trunkHw(y) + 3 * Math.sin(y / 23 + i * 2.1), y]);
+  }
+  return smooth(pts);
+});
+const KNOTS = FLOORS.filter((f) => f.level >= 2).map((f) => {
+  const y = rowTop(f.level) + 168;
+  const side = f.level % 2 === 1 ? 1 : -1;
+  return { x: r1(trunkCx(y) + side * 0.5 * trunkHw(y)), y };
+});
+
+// Dây dưa hấu quấn quanh thân
+const VINE_PTS: Pt[] = (() => {
+  const a: Pt[] = [];
+  for (let y = TRUNK_TOP + 50; y < GROUND_Y - 40; y += 14) {
+    a.push([trunkCx(y) + 0.8 * trunkHw(y) * Math.sin(y / 52), y]);
+  }
+  return a;
+})();
+const VINE_PATH = smooth(VINE_PTS);
+const VINE_LEAVES = VINE_PTS.filter((_, i) => i % 6 === 3).map(([x, y], i) => ({
+  x: r1(x),
+  y,
+  rot: i % 2 === 0 ? -35 : 215,
+}));
+
+// ----- Cành: dày ở gốc, thon dần ra ngọn -----
+const BR_W0 = 22;
+const BR_W1 = 6;
+
+function branchGeometry(level: number) {
+  const s = sideOf(level);
+  const ay = attachY(level);
+  const x0 = trunkCx(ay) + s * (trunkHw(ay) - 10);
+  const p0: Pt = [x0, ay + 12];
+  const p1: Pt = [x0 + s * 52, ay - 30];
+  const p2: Pt = [200 + s * 188, ay - 14];
+  const at = (t: number): Pt => [
+    (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
+    (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
+  ];
+  const tan = (t: number): Pt => [
+    2 * (1 - t) * (p1[0] - p0[0]) + 2 * t * (p2[0] - p1[0]),
+    2 * (1 - t) * (p1[1] - p0[1]) + 2 * t * (p2[1] - p1[1]),
+  ];
+  const half = (t: number) => BR_W0 + (BR_W1 - BR_W0) * Math.pow(t, 0.7);
+
+  const top: Pt[] = [];
+  const bot: Pt[] = [];
+  const mid: Pt[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    const [x, y] = at(t);
+    const [dx, dy] = tan(t);
+    const n = Math.hypot(dx, dy) || 1;
+    const nx = -dy / n;
+    const ny = dx / n;
+    const h = half(t);
+    top.push([x + nx * h, y + ny * h]);
+    bot.push([x - nx * h, y - ny * h]);
+    if (t >= 0.06 && t <= 0.92) mid.push([x + nx * h * 0.35, y + ny * h * 0.35]);
+  }
+
+  // Vị trí treo của 3 quả: điểm trên cành gần x mong muốn nhất
+  const hang: Pt[] = FRUIT_DX.map((dx) => {
+    const target = 200 + s * dx;
+    let best = 1;
+    let bestD = Infinity;
+    for (let i = 20; i <= 100; i++) {
+      const t = i / 100;
+      const d = Math.abs(at(t)[0] - target);
+      if (d < bestD) {
+        bestD = d;
+        best = t;
+      }
+    }
+    const [x, y] = at(best);
+    return [r1(x), r1(y + half(best) * 0.4)] as Pt;
+  });
+
+  // Cụm lá dọc cành, và một nhánh nhỏ bên kia thân cho cây đầy đặn
+  const fol = (
+    [
+      [0.3, 1.2],
+      [0.62, 1.35],
+      [0.92, 1.1],
+    ] as [number, number][]
+  ).map(([t, sc]) => {
+    const [x, y] = at(t);
+    return { x: r1(x), y: r1(y - 17), sc };
+  });
+  const [bgx, bgy] = at(0.2);
+  const oy = ay + 60;
+  const ox = trunkCx(oy) - s * (trunkHw(oy) - 6);
+  return {
+    s,
+    ay,
+    shape: `${smooth(top)}${smooth(bot.slice().reverse()).replace(/^M/, " L")} Z`,
+    highlight: smooth(mid),
+    hang,
+    bug: [r1(bgx), r1(bgy - 20)] as Pt,
+    fol,
+    twig: `M${r1(ox)} ${r1(oy)} Q${r1(ox - s * 18)} ${r1(oy - 14)} ${r1(ox - s * 36)} ${r1(oy - 8)}`,
+    twigFol: { x: r1(ox - s * 40), y: r1(oy - 16), sc: 1.0 },
+  };
+}
+const GEOM = FLOORS.map((f) => branchGeometry(f.level));
+
 const LEAF = "M0 0 C6 -11 20 -13 30 0 C20 13 6 11 0 0Z";
+
+// Cụm lá hoạt hình: ba lớp tròn đậm, vừa, sáng
+const FOL_BLOBS: [number, number, number][] = [
+  [0, 0, 15],
+  [-16, 6, 12],
+  [15, 6, 13],
+  [-7, -12, 12],
+  [10, -10, 11],
+];
+
+// Tán cây khổng lồ trên đỉnh
+const CANOPY: [number, number, number][] = [
+  [110, 112, 46],
+  [150, 72, 48],
+  [200, 52, 50],
+  [250, 72, 48],
+  [290, 112, 46],
+  [130, 152, 36],
+  [270, 152, 36],
+  [172, 124, 42],
+  [228, 124, 42],
+  [200, 156, 38],
+  [96, 142, 30],
+  [304, 142, 30],
+];
 
 // Sao trên trời: tạo cố định để máy chủ và trình duyệt vẽ giống nhau
 const STARS = (() => {
@@ -234,17 +391,25 @@ const STARS = (() => {
     return seed / 233280;
   };
   for (let i = 0; i < 38; i++) {
-    out.push({ x: 8 + rnd() * 384, y: 8 + rnd() * 330, r: 0.8 + rnd() * 1.6, d: rnd() * 4 });
+    out.push({ x: r1(8 + rnd() * 384), y: r1(8 + rnd() * 330), r: r1(0.8 + rnd() * 1.6), d: r1(rnd() * 4) });
   }
   return out;
 })();
 
-const CLOUDS = [
-  { x: 70, y: 380, d: "0s" },
-  { x: 300, y: 690, d: "-9s" },
-  { x: 110, y: 1060, d: "-4s" },
-  { x: 310, y: 1330, d: "-14s" },
+const BACK_CLOUDS = [
+  { x: 55, y: 440, d: "0s", sc: 1.3 },
+  { x: 335, y: 660, d: "-9s", sc: 1.1 },
+  { x: 60, y: 1000, d: "-4s", sc: 1.3 },
+  { x: 340, y: 1290, d: "-14s", sc: 1.2 },
+  { x: 60, y: 1520, d: "-7s", sc: 1.1 },
 ];
+// Mây bay ngang thân, nằm ở khoảng trống giữa các cành
+const FRONT_CLOUDS = FLOORS.filter((f) => f.level >= 2 && f.level <= 8).map((f) => ({
+  x: f.level % 2 === 1 ? 52 : 348,
+  y: rowTop(f.level) + 140,
+  d: `${-f.level * 3}s`,
+  sc: 0.9 + (f.level % 3) * 0.15,
+}));
 
 type FruitState = "locked" | "unripe" | "ripe" | "picked";
 
@@ -259,22 +424,48 @@ function fruitState(
   return f.learned >= f.targets[k] ? "ripe" : "unripe";
 }
 
-function branchGeometry(level: number) {
-  const s = sideOf(level);
-  const ay = attachY(level);
-  const tipX = TRUNK_X + s * 150;
-  const tipY = ay - 6;
-  return {
-    s,
-    ay,
-    path: `M${TRUNK_X} ${ay + 10} Q${TRUNK_X + s * 60} ${ay - 14} ${tipX} ${tipY}`,
-    tendril: `M${tipX} ${tipY} c ${s * 10} -4 ${s * 14} 6 ${s * 6} 11 c ${-s * 5} 4 ${-s * 10} -2 ${-s * 6} -6`,
-    leaves: [
-      { x: TRUNK_X + s * 48, y: ay - 3, rot: s > 0 ? -55 : -125, sc: 1, v: 1 },
-      { x: TRUNK_X + s * 108, y: ay - 8, rot: s > 0 ? -35 : -145, sc: 0.9, v: 2 },
-      { x: tipX, y: tipY, rot: s > 0 ? -8 : -172, sc: 0.8, v: 1 },
-    ],
-  };
+function Foliage({ x, y, sc, delay }: { x: number; y: number; sc: number; delay: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${sc})`}>
+      <g className="wm-pop" style={{ "--fd": `${delay}s` } as React.CSSProperties}>
+        <g className="wm-foliage">
+          {FOL_BLOBS.map(([cx, cy, r], i) => (
+            <circle key={`d${i}`} cx={cx} cy={cy + 2} r={r} className="wm-fl-d" />
+          ))}
+          {FOL_BLOBS.map(([cx, cy, r], i) => (
+            <circle key={`m${i}`} cx={cx - 1} cy={cy - 1} r={r * 0.82} className="wm-fl-m" />
+          ))}
+          {FOL_BLOBS.slice(0, 3).map(([cx, cy, r], i) => (
+            <circle key={`l${i}`} cx={cx - 4} cy={cy - 6} r={r * 0.38} className="wm-fl-l" />
+          ))}
+        </g>
+      </g>
+    </g>
+  );
+}
+
+function Cloud({
+  x,
+  y,
+  sc,
+  d,
+  opacity = 0.8,
+}: {
+  x: number;
+  y: number;
+  sc: number;
+  d: string;
+  opacity?: number;
+}) {
+  return (
+    <g className="wm-cloud" style={{ "--cd": d } as React.CSSProperties}>
+      <g transform={`translate(${x} ${y}) scale(${sc})`} fill="#fff" opacity={opacity}>
+        <ellipse cx="0" cy="0" rx="28" ry="10" />
+        <ellipse cx="-16" cy="-5" rx="14" ry="9" />
+        <ellipse cx="12" cy="-8" rx="16" ry="11" />
+      </g>
+    </g>
+  );
 }
 
 function FruitArt({ state }: { state: FruitState }) {
@@ -525,12 +716,12 @@ export default function TowerHome() {
         )}
       </section>
 
-      {/* ===== Cây Dưa Hấu khổng lồ ===== */}
+      {/* ===== Cây Dưa Hấu cổ thụ ===== */}
       <section className="space-y-3">
         <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400">
-              Cây Dưa Hấu khổng lồ · HSK 3.0
+              Cây Dưa Hấu cổ thụ · HSK 3.0
             </h2>
             <p className="mt-0.5 text-xs text-emerald-700/70">
               {data ? `Đang leo tầng ${current}` : "Đang tải cây..."}
@@ -580,9 +771,9 @@ export default function TowerHome() {
               viewBox={`0 0 ${VB_W} ${VB_H}`}
               className="absolute inset-0 h-full w-full"
               role="img"
-              aria-label="Cây dưa hấu khổng lồ, mỗi tầng là một cành có ba quả dưa"
+              aria-label="Cây dưa hấu cổ thụ, mỗi tầng là một cành có ba quả dưa"
             >
-              {/* Trời: sao, trăng, mây */}
+              {/* Trời: sao, trăng, mây phía sau */}
               {STARS.map((st, i) => (
                 <circle
                   key={i}
@@ -594,96 +785,119 @@ export default function TowerHome() {
                   style={{ "--sd": `${st.d}s` } as React.CSSProperties}
                 />
               ))}
-              <circle cx="58" cy="66" r="32" fill="#fff4c9" opacity="0.14" />
-              <circle cx="58" cy="66" r="20" fill="#fff4c9" />
-              <circle cx="52" cy="60" r="4" fill="#f0e3a8" />
-              <circle cx="65" cy="72" r="3" fill="#f0e3a8" />
-              {CLOUDS.map((c, i) => (
-                <g key={i} className="wm-cloud" style={{ "--cd": c.d } as React.CSSProperties}>
-                  <g transform={`translate(${c.x} ${c.y})`} fill="#fff" opacity="0.78">
-                    <ellipse cx="0" cy="0" rx="28" ry="10" />
-                    <ellipse cx="-16" cy="-5" rx="14" ry="9" />
-                    <ellipse cx="12" cy="-8" rx="16" ry="11" />
-                  </g>
-                </g>
+              <circle cx="46" cy="70" r="32" fill="#fff4c9" opacity="0.14" />
+              <circle cx="46" cy="70" r="20" fill="#fff4c9" />
+              <circle cx="40" cy="64" r="4" fill="#f0e3a8" />
+              <circle cx="53" cy="76" r="3" fill="#f0e3a8" />
+              {BACK_CLOUDS.map((c, i) => (
+                <Cloud key={i} x={c.x} y={c.y} sc={c.sc} d={c.d} />
               ))}
 
-              {/* Đất và rễ */}
+              {/* Đảo nổi */}
               <path
-                d={`M0 ${GROUND_Y - 10} Q100 ${GROUND_Y - 34} 200 ${GROUND_Y - 12} T400 ${GROUND_Y - 16} L400 ${VB_H} L0 ${VB_H} Z`}
-                fill="#6cc04a"
+                d={`M20 ${GROUND_Y} C34 ${GROUND_Y + 62} 130 ${GROUND_Y + 104} 200 ${GROUND_Y + 122} C270 ${GROUND_Y + 104} 366 ${GROUND_Y + 62} 380 ${GROUND_Y} Z`}
+                fill="#8a5a34"
+                stroke="#3d2412"
+                strokeWidth="2.5"
               />
-              <rect x="0" y={GROUND_Y + 10} width={VB_W} height={VB_H - GROUND_Y - 10} fill="#7a5230" />
-              <rect x="0" y={GROUND_Y + 10} width={VB_W} height="8" fill="#8b6239" opacity="0.7" />
+              <path d={`M56 ${GROUND_Y + 26} Q200 ${GROUND_Y + 56} 344 ${GROUND_Y + 26}`} fill="none" stroke="#6b4226" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+              <path d={`M92 ${GROUND_Y + 56} Q200 ${GROUND_Y + 82} 308 ${GROUND_Y + 56}`} fill="none" stroke="#6b4226" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
               {[
-                `M166 ${GROUND_Y} C150 ${GROUND_Y + 8} 128 ${GROUND_Y + 6} 104 ${GROUND_Y + 26}`,
-                `M234 ${GROUND_Y} C252 ${GROUND_Y + 8} 274 ${GROUND_Y + 6} 298 ${GROUND_Y + 26}`,
-                `M190 ${GROUND_Y} C186 ${GROUND_Y + 20} 176 ${GROUND_Y + 30} 168 ${GROUND_Y + 50}`,
-                `M212 ${GROUND_Y} C216 ${GROUND_Y + 20} 226 ${GROUND_Y + 30} 236 ${GROUND_Y + 50}`,
-              ].map((d, i) => (
-                <path key={i} d={d} fill="none" stroke="#5a3a1e" strokeWidth="5" strokeLinecap="round" />
-              ))}
-              {[
-                [60, 52, -20],
-                [330, 60, 25],
-                [120, 80, 10],
-                [290, 84, -15],
-              ].map(([x, y, r], i) => (
-                <ellipse
+                [150, 86],
+                [200, 108],
+                [252, 88],
+              ].map(([x, y], i) => (
+                <path
                   key={i}
-                  cx={x}
-                  cy={GROUND_Y + y}
-                  rx="4.5"
-                  ry="2.6"
-                  fill="#2b1b1b"
-                  transform={`rotate(${r} ${x} ${GROUND_Y + y})`}
+                  d={`M${x} ${GROUND_Y + y} q${i === 1 ? 4 : -6} 18 ${i === 1 ? -2 : 3} 32`}
+                  fill="none"
+                  stroke="#5a3a1e"
+                  strokeWidth="4"
+                  strokeLinecap="round"
                 />
               ))}
+              <path
+                d={`M14 ${GROUND_Y + 2} C70 ${GROUND_Y - 30} 330 ${GROUND_Y - 30} 386 ${GROUND_Y + 2} C384 ${GROUND_Y + 18} 300 ${GROUND_Y + 26} 200 ${GROUND_Y + 26} C100 ${GROUND_Y + 26} 16 ${GROUND_Y + 18} 14 ${GROUND_Y + 2} Z`}
+                fill="#58b947"
+                stroke="#2c7a34"
+                strokeWidth="2.5"
+              />
+              <path d={`M40 ${GROUND_Y - 4} C100 ${GROUND_Y - 24} 300 ${GROUND_Y - 24} 360 ${GROUND_Y - 4}`} fill="none" stroke="#9be476" strokeWidth="4" opacity="0.7" strokeLinecap="round" />
 
               {/* Từng cành = từng tầng */}
               {FLOORS.map((def) => {
                 const f = floors[def.level - 1];
-                const g = branchGeometry(def.level);
+                const g = GEOM[def.level - 1];
                 const locked = loading || f.total === 0 || !f.unlocked;
                 const d = (def.level - 1) * 0.14;
+                const ext = g.s > 0 ? "wm-ext wm-ext-r" : "wm-ext wm-ext-l";
                 return (
                   <g
                     key={def.level}
                     className={locked ? "wm-locked" : undefined}
                     style={{ "--d": `${d}s` } as React.CSSProperties}
                   >
-                    <path d={g.path} pathLength={1} fill="none" strokeWidth="18" strokeLinecap="round" className="wm-vine wm-vine-a" />
-                    <path d={g.path} pathLength={1} fill="none" strokeWidth="11" strokeLinecap="round" className="wm-vine wm-vine-b" />
-                    <path d={g.tendril} fill="none" strokeWidth="2.2" strokeLinecap="round" className="wm-tendril" />
-                    {g.leaves.map((lf, i) => (
-                      <g key={i} transform={`translate(${lf.x} ${lf.y}) rotate(${lf.rot}) scale(${lf.sc})`}>
-                        <path
-                          d={LEAF}
-                          className={`wm-leaf ${lf.v === 2 ? "wm-leaf-2" : ""}`}
-                          style={{ "--d": `${d + i * 0.12}s` } as React.CSSProperties}
-                        />
-                      </g>
+                    <path d={g.twig} fill="none" strokeWidth="7" strokeLinecap="round" className="wm-twig" />
+                    <Foliage x={g.twigFol.x} y={g.twigFol.y} sc={g.twigFol.sc} delay={d + 0.8} />
+                    <path d={g.shape} strokeWidth="2.5" strokeLinejoin="round" className={`wm-bark ${ext}`} />
+                    <path d={g.highlight} fill="none" strokeWidth="3" strokeLinecap="round" className={`wm-bark-hl ${ext}`} />
+                    {g.fol.map((fo, i) => (
+                      <Foliage key={i} x={fo.x} y={fo.y} sc={fo.sc} delay={d + 0.6 + i * 0.12} />
                     ))}
                   </g>
                 );
               })}
 
-              {/* Thân cây sọc như vỏ dưa */}
-              <path d={TRUNK_PATH} fill="#4fae5e" stroke="#2e7d32" strokeWidth="1.5" />
-              {TRUNK_STRIPES.map((d, i) => (
-                <path key={i} d={d} fill="none" stroke="#1b6b34" strokeWidth="3" opacity="0.45" strokeLinecap="round" />
+              {/* Thân cổ thụ */}
+              <path d={TRUNK_PATH} fill="#8a5a34" />
+              <path d={LIGHT_PATH} fill="#c08a58" opacity="0.5" />
+              <path d={SHADE_PATH} fill="#5e3b20" opacity="0.5" />
+              {BARK_LINES.map((d, i) => (
+                <path
+                  key={i}
+                  d={d}
+                  fill="none"
+                  stroke="#3d2412"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  opacity={0.28 + (i % 3) * 0.08}
+                  strokeDasharray={i % 2 === 1 ? "46 16" : undefined}
+                />
               ))}
-              <path
-                d={`M192 ${TRUNK_TOP + 20} C191 ${TRUNK_TOP + 520} 184 ${GROUND_Y - 520} 175 ${GROUND_Y - 20}`}
-                fill="none"
-                stroke="#b9f0b5"
-                strokeWidth="3"
-                opacity="0.5"
-                strokeLinecap="round"
-              />
+              <path d={TRUNK_PATH} fill="none" stroke="#3d2412" strokeWidth="3" strokeLinejoin="round" />
+              {KNOTS.map((k, i) => (
+                <g key={i}>
+                  <ellipse cx={k.x} cy={k.y} rx="12" ry="15" fill="none" stroke="#6b4226" strokeWidth="2" />
+                  <ellipse cx={k.x} cy={k.y} rx="9" ry="12" fill="#4a2c15" />
+                  <ellipse cx={k.x} cy={k.y} rx="5" ry="7" fill="#2e1a0a" />
+                </g>
+              ))}
+              {/* Dây dưa hấu quấn thân */}
+              <path d={VINE_PATH} fill="none" stroke="#1f6e35" strokeWidth="6" strokeLinecap="round" />
+              <path d={VINE_PATH} fill="none" stroke="#5cc46a" strokeWidth="2.6" strokeLinecap="round" />
+              {VINE_LEAVES.map((l, i) => (
+                <g key={i} transform={`translate(${l.x} ${l.y}) rotate(${l.rot}) scale(0.6)`}>
+                  <path d={LEAF} fill="#43b35b" stroke="#1f6e35" strokeWidth="1.5" />
+                </g>
+              ))}
+              {/* Bụi cỏ ở gốc */}
+              {[96, 140, 172, 228, 260, 304].map((x, i) => (
+                <circle key={i} cx={x} cy={GROUND_Y + 4} r={i % 2 === 0 ? 10 : 8} fill="#58b947" stroke="#2c7a34" strokeWidth="2" />
+              ))}
 
-              {/* Quả dưa khổng lồ trên đỉnh */}
-              <g transform={`translate(${TRUNK_X} 82)`}>
+              {/* Tán cây khổng lồ */}
+              {CANOPY.map(([cx, cy, r], i) => (
+                <circle key={`cd${i}`} cx={cx} cy={cy} r={r} className="wm-fl-d" />
+              ))}
+              {CANOPY.map(([cx, cy, r], i) => (
+                <circle key={`cm${i}`} cx={cx - 3} cy={cy - 4} r={r * 0.84} className="wm-fl-m" />
+              ))}
+              {CANOPY.slice(0, 6).map(([cx, cy, r], i) => (
+                <circle key={`cl${i}`} cx={cx - 12} cy={cy - 16} r={r * 0.3} className="wm-fl-l" />
+              ))}
+
+              {/* Quả dưa khổng lồ nằm giữa tán */}
+              <g transform="translate(200 106) scale(0.92)">
                 {crownReady && (
                   <g className="wm-rays">
                     {Array.from({ length: 12 }, (_, i) => (
@@ -692,7 +906,7 @@ export default function TowerHome() {
                   </g>
                 )}
                 <g className="wm-crown">
-                  <circle r="50" fill={crownReady ? "#2f9e44" : "#7fa97f"} />
+                  <circle r="50" fill={crownReady ? "#2f9e44" : "#7fa97f"} stroke="#1f6e35" strokeWidth="2.5" />
                   {crownReady ? (
                     <>
                       <circle r="43" fill="#eaf8d3" />
@@ -720,73 +934,89 @@ export default function TowerHome() {
                   )}
                 </g>
               </g>
+
+              {/* Mây bay ngang thân và biển mây dưới đảo */}
+              {FRONT_CLOUDS.map((c, i) => (
+                <Cloud key={i} x={c.x} y={c.y} sc={c.sc} d={c.d} opacity={0.92} />
+              ))}
+              <g className="wm-cloud" style={{ "--cd": "-5s" } as React.CSSProperties}>
+                {Array.from({ length: 11 }, (_, i) => (
+                  <circle key={i} cx={-20 + i * 44} cy={VB_H - 62 + (i % 2) * 10} r="44" fill="#dff1ff" />
+                ))}
+              </g>
+              <g className="wm-cloud" style={{ "--cd": "-12s" } as React.CSSProperties}>
+                {Array.from({ length: 11 }, (_, i) => (
+                  <circle key={i} cx={-10 + i * 42} cy={VB_H - 36 + (i % 2) * 8} r="40" fill="#fff" />
+                ))}
+              </g>
+              <rect x="-40" y={VB_H - 30} width="480" height="40" fill="#fff" />
             </svg>
 
-            {/* Lớp chạm: thẻ tên tầng, quả dưa, bọ rùa */}
+            {/* Lớp chạm: biển gỗ tên tầng gắn trên thân, quả dưa, bọ rùa */}
             {FLOORS.map((def) => {
               const f = floors[def.level - 1];
-              const g = branchGeometry(def.level);
-              const s = g.s;
+              const g = GEOM[def.level - 1];
               const empty = !loading && f.total === 0;
               const locked = loading || empty || !f.unlocked;
               const isCurrent = !loading && def.level === current;
               const d = (def.level - 1) * 0.14;
+              const top = rowTop(def.level);
+              const cx = trunkCx(top + 100);
               return (
                 <div key={def.level} className="contents">
                   <button
                     type="button"
                     id={`wm-floor-${def.level}`}
                     onClick={() => setSelected({ level: def.level, fruit: null })}
-                    className={`wm-label rounded-2xl border bg-white/90 p-2 shadow-[0_6px_18px_rgb(60,20,80,0.18)] backdrop-blur-md ${
-                      isCurrent ? "border-rose-400 ring-4 ring-rose-400/25" : "border-white/90"
-                    } ${locked ? "opacity-85" : ""}`}
+                    className={`wm-label rounded-xl border-2 bg-[#fff8ea]/95 p-1.5 shadow-[0_5px_14px_rgb(60,30,10,0.35)] ${
+                      isCurrent ? "border-rose-500 ring-4 ring-rose-400/35" : "border-[#8a5a34]"
+                    } ${locked ? "opacity-90" : ""}`}
                     style={
                       {
-                        left: pctX(s > 0 ? 4 : 240),
-                        top: pctY(rowTop(def.level) + 44),
+                        left: pctX(cx),
+                        top: pctY(top + 66),
                         "--d": `${d}s`,
                       } as React.CSSProperties
                     }
                   >
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1">
                       <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${def.grad} text-[13px] font-extrabold text-white ${
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${def.grad} text-[11px] font-extrabold text-white ${
                           locked ? "grayscale" : ""
                         }`}
                       >
                         {locked ? "🔒" : def.level}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[9px] font-bold uppercase leading-none tracking-wider text-rose-400">
+                        <span className="block text-[8px] font-bold uppercase leading-none tracking-wider text-[#a0622f]">
                           Tầng {def.level}
                         </span>
-                        <span className="mt-0.5 block truncate text-[13px] font-bold leading-tight text-stone-900">
+                        <span className="block truncate text-[11.5px] font-bold leading-tight text-[#3d2412]">
                           {def.name}
                         </span>
                       </span>
                     </span>
-                    <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-stone-200/80">
+                    <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-[#e6d3b3]">
                       <span
                         className={`block h-full rounded-full bg-gradient-to-r ${def.grad} transition-[width] duration-700`}
                         style={{ width: `${Math.round(f.pct * 100)}%` }}
                       />
                     </span>
-                    <span className="mt-1 flex items-center justify-between text-[10px] text-stone-500">
-                      <span>{loading ? "..." : empty ? "Đang ươm" : `${f.learned}/${f.total} từ`}</span>
-                      <span>🍉 {f.stars}/3</span>
+                    <span className="mt-0.5 flex items-center justify-between text-[9px] font-medium text-[#7a5a3a]">
+                      <span>{loading ? "..." : empty ? "Đang ươm" : `${f.learned}/${f.total}`}</span>
+                      <span>🍉{f.stars}/3</span>
                     </span>
                     {isCurrent && (
-                      <span className="absolute -top-2 right-2 rounded-full bg-rose-500 px-2 py-0.5 text-[9px] font-bold text-white shadow">
+                      <span className="absolute -right-1.5 -top-3 whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[9px] font-bold text-white shadow">
                         Đang leo
                       </span>
                     )}
                   </button>
 
-                  {FRUIT_POS.map((p, k) => {
+                  {[0, 1, 2].map((k) => {
                     const key = `${def.level}-${k}`;
                     const state = fruitState(f, k, picked, locked);
-                    const fx = TRUNK_X + s * p.dx;
-                    const by = g.ay + p.dy;
+                    const [fx, by] = g.hang[k];
                     const popping = pickKey === key;
                     const need = f.targets[k];
                     const label =
@@ -839,7 +1069,7 @@ export default function TowerHome() {
                     <span
                       className="wm-bug"
                       aria-hidden="true"
-                      style={{ left: pctX(TRUNK_X), top: pctY(g.ay + 2) }}
+                      style={{ left: pctX(g.bug[0]), top: pctY(g.bug[1]) }}
                     >
                       🐞
                     </span>
