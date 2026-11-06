@@ -13,11 +13,11 @@ import { STAGE_SIZE, buildStages, stageStates, type Prog, type StageState } from
 
 // Màu từng thế giới (nền, viền đáy cho cảm giác nổi khối)
 const WORLD_THEME = [
-  { bg: "#22c55e", edge: "#15803d" },
-  { bg: "#a855f7", edge: "#7e22ce" },
-  { bg: "#0ea5e9", edge: "#0369a1" },
-  { bg: "#f43f5e", edge: "#be123c" },
-  { bg: "#f59e0b", edge: "#b45309" },
+  { bg: "#10936f", edge: "#06503d" },
+  { bg: "#e0456b", edge: "#9f1239" },
+  { bg: "#3b82c4", edge: "#1e4f86" },
+  { bg: "#d9a23a", edge: "#8a5a0b" },
+  { bg: "#8b5cb0", edge: "#4c2a6b" },
 ];
 const themeOf = (world: number) => WORLD_THEME[(world - 1) % WORLD_THEME.length];
 
@@ -102,13 +102,40 @@ function Mascot() {
 function SmallStars({ n }: { n: number }) {
   return (
     <div
-      className="absolute left-1/2 flex -translate-x-1/2 gap-0.5 rounded-full bg-white px-2 py-1 shadow-md ring-1 ring-stone-200"
-      style={{ bottom: -20 }}
+      className="absolute left-1/2 flex -translate-x-1/2 gap-0.5 rounded-full px-2 py-1"
+      style={{ bottom: -20, background: "linear-gradient(180deg,#fffefb,#fff3d6)", boxShadow: "0 0 0 1px rgba(176,136,60,.4), 0 8px 12px -6px rgba(110,70,20,.45)" }}
       aria-label={`${n} sao`}
     >
       {[1, 2, 3].map((i) => (
-        <IconStar key={i} size={15} color={i <= n ? "#f59e0b" : "#d6d3d1"} />
+        <IconStar key={i} size={15} color={i <= n ? "#e0a526" : "#e8dcc6"} />
       ))}
+    </div>
+  );
+}
+
+function Ring({ pct }: { pct: number }) {
+  const r = 34;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative shrink-0" style={{ width: 92, height: 92 }} role="img" aria-label={`Đã học ${pct}%`}>
+      <svg viewBox="0 0 92 92" width="92" height="92" aria-hidden="true">
+        <circle cx="46" cy="46" r={r} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="8" />
+        <circle
+          cx="46"
+          cy="46"
+          r={r}
+          fill="none"
+          stroke="#f2cf75"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${(c * pct) / 100} ${c}`}
+          transform="rotate(-90 46 46)"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+        <span style={{ fontFamily: "var(--serif)", fontSize: 24, fontWeight: 700 }}>{pct}</span>
+        <span style={{ fontSize: 10, opacity: 0.75, marginTop: 2 }}>phần trăm</span>
+      </div>
     </div>
   );
 }
@@ -210,11 +237,67 @@ export default function EnMapPage() {
           st.detail ? ` Ghi chú: ${st.detail}.` : ""
         }${st.noVi > 0 ? ` ${st.noVi} từ chưa có nghĩa tiếng Việt, đang hiện định nghĩa tiếng Anh.` : ""}`;
 
-  const card = "rounded-2xl border-2 border-b-4 border-stone-200 bg-white p-4";
-  const task = "flex items-center justify-between gap-3 rounded-xl border-2 border-stone-200 px-3 py-2.5 text-sm";
+  const card = "en-card p-4";
+  const curWorld = cur ? EN_WORLDS.find((x) => x.id === cur.stage.world) : undefined;
 
   return (
     <main className="mx-auto w-full max-w-4xl pb-20 pt-2">
+      <section className="en-hero">
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="en-eyebrow">Hành trình tiếng Anh</p>
+            <h1 className="en-hero-title mt-1">
+              {cur ? `Chặng ${cur.stage.n}${curWorld ? ` · ${curWorld.name}` : ""}` : "Bạn đã đi hết bản đồ"}
+            </h1>
+            <p className="mt-1.5 text-sm text-white/80">
+              {wordsLearned}/{wordsTotal} từ · {totalStars} sao
+            </p>
+          </div>
+          <Ring pct={pct} />
+        </div>
+
+        <div className="relative z-10 mt-4 space-y-2">
+          {due.length + recalledToday > 0 && (
+            <Link
+              href={due[0] ? `/en/stage/${due[0].stage.id}?recall=1` : "/en"}
+              className={`en-task ${due.length === 0 ? "en-task--done" : ""}`}
+            >
+              <span>
+                {due.length === 0 ? "✅" : "⬜"} Ôn lại bài hôm trước, không gợi ý
+              </span>
+              <span className="text-xs opacity-80">
+                {recalledToday}/{recalledToday + due.length}
+              </span>
+            </Link>
+          )}
+          <Link href={cur ? `/en/stage/${cur.stage.id}` : "/en"} className={`en-task ${learnedToday ? "en-task--done" : ""}`}>
+            <span>
+              {learnedToday ? "✅" : "⬜"} Học {STAGE_SIZE} từ mới và dùng ngay trong câu
+            </span>
+            <span className="text-xs opacity-80">{learnedToday ? "1/1" : "0/1"}</span>
+          </Link>
+        </div>
+
+        {cur && (
+          <Link
+            href={due[0] && !learnedToday ? `/en/stage/${due[0].stage.id}?recall=1` : `/en/stage/${cur.stage.id}`}
+            className="en-btn en-btn--gold relative z-10 mt-4"
+          >
+            {due[0] && !learnedToday ? "Ôn lại trước, rồi học tiếp" : "Tiếp tục học"}
+          </Link>
+        )}
+
+        <div className="en-tools relative z-10 lg:hidden">
+          {TOOLS.map((t) => (
+            <Link key={t.href} href={t.href} className="en-tool">
+              <span>{t.emoji}</span>
+              {t.label}
+              {t.href === "/en/review" && dueN > 0 && <span className="en-badge">{dueN}</span>}
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section className="mx-auto w-full max-w-[420px]">
           {groups.map((g, gi) => {
@@ -229,19 +312,19 @@ export default function EnMapPage() {
                   type="button"
                   onClick={() => setOpen({ ...open, [g.world]: !shown })}
                   aria-expanded={shown}
-                  className="block w-full rounded-2xl px-4 py-3 text-left text-white"
-                  style={{ background: t.bg, boxShadow: `0 5px 0 ${t.edge}` }}
+                  className="en-world"
+                  style={{ "--w1": t.bg, "--w2": t.edge } as CSSProperties}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/80">
+                      <p className="relative z-10 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
                         Phần {gi + 1} · {w?.tag}
                       </p>
-                      <h2 className="text-lg font-extrabold leading-tight">
+                      <h2 className="relative z-10">
                         {w?.emoji} {w?.name}
                       </h2>
                     </div>
-                    <span className="rounded-xl bg-white/20 px-2.5 py-1 text-sm font-extrabold">
+                    <span className="en-world-pill">
                       {done}/{g.items.length} {shown ? "▴" : "▾"}
                     </span>
                   </div>
@@ -289,8 +372,8 @@ export default function EnMapPage() {
                           {s.recallDue && (
                             <Link
                               href={href}
-                              className="absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-md"
-                              style={{ bottom: size + 12 }}
+                              className="absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#3b2a05]"
+                              style={{ bottom: size + 12, background: "linear-gradient(180deg,#f7dc8a,#d9a23a)", boxShadow: "0 0 0 1px rgba(150,105,20,.7), 0 8px 12px -6px rgba(150,105,20,.7)" }}
                             >
                               Ôn lại
                             </Link>
@@ -346,32 +429,7 @@ export default function EnMapPage() {
           })}
         </section>
 
-        <aside className="space-y-4 max-lg:order-first lg:sticky lg:top-24 lg:self-start">
-          <div className={card}>
-            <h2 className="mb-3 text-base font-extrabold text-stone-800">Việc hôm nay</h2>
-            <div className="space-y-2">
-              {due.length + recalledToday > 0 && (
-                <Link href={due[0] ? `/en/stage/${due[0].stage.id}?recall=1` : "/en"} className={task}>
-                  <span className="font-bold text-stone-700">
-                    {due.length === 0 ? "✅" : "⬜"} Ôn lại bài hôm trước, không gợi ý
-                  </span>
-                  <span className="text-xs font-bold text-stone-400">
-                    {recalledToday}/{recalledToday + due.length}
-                  </span>
-                </Link>
-              )}
-              <Link href={cur ? `/en/stage/${cur.stage.id}` : "/en"} className={task}>
-                <span className="font-bold text-stone-700">
-                  {learnedToday ? "✅" : "⬜"} Học {STAGE_SIZE} từ mới và dùng ngay trong câu
-                </span>
-                <span className="text-xs font-bold text-stone-400">{learnedToday ? "1/1" : "0/1"}</span>
-              </Link>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-stone-500">
-              3 sao của mỗi bài: hoàn thành, dùng được trong câu, nhớ lại được vào hôm sau.
-            </p>
-          </div>
-
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <div className={card}>
             <h2 className="mb-3 text-base font-extrabold text-stone-800">Tiến độ</h2>
             <div className="mb-2 flex items-baseline justify-between text-sm">
@@ -380,29 +438,27 @@ export default function EnMapPage() {
               </span>
               <span className="font-extrabold text-amber-600">{totalStars} ⭐</span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-stone-200">
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+            <div className="en-track">
+              <div className="en-fill" style={{ width: `${pct}%` }} />
             </div>
             <p className="mt-3 text-xs leading-relaxed text-stone-500">{srcText}</p>
           </div>
 
-          <div className={card}>
+          <div className={`${card} max-lg:hidden`}>
             <h2 className="mb-3 text-base font-extrabold text-stone-800">Luyện tập</h2>
             <div className="grid grid-cols-2 gap-3">
               {TOOLS.map((t, k) => (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className={`relative flex items-center gap-2 rounded-xl border-2 border-b-4 border-stone-200 px-3 py-3 text-sm font-extrabold text-stone-700 ${
+                  className={`en-tool-card ${
                     k === TOOLS.length - 1 && TOOLS.length % 2 === 1 ? "col-span-2" : ""
                   }`}
                 >
                   <span className="text-xl">{t.emoji}</span>
                   {t.label}
                   {t.href === "/en/review" && dueN > 0 && (
-                    <span className="absolute -right-1.5 -top-2 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-extrabold text-white">
-                      {dueN}
-                    </span>
+                    <span className="en-badge">{dueN}</span>
                   )}
                 </Link>
               ))}

@@ -235,9 +235,8 @@ export default function StagePage() {
   }
 
   const shell = "mx-auto max-w-md space-y-4 pb-10";
-  const card = "rounded-3xl bg-white/90 p-6 shadow-lg ring-1 ring-orange-100";
-  const btn =
-    "w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-base font-bold text-white shadow-md disabled:opacity-40";
+  const card = "en-card p-6";
+  const btn = "en-btn";
 
   /* ---------- Học từ ---------- */
   if (phase === "learn") {
@@ -259,7 +258,7 @@ export default function StagePage() {
             <button
               type="button"
               onClick={() => speak(w.word, rate)}
-              className="rounded-full bg-orange-100 px-3 py-2 text-lg"
+              className="en-sound"
               aria-label="Nghe phát âm"
             >
               🔊
@@ -272,7 +271,7 @@ export default function StagePage() {
           {w.hasVi === false && (
             <p className="mt-1 text-xs text-stone-400">Định nghĩa tiếng Anh. Nghĩa tiếng Việt sẽ bổ sung sau.</p>
           )}
-          <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-relaxed">
+          <div className="en-note mt-5 p-4 text-sm leading-relaxed">
             <p className="font-medium text-stone-800">
               <Highlight text={w.example} word={w.word} />
             </p>
@@ -291,7 +290,7 @@ export default function StagePage() {
             type="button"
             disabled={learnIdx === 0}
             onClick={() => setLearnIdx(learnIdx - 1)}
-            className="w-1/3 rounded-2xl bg-white px-4 py-3 font-semibold text-stone-600 ring-1 ring-stone-200 disabled:opacity-40"
+            className="en-btn en-btn--ghost en-btn--third"
           >
             Trước
           </button>
@@ -355,7 +354,7 @@ export default function StagePage() {
         {mode === "recall" ? (
           <Link
             href="/en"
-            className="block w-full rounded-2xl bg-white px-4 py-3 text-center font-semibold text-orange-700 ring-1 ring-orange-200"
+            className="en-btn en-btn--ghost"
           >
             Về bản đồ
           </Link>
@@ -369,7 +368,7 @@ export default function StagePage() {
                 setPhase("learn");
               }
             }}
-            className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-orange-700 ring-1 ring-orange-200"
+            className="en-btn en-btn--ghost"
           >
             Làm lại chặng này
           </button>
@@ -378,7 +377,7 @@ export default function StagePage() {
           <button
             type="button"
             onClick={() => startQuiz("recall")}
-            className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-orange-700 ring-1 ring-orange-200"
+            className="en-btn en-btn--ghost"
           >
             Thử lại bài nhớ lại
           </button>
@@ -407,11 +406,8 @@ export default function StagePage() {
   return (
     <main className={shell}>
       <div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-orange-100">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300"
-            style={{ width: `${(qi / qs.length) * 100}%` }}
-          />
+        <div className="en-track">
+          <div className="en-fill" style={{ width: `${(qi / qs.length) * 100}%` }} />
         </div>
         <div className="mt-1 flex justify-between text-xs text-stone-500">
           <span>{PARTS[q.part]}</span>
@@ -435,7 +431,7 @@ export default function StagePage() {
             <button
               type="button"
               onClick={() => speak(q.word.word, rate)}
-              className="rounded-full bg-orange-100 px-3 py-2 text-lg"
+              className="en-sound"
               aria-label="Nghe phát âm"
             >
               🔊
@@ -464,14 +460,14 @@ export default function StagePage() {
             <p className="text-lg font-semibold text-stone-900">
               {q.word.exampleVi || "Sắp xếp các mảnh thành câu hoàn chỉnh"}
             </p>
-            <div className="mt-3 flex min-h-[52px] flex-wrap gap-2 rounded-2xl bg-amber-50 p-2">
+            <div className="en-slot mt-3 flex min-h-[56px] flex-wrap gap-2 p-2">
               {sel.map((ti, pos) => (
                 <button
                   key={`${ti}-${pos}`}
                   type="button"
                   disabled={!!fb}
                   onClick={() => setSel(sel.filter((_, p) => p !== pos))}
-                  className="rounded-xl bg-white px-3 py-2 text-base font-medium shadow-sm ring-1 ring-orange-200"
+                  className="en-chip en-chip--placed"
                 >
                   {tiles[ti]}
                 </button>
@@ -485,7 +481,7 @@ export default function StagePage() {
                     type="button"
                     disabled={!!fb}
                     onClick={() => setSel([...sel, ti])}
-                    className="rounded-xl bg-orange-100 px-3 py-2 text-base font-medium text-orange-900"
+                    className="en-chip"
                   >
                     {t}
                   </button>
@@ -508,16 +504,16 @@ export default function StagePage() {
           <div className="mt-4 space-y-2">
             {q.options.map((o) => {
               const isAns = o === q.word.vi[0];
-              let cls = "bg-white ring-1 ring-stone-200 text-stone-800";
-              if (fb && isAns) cls = "bg-emerald-100 ring-2 ring-emerald-500 text-emerald-900";
-              else if (fb && o === picked) cls = "bg-rose-100 ring-2 ring-rose-400 text-rose-900";
+              let cls = "";
+              if (fb && isAns) cls = "en-tile--ok";
+              else if (fb && o === picked) cls = "en-tile--bad";
               return (
                 <button
                   key={o}
                   type="button"
                   disabled={!!fb}
                   onClick={() => submit(o)}
-                  className={`w-full rounded-2xl px-4 py-3 text-left font-medium ${cls}`}
+                  className={`en-tile ${cls}`}
                 >
                   {o}
                 </button>
@@ -542,16 +538,14 @@ export default function StagePage() {
             autoCorrect="off"
             spellCheck={false}
             placeholder={placeholder[q.type]}
-            className="mt-4 w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-lg outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
+            className="en-input mt-4"
           />
         )}
       </div>
 
       {fb && (
         <div
-          className={`rounded-2xl p-4 text-sm ${
-            fb.ok ? "bg-emerald-50 text-emerald-900" : "bg-rose-50 text-rose-900"
-          }`}
+          className={`en-feedback ${fb.ok ? "en-feedback--ok" : "en-feedback--bad"}`}
         >
           <p className="font-bold">
             {fb.ok ? (fb.forced ? "Đã tính là đúng" : "Chính xác!") : "Chưa đúng"}
