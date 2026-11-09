@@ -351,25 +351,29 @@ const polyPath = (l: Pt[], r: Pt[]) =>
     .map(fmt)
     .join(" L")}Z`;
 
-// ----- Thân đậu xoắn: to ở gốc, thon dần lên mây, hơi uốn lượn, xòe rễ -----
-const stalkCx = (y: number) => 200 + 15 * Math.sin(y / 190 + 0.6);
+// ----- Thân đậu xoắn: dây leo bện xoắn ốc tự nhiên như tranh vẽ, to ở gốc, thon dần lên mây -----
+const stalkCx = (y: number) => 200 + 22 * Math.sin(y / 165 + 0.55);
 const stalkHw = (y: number) => {
   const t = clamp01((y - TRUNK_TOP) / (GROUND_Y - TRUNK_TOP));
-  const flare = t > 0.94 ? 54 * Math.pow((t - 0.94) / 0.06, 2) : 0;
-  return 35 + 30 * Math.pow(t, 0.85) + flare;
+  const flare = t > 0.93 ? 56 * Math.pow((t - 0.93) / 0.07, 2) : 0;
+  const ropeBulge = 4.2 * Math.sin(((y - TRUNK_TOP) / 95) * Math.PI * 2);
+  return 32 + 32 * Math.pow(t, 0.85) + ropeBulge + flare;
 };
 const STALK_YS: number[] = (() => {
   const a: number[] = [];
-  for (let y = TRUNK_TOP; y < GROUND_Y - 110; y += 40) a.push(y);
-  for (let y = GROUND_Y - 110; y < GROUND_Y; y += 14) a.push(y);
+  for (let y = TRUNK_TOP; y < GROUND_Y - 110; y += 18) a.push(y);
+  for (let y = GROUND_Y - 110; y < GROUND_Y; y += 12) a.push(y);
   a.push(GROUND_Y);
   return a;
 })();
 const edgeLine = (f: number): Pt[] =>
-  STALK_YS.map((y) => [stalkCx(y) + f * stalkHw(y), y] as Pt);
+  STALK_YS.map((y) => {
+    const ripple = f * 3.2 * Math.cos(((y - TRUNK_TOP) / 75) * Math.PI * 2 + (f > 0 ? 1.1 : 0));
+    return [stalkCx(y) + f * stalkHw(y) + ripple, y] as Pt;
+  });
 const STALK_PATH = joinPath(edgeLine(-1), edgeLine(1));
-const STALK_LIGHT = joinPath(edgeLine(-1), edgeLine(-0.5));
-const STALK_SHADE = joinPath(edgeLine(0.45), edgeLine(1));
+const STALK_LIGHT = joinPath(edgeLine(-1), edgeLine(-0.48));
+const STALK_SHADE = joinPath(edgeLine(0.42), edgeLine(1));
 
 // Ba dải xoắn quấn quanh thân: chỉ vẽ phần quay về phía người xem
 const PITCH = 300;
@@ -1174,71 +1178,231 @@ export default function TowerHome() {
                 <path key={i} d={gp} fill={i % 3 === 0 ? "#86cf52" : "#6bb83f"} stroke="#3f8a2c" strokeWidth="1.2" strokeLinejoin="round" />
               ))}
 
-              {/* Sợi râu cuộn ở ngọn thân */}
-              <path d={curl(stalkCx(236) - 22, 236, -1)} fill="none" stroke="#79b53a" strokeWidth="3" strokeLinecap="round" />
-              <path d={curl(stalkCx(232) + 22, 232, 1)} fill="none" stroke="#79b53a" strokeWidth="3" strokeLinecap="round" />
+              {/* Gradients cho Đàn Hạc Hoàng Kim & Mây Bồng Bềnh */}
+              <defs>
+                <linearGradient id="harpGoldMain" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fff3a6" />
+                  <stop offset="35%" stopColor="#fcc419" />
+                  <stop offset="75%" stopColor="#e67700" />
+                  <stop offset="100%" stopColor="#9c4200" />
+                </linearGradient>
+                <linearGradient id="harpGoldLight" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#fff9db" />
+                  <stop offset="50%" stopColor="#ffd43b" />
+                  <stop offset="100%" stopColor="#f08c00" />
+                </linearGradient>
+                <linearGradient id="cloudShade" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="70%" stopColor="#f6f4e6" />
+                  <stop offset="100%" stopColor="#ded9c1" />
+                </linearGradient>
+                <linearGradient id="topVineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#94d82d" />
+                  <stop offset="60%" stopColor="#5c940d" />
+                  <stop offset="100%" stopColor="#2b5211" />
+                </linearGradient>
+              </defs>
 
-              {/* Lấp lánh */}
+              {/* Ла́ mầm lớn mọc trực tiếp dọc thân cây đậu giống tranh mẫu */}
+              {FLOORS.map((def) => {
+                const yMid = rowTop(def.level) + 115;
+                const s = sideOf(def.level);
+                const lx = stalkCx(yMid) - s * (stalkHw(yMid) - 4);
+                return (
+                  <g key={`trunk-lf-${def.level}`}>
+                    <Leaf
+                      p={{ x: r1(lx), y: r1(yMid), ang: -28, sc: 1.25, s: (-s) as 1 | -1 }}
+                      delay={def.level * 0.1}
+                    />
+                    <path
+                      d={curl(lx - s * 10, yMid - 18, s)}
+                      fill="none"
+                      stroke="#7cc63b"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Đọt dây leo uốn lượn vươn cao bên trái đám mây (giống hệt ảnh mẫu) */}
+              <g>
+                {/* Nhánh dây leo chính vươn lên bên trái mây */}
+                <path
+                  d="M192 200 C175 165, 165 135, 168 95 C170 65, 152 40, 148 16 C142 42, 156 68, 152 98 C148 135, 155 168, 174 205 Z"
+                  fill="url(#topVineGrad)"
+                  stroke="#244712"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                />
+                {/* Đọt xoắn ốc bên phải ngọn dây leo */}
+                <path
+                  d="M166 86 C176 62, 198 58, 196 42 C194 28, 174 34, 180 46"
+                  fill="none"
+                  stroke="#6eb030"
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                />
+                {/* Đọt xoắn ốc vươn sang trái */}
+                <path
+                  d="M156 76 C135 64, 118 72, 116 56 C114 42, 132 40, 130 52"
+                  fill="none"
+                  stroke="#7cc63b"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
+                {/* Đọt tua rua nhỏ gần mây */}
+                <path
+                  d="M168 118 C184 102, 194 110, 188 122"
+                  fill="none"
+                  stroke="#7cc63b"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
+                {/* Hai chiếc lá lớn ở cổ mây (1 lá bên trái, 1 lá ngay dưới mây) */}
+                <Leaf p={{ x: 156, y: 132, ang: -24, sc: 1.32, s: -1 }} delay={0.4} />
+                <Leaf p={{ x: 196, y: 192, ang: -16, sc: 1.38, s: 1 }} delay={0.5} />
+              </g>
+
+              {/* Lấp lánh 4 cánh vàng quanh thân cây & đỉnh đàn hạc */}
               {SPARKLES.map((sp, i) => (
                 <path
                   key={i}
+                  d={sparkPath(sp.r * 1.25)}
+                  transform={`translate(${sp.x} ${sp.y})`}
+                  fill="#fff3a8"
+                  stroke="#ffd43b"
+                  strokeWidth="0.6"
+                  className="wm-star"
+                  style={{ "--sd": `${sp.d}s` } as React.CSSProperties}
+                />
+              ))}
+              {/* Thêm các ngôi sao lớn lấp lánh ngay cạnh Đàn Hạc & Ngọn Đậu */}
+              {[
+                { x: 122, y: 168, r: 7.5, d: 0.2 },
+                { x: 288, y: 176, r: 6.5, d: 1.1 },
+                { x: 302, y: 205, r: 9.0, d: 0.6 },
+                { x: 148, y: 198, r: 4.5, d: 1.8 },
+              ].map((sp, idx) => (
+                <path
+                  key={`top-sp-${idx}`}
                   d={sparkPath(sp.r)}
                   transform={`translate(${sp.x} ${sp.y})`}
-                  fill="#ffd95a"
+                  fill="#fff9db"
+                  stroke="#fcc419"
+                  strokeWidth="0.8"
                   className="wm-star"
                   style={{ "--sd": `${sp.d}s` } as React.CSSProperties}
                 />
               ))}
 
-              {/* Quả dưa khổng lồ nằm trên mây, nơi dây đậu dẫn tới */}
-              <g transform="translate(200 66) scale(0.8)">
+              {/* ĐÀN HẠC HOÀNG KIM (GOLDEN HARP) ĐẶT TRÊN MÂY BỒNG BỀNH */}
+              <g transform="translate(226 84)">
                 {crownReady && (
                   <g className="wm-rays">
                     {Array.from({ length: 12 }, (_, i) => (
-                      <rect key={i} x="-2" y="-78" width="4" height="16" rx="2" fill="#ffd24d" transform={`rotate(${i * 30})`} />
+                      <rect key={i} x="-2" y="-82" width="4" height="18" rx="2" fill="#ffd43b" transform={`rotate(${i * 30})`} />
                     ))}
                   </g>
                 )}
-                <g className="wm-crown">
-                  <circle r="50" fill={crownReady ? "#2f9e44" : "#7fa97f"} stroke="#1f6e35" strokeWidth="2.5" />
-                  {crownReady ? (
-                    <>
-                      <circle r="43" fill="#eaf8d3" />
-                      <circle r="38" fill="#ff4d6a" />
-                      {[
-                        [-14, -8, -20],
-                        [14, -8, 20],
-                        [0, 8, 0],
-                        [-22, 10, -35],
-                        [22, 10, 35],
-                        [-9, 24, -10],
-                        [9, 24, 10],
-                      ].map(([x, y, r], i) => (
-                        <ellipse key={i} cx={x} cy={y} rx="3.2" ry="5" fill="#2b1b1b" transform={`rotate(${r} ${x} ${y})`} />
-                      ))}
-                      <path d="M-30 -22 Q-20 -34 -6 -34" stroke="#fff" strokeWidth="4" opacity="0.55" fill="none" strokeLinecap="round" />
-                    </>
-                  ) : (
-                    <>
-                      <path d="M-34 -30 Q-16 0 -34 30" stroke="#4f7d52" strokeWidth="5" opacity="0.7" fill="none" strokeLinecap="round" />
-                      <path d="M-14 -46 Q2 0 -14 46" stroke="#4f7d52" strokeWidth="5" opacity="0.7" fill="none" strokeLinecap="round" />
-                      <path d="M14 -46 Q-2 0 14 46" stroke="#4f7d52" strokeWidth="5" opacity="0.7" fill="none" strokeLinecap="round" />
-                      <path d="M34 -30 Q16 0 34 30" stroke="#4f7d52" strokeWidth="5" opacity="0.7" fill="none" strokeLinecap="round" />
-                    </>
-                  )}
+
+                {/* Đám mây hậu cảnh phía sau Đàn Hạc */}
+                <path
+                  d="M-64 56 C-88 56, -92 26, -66 20 C-60 -2, -24 -8, -4 6 C16 -10, 54 -4, 62 20 C86 22, 88 54, 62 58 Z"
+                  fill="url(#cloudShade)"
+                  stroke="#d5cfb8"
+                  strokeWidth="2"
+                />
+
+                {/* Cây Đàn Hạc Hoàng Kim (Golden Harp) */}
+                <g className="wm-crown" transform="translate(-48 -68)">
+                  {/* Dây đàn hạc vàng óng */}
+                  {[26, 35, 44, 53, 62, 71, 80].map((sx, idx) => (
+                    <line
+                      key={idx}
+                      x1={sx}
+                      y1={24 + idx * 2.4}
+                      x2={sx - 5}
+                      y2={106}
+                      stroke="#fff3bf"
+                      strokeWidth="1.9"
+                       opacity="0.95"
+                    />
+                  ))}
+
+                  {/* Hộp cộng hưởng bên phải (Soundbox) */}
+                  <path
+                    d="M66 106 L82 106 L96 34 C96 28, 86 28, 84 35 L62 104 Z"
+                    fill="url(#harpGoldMain)"
+                    stroke="#5c2b04"
+                    strokeWidth="2.6"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Trụ đàn uốn cong bên trái + Đầu xoắn ốc cổ điển (Pillar & Scroll) */}
+                  <path
+                    d="M22 106 C10 76, 10 42, 16 20 C8 20, 4 10, 12 4 C22 -2, 34 6, 38 14 C52 28, 72 32, 92 24 C98 21, 103 28, 96 34 C74 44, 50 40, 32 24 C24 46, 24 76, 36 106 Z"
+                    fill="url(#harpGoldMain)"
+                    stroke="#5c2b04"
+                    strokeWidth="2.6"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Đường viền sáng bóng 3D trên thân đàn */}
+                  <path
+                    d="M15 10 C22 4, 30 10, 35 17 C50 31, 70 35, 90 27"
+                    fill="none"
+                    stroke="url(#harpGoldLight)"
+                    strokeWidth="3.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M20 24 C15 48, 16 74, 27 102"
+                    fill="none"
+                    stroke="#fff3bf"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    opacity="0.8"
+                  />
+                  {/* Xoắn ốc chạm khắc ở đỉnh trái */}
+                  <path
+                    d="M14 14 C10 10, 15 5, 20 9 C23 12, 19 17, 16 15"
+                    fill="none"
+                    stroke="#5c2b04"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Đế đàn hạc (Pedestal Base) */}
+                  <rect
+                    x="18"
+                    y="102"
+                    width="68"
+                    height="11"
+                    rx="4"
+                    fill="url(#harpGoldLight)"
+                    stroke="#5c2b04"
+                    strokeWidth="2.5"
+                  />
                 </g>
+
+                {/* Lớp mây bồng bềnh phía trước ôm lấy chân Đàn Hạc */}
+                <path
+                  d="M-68 58 C-92 58, -94 30, -68 26 C-56 12, -30 14, -18 26 C-4 14, 24 14, 36 28 C54 16, 82 24, 80 46 C86 64, 58 76, 34 68 C14 78, -18 78, -36 66 C-52 72, -72 68, -68 58 Z"
+                  fill="url(#cloudShade)"
+                  stroke="#d0cab2"
+                  strokeWidth="2.2"
+                  strokeLinejoin="round"
+                />
+                {/* Ánh sáng trắng mịn trên đỉnh các múi mây */}
+                <path
+                  d="M-64 32 C-52 18, -30 18, -18 30 C-4 18, 22 18, 34 32 C50 22, 74 28, 74 44"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
               </g>
-              <g stroke="#ddd6bf" strokeWidth="1.5">
-                {CROWN_CLOUD.map(([cx, cy, r], i) => (
-                  <circle key={i} cx={cx} cy={cy} r={r} fill="#fffdf6" />
-                ))}
-              </g>
-              <g fill="#fffdf6">
-                {CROWN_CLOUD.map(([cx, cy, r], i) => (
-                  <circle key={i} cx={cx} cy={cy} r={r - 1.5} />
-                ))}
-              </g>
-              <ellipse cx="200" cy="186" rx="78" ry="9" fill="#efe9d2" opacity="0.7" />
 
               {/* Mây bay ngang thân và biển mây dưới đảo */}
               {FRONT_CLOUDS.map((c, i) => (
