@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import EnHeader from "@/components/en/EnHeader";
 import { loadPractice, logActivity } from "@/lib/en/store";
 import { meaningOptions, shortMeaning, pickDistinct } from "@/lib/en/games";
@@ -213,7 +214,7 @@ export default function IoeArcadePage() {
                 <span className="ioe-stat">🏅 Kỷ lục {best} điểm</span>
               </div>
             </div>
-            <div className="ioe-hero-art" aria-hidden="true"><span>🍉</span><i>✦</i><b>+XP</b></div>
+            <div className="ioe-hero-art" aria-hidden="true"><Image src="/ioe/hero-melon.webp" alt="" fill priority sizes="220px" /></div>
           </section>
 
           <div className="flex items-end justify-between gap-3">
@@ -223,9 +224,16 @@ export default function IoeArcadePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {GAMES.map((game, index) => (
               <button key={game.id} type="button" onClick={() => beginGame(game.id)} className={`ioe-game-card ioe-${game.color} text-left`}>
-                <span className="ioe-game-icon">{game.icon}</span>
-                <span className="min-w-0 flex-1"><span className="block text-[11px] font-bold uppercase tracking-wider opacity-60">THỬ THÁCH {String(index + 1).padStart(2, "0")}</span><span className="mt-1 block text-base font-extrabold text-slate-900">{game.vi}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{game.desc}</span></span>
-                <span className="ioe-card-arrow">↗</span>
+                <span className="ioe-game-art">
+                  <Image src={`/ioe/games/${game.id}.webp`} alt={game.title} fill sizes="(max-width: 640px) 100vw, 50vw" />
+                  <span className="ioe-game-art-tag">{game.icon}</span>
+                </span>
+                <span className="ioe-game-copy">
+                  <span className="ioe-game-number">THỬ THÁCH {String(index + 1).padStart(2, "0")}</span>
+                  <span className="ioe-game-title">{game.vi}</span>
+                  <span className="ioe-game-desc">{game.desc}</span>
+                </span>
+                <span className="ioe-card-arrow" aria-hidden="true">↗</span>
               </button>
             ))}
           </div>
@@ -235,7 +243,7 @@ export default function IoeArcadePage() {
 
       {phase === "ready" && activeGame && (
         <section className="en-card p-6 text-center sm:p-10">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-50 text-5xl">{activeGame.icon}</div>
+          <div className="ioe-ready-art"><Image src={`/ioe/games/${activeGame.id}.webp`} alt={activeGame.title} fill sizes="(max-width: 640px) 100vw, 360px" /></div>
           <p className="ioe-section-label mt-5">SẴN SÀNG CHƯA?</p>
           <h2 className="mt-2 text-2xl font-black text-slate-900">{activeGame.vi}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{activeGame.desc} Hoàn thành 5 câu hỏi, mỗi câu đúng nhận 20 điểm.</p>
@@ -247,7 +255,7 @@ export default function IoeArcadePage() {
       {phase === "play" && activeGame && (
         <section className="en-card overflow-hidden p-4 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">{activeGame.icon}</span><div><p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">{activeGame.title}</p><p className="text-sm font-extrabold text-slate-900">{activeGame.vi}</p></div></div>
+            <div className="flex items-center gap-3"><span className="ioe-play-thumb"><Image src={`/ioe/games/${activeGame.id}.webp`} alt="" fill sizes="44px" /></span><div><p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">{activeGame.title}</p><p className="text-sm font-extrabold text-slate-900">{activeGame.vi}</p></div></div>
             <div className="flex gap-2"><span className="ioe-pill">⭐ {score} điểm</span><span className="ioe-pill">{gameId === "pair" || gameId === "sea" ? pairMatched.length : round + 1}/ {gameId === "pair" || gameId === "sea" ? 4 : 5}</span></div>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-all" style={{ width: `${((gameId === "pair" || gameId === "sea" ? pairMatched.length : round) / (gameId === "pair" || gameId === "sea" ? 4 : 5)) * 100}%` }} /></div>
@@ -265,7 +273,7 @@ export default function IoeArcadePage() {
       )}
 
       {phase === "result" && activeGame && (
-        <section className="en-card p-7 text-center sm:p-10"><div className="text-6xl">🏆</div><p className="ioe-section-label mt-4">THỬ THÁCH HOÀN TẤT</p><h2 className="mt-2 text-2xl font-black text-slate-900">Làm tốt lắm!</h2><p className="mt-1 text-sm text-slate-500">{activeGame.vi}</p><div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2"><div className="ioe-mini-stat"><b>{score}</b><span>Điểm số</span></div><div className="ioe-mini-stat"><b>{correct}</b><span>Đúng</span></div><div className="ioe-mini-stat"><b>{mistakes}</b><span>Số lỗi</span></div></div><p className="mt-5 text-xs text-slate-500">Kỷ lục cá nhân: <b className="text-amber-700">{best} điểm</b></p><div className="mx-auto mt-7 flex max-w-md flex-col gap-2 sm:flex-row"><button type="button" onClick={() => beginGame(gameId!)} className="en-btn">Chơi lại ↻</button><button type="button" onClick={() => { setPhase("hub"); setGameId(null); }} className="en-btn en-btn--ghost">Chọn trò khác</button></div></section>
+        <section className="en-card p-7 text-center sm:p-10"><div className="ioe-result-art"><Image src="/ioe/games/exam.webp" alt="Cúp chiến thắng" fill sizes="112px" /></div><p className="ioe-section-label mt-4">THỬ THÁCH HOÀN TẤT</p><h2 className="mt-2 text-2xl font-black text-slate-900">Làm tốt lắm!</h2><p className="mt-1 text-sm text-slate-500">{activeGame.vi}</p><div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2"><div className="ioe-mini-stat"><b>{score}</b><span>Điểm số</span></div><div className="ioe-mini-stat"><b>{correct}</b><span>Đúng</span></div><div className="ioe-mini-stat"><b>{mistakes}</b><span>Số lỗi</span></div></div><p className="mt-5 text-xs text-slate-500">Kỷ lục cá nhân: <b className="text-amber-700">{best} điểm</b></p><div className="mx-auto mt-7 flex max-w-md flex-col gap-2 sm:flex-row"><button type="button" onClick={() => beginGame(gameId!)} className="en-btn">Chơi lại ↻</button><button type="button" onClick={() => { setPhase("hub"); setGameId(null); }} className="en-btn en-btn--ghost">Chọn trò khác</button></div></section>
       )}
     </main>
   );
