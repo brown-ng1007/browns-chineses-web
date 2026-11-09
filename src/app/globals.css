@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 /* ===== MELON LANGUAGE · DƯA HẤU HOÀNG KIM =====
    Đổi bảng màu chàm/xanh dương của Tailwind thành xanh ngọc và tím thành vàng kim,
@@ -326,4 +326,63 @@ button:not(:disabled):hover {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* ============ NỀN TIẾNG ANH HỌC THUẬT (OXFORD / IELTS) ============ */
+.bg-stage--en {
+  background: linear-gradient(180deg, #fffdf9 0%, #f6fbf8 55%, #eef7f2 100%);
+}
+.bg-en-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(13, 110, 87, 0.085) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 40%, transparent 100%);
+}
+.bg-en-mark {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+  animation: float-y var(--dur, 24s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+}
+.bg-en-main {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: rgba(11, 107, 83, 0.065);
+}
+.bg-en-ipa {
+  margin-top: 4px;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 600;
+  color: rgba(122, 84, 16, 0.075);
+}
+.bg-en-tag {
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(11, 107, 83, 0.09);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(11, 107, 83, 0.11);
+}
+.bg-en-compass {
+  position: absolute;
+  right: 5%;
+  bottom: 7%;
+  width: 190px;
+  height: 190px;
+  color: rgba(11, 107, 83, 0.045);
+  animation: spin-slow 60s linear infinite;
 }

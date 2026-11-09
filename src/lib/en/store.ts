@@ -1,4 +1,4 @@
-// Đọc ghi dữ liệu luyện tập tiếng Anh trong máy (Dexie): thẻ ôn, nhật ký, từ để nghe và nói.
+﻿// Đọc ghi dữ liệu luyện tập tiếng Anh trong máy (Dexie): thẻ ôn, nhật ký, từ để nghe và nói.
 import { db, type EnLog } from "@/lib/db";
 import { dayKey } from "@/lib/tower";
 import { newCard, type EnCard } from "@/lib/en/srs";
@@ -54,4 +54,17 @@ export async function loadPractice(): Promise<{ pool: EnWord[]; words: EnWord[];
     // chưa đọc được dữ liệu trong máy: coi như chưa học từ nào
   }
   return { pool, words: practiceWords(pool, learned), learned };
+}
+
+export async function resetEnProgress(): Promise<void> {
+  await Promise.all([
+    db.en_progress.clear(),
+    db.en_cards.clear(),
+    db.en_logs.clear(),
+  ]);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem("en_speed_best");
+    } catch {}
+  }
 }

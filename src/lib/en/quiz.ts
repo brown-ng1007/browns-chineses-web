@@ -1,4 +1,4 @@
-// Tạo câu hỏi và chấm đáp án. Sáu dạng bài, chia hai nhóm:
+﻿// Tạo câu hỏi và chấm đáp án. Sáu dạng bài, chia hai nhóm:
 //  Nhận biết: mcq (chọn nghĩa), forward (dịch sang Việt)
 //  Dùng được: cloze (điền từ vào câu), reverse (dịch sang Anh),
 //             build (sắp xếp câu), own (tự đặt câu có từ đó)
@@ -122,15 +122,45 @@ export function answerText(q: Question): string {
   return q.word.word;
 }
 
-export function speak(text: string, rate = 0.9): void {
+import { loadSettings } from "@/lib/settings";
+
+export function speak(text: string, rate?: number): void {
   try {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
+    const s = loadSettings();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US";
-    u.rate = Math.min(1, rate);
+    const voices = window.speechSynthesis.getVoices();
+    const enVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
+
+    let chosen = s.enVoiceURI
+      ? enVoices.find((v) => v.voiceURI === s.enVoiceURI)
+      : undefined;
+
+    if (!chosen && enVoices.length > 0) {
+      const accentPool =
+        s.enAccent && s.enAccent !== "ALL"
+          ? enVoices.filter((v) => v.lang.replace("_", "-").startsWith(s.enAccent))
+          : enVoices;
+      const pool = accentPool.length > 0 ? accentPool : enVoices;
+      chosen =
+        pool.find((v) => v.name.includes("Natural") || v.name.includes("Google")) ??
+        pool[0];
+    }
+
+    if (chosen) {
+      u.voice = chosen;
+      u.lang = chosen.lang;
+    } else {
+      u.lang = s.enAccent && s.enAccent !== "ALL" ? s.enAccent : "en-US";
+    }
+
+    const finalRate = rate ?? s.enTtsRate ?? 0.95;
+    u.rate = Math.max(0.5, Math.min(1.3, finalRate));
     window.speechSynthesis.speak(u);
-  } catch {
+  } catch {}
+} catch {
     // trình duyệt không hỗ trợ giọng đọc: bỏ qua
   }
 }
+

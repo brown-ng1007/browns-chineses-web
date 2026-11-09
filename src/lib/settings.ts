@@ -1,10 +1,15 @@
-import { createClient } from "@/lib/supabase/client";
+﻿import { createClient } from "@/lib/supabase/client";
+
+export type EnAccent = "ALL" | "en-US" | "en-GB" | "en-AU";
 
 export interface AppSettings {
-  newPerDay: number; // số thẻ mới mỗi ngày
-  ttsRate: number; // tốc độ đọc (0.5 - 1.2)
-  voiceURI: string | null; // giọng đọc đã chọn (khác nhau giữa các máy)
-  listenLevel: number; // cấp HSK cho Nghe / Nói
+  newPerDay: number;
+  ttsRate: number;
+  voiceURI: string | null;
+  listenLevel: number;
+  enTtsRate: number;
+  enVoiceURI: string | null;
+  enAccent: EnAccent;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -12,6 +17,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ttsRate: 0.9,
   voiceURI: null,
   listenLevel: 1,
+  enTtsRate: 0.95,
+  enVoiceURI: null,
+  enAccent: "ALL",
 };
 
 const KEY = "browns_chinenes_settings_v1";
@@ -31,15 +39,13 @@ export function loadSettings(): AppSettings {
 export function saveSettings(s: AppSettings): void {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    // bỏ qua nếu trình duyệt chặn lưu trữ
-  }
+  } catch {}
 }
 
-/* ---------- Đồng bộ giữa các máy qua profiles.settings.app ---------- */
-/* Giọng đọc (voiceURI) mỗi máy một khác nên không đồng bộ. */
-
-type SyncShape = Pick<AppSettings, "newPerDay" | "ttsRate" | "listenLevel">;
+type SyncShape = Pick<
+  AppSettings,
+  "newPerDay" | "ttsRate" | "listenLevel" | "enTtsRate" | "enAccent"
+>;
 
 async function currentUserId(): Promise<string | null> {
   const supabase = createClient();
@@ -76,6 +82,8 @@ async function pushServerSettings(s: AppSettings): Promise<void> {
     newPerDay: s.newPerDay,
     ttsRate: s.ttsRate,
     listenLevel: s.listenLevel,
+    enTtsRate: s.enTtsRate,
+    enAccent: s.enAccent,
   };
   await supabase
     .from("profiles")
@@ -84,7 +92,6 @@ async function pushServerSettings(s: AppSettings): Promise<void> {
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Gửi cài đặt lên máy chủ sau 0,8 giây không đổi nữa. Lỗi thì bỏ qua, bản trong máy vẫn còn. */
 export function pushSettingsDebounced(s: AppSettings): void {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
@@ -92,7 +99,6 @@ export function pushSettingsDebounced(s: AppSettings): void {
   }, 800);
 }
 
-/** Lấy cài đặt mới nhất: ưu tiên máy chủ (chờ tối đa 1,5 giây), không được thì dùng bản trong máy. */
 export async function refreshSettings(timeoutMs = 1500): Promise<AppSettings> {
   const local = loadSettings();
   try {
@@ -105,8 +111,6 @@ export async function refreshSettings(timeoutMs = 1500): Promise<AppSettings> {
       saveSettings(merged);
       return merged;
     }
-  } catch {
-    // mất mạng: dùng bản trong máy
-  }
+  } catch {}
   return local;
 }

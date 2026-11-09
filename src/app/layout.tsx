@@ -1,8 +1,9 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import TapEffects from "@/components/TapEffects";
+import BgStage from "@/components/BgStage";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/config";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -29,11 +30,6 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const HANZI = [
-  { c: "西", left: "6%", top: "58%", size: 120, dur: 22, delay: 0, rot: -8 },
-  { c: "瓜", left: "84%", top: "22%", size: 150, dur: 26, delay: -6, rot: 6 },
-];
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,29 +38,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={beVietnamPro.variable}>
       <body className={`${beVietnamPro.className} min-h-screen text-stone-900 antialiased`}>
-        <div className="bg-stage" aria-hidden="true">
-          <div className="bg-blob b1" />
-          <div className="bg-blob b2" />
-          <div className="bg-blob b3" />
-          {HANZI.map((f) => (
-            <span
-              key={f.c}
-              className="bg-hanzi"
-              style={
-                {
-                  left: f.left,
-                  top: f.top,
-                  fontSize: f.size,
-                  "--dur": `${f.dur}s`,
-                  "--delay": `${f.delay}s`,
-                  "--rot": `${f.rot}deg`,
-                } as React.CSSProperties
-              }
-            >
-              {f.c}
-            </span>
-          ))}
-        </div>
+        <BgStage />
         <TapEffects />
         <NavBar />
         <div className="max-w-5xl mx-auto px-4 py-6">{children}</div>

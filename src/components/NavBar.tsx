@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -85,7 +85,22 @@ const EN_ITEMS = [
 
 export default function NavBar() {
   const pathname = usePathname();
-  const isEn = pathname === "/en" || pathname.startsWith("/en/");
+  const [lastLang, setLastLang] = useState<"en" | "zh">("zh");
+  useEffect(() => {
+    if (pathname === "/en" || pathname.startsWith("/en/")) {
+      setLastLang("en");
+      try { sessionStorage.setItem("melon_last_lang", "en"); } catch {}
+    } else if (pathname !== "/settings") {
+      setLastLang("zh");
+      try { sessionStorage.setItem("melon_last_lang", "zh"); } catch {}
+    } else {
+      try {
+        const s = sessionStorage.getItem("melon_last_lang");
+        if (s === "en" || s === "zh") setLastLang(s);
+      } catch {}
+    }
+  }, [pathname]);
+  const isEn = pathname === "/en" || pathname.startsWith("/en/") || (pathname === "/settings" && lastLang === "en");
   const NAV_ITEMS = isEn ? EN_ITEMS : ZH_ITEMS;
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [ind, setInd] = useState<{ left: number; width: number } | null>(null);
@@ -182,3 +197,4 @@ export default function NavBar() {
     </header>
   );
 }
+
