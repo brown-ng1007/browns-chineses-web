@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Melon Language - English TOEIC 635 → IELTS 5.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .english-layout-bg {
+      position: relative;
+      min-height: 100vh;
+      background-color: #fdf8f5;
+      background-image: 
+        radial-gradient(at 15% 20%, rgba(254, 215, 170, 0.38) 0px, transparent 50%),
+        radial-gradient(at 85% 80%, rgba(167, 243, 208, 0.32) 0px, transparent 50%),
+        radial-gradient(#cbd5e1 0.8px, transparent 0.8px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+      overflow-x: hidden;
+    }
+    .watermark-left {
+      position: fixed;
+      left: 3.5%;
+      top: 55%;
+      transform: translateY(-50%) rotate(-6deg);
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 10.5rem;
+      font-weight: 700;
+      color: rgba(15, 118, 110, 0.05);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+    .watermark-right {
+      position: fixed;
+      right: 3%;
+      top: 28%;
+      transform: translateY(-50%) rotate(5deg);
+      font-family: "Georgia", "Times New Roman", serif;
+      font-style: italic;
+      font-size: 5.5rem;
+      font-weight: 600;
+      color: rgba(15, 118, 110, 0.05);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+    .watermark-sub {
+      position: fixed;
+      left: 4%;
+      bottom: 8%;
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: rgba(15, 118, 110, 0.035);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body class="english-layout-bg text-slate-800 antialiased">
+
+  <!-- Watermarks chuẩn chất English (thay cho chữ Hán 西 - 瓜) -->
+  <div id="wm-left" class="watermark-left">Aa</div>
+  <div id="wm-right" class="watermark-right">/ˈɪŋ.ɡlɪʃ/</div>
+  <div id="wm-sub" class="watermark-sub">OXFORD · CAMBRIDGE · CEFR B1-B2</div>
+
+  <!-- Top Navigation Bar -->
+  <header class="relative z-10 max-w-5xl mx-auto pt-4 px-4">
+    <div class="bg-white/95 backdrop-blur rounded-2xl shadow-sm border border-slate-200/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-700 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          🍉
+        </div>
+        <div>
+          <div class="font-bold text-slate-800 text-sm leading-tight">Melon Language</div>
+          <div class="text-[11px] text-slate-500">English · TOEIC 635 → IELTS 5.0</div>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-1.5 text-xs font-medium">
+        <button class="px-3.5 py-2 rounded-xl bg-teal-700 text-white font-semibold shadow-sm">◎ Lộ trình</button>
+        <button class="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100">📖 Từ vựng</button>
+        <button class="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100">🗂 Ôn tập</button>
+        <button class="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100">🎮 Trò chơi</button>
+        <button class="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100">🎧 Kỹ năng</button>
+        <button onclick="toggleLangWatermark()" class="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100" title="Bấm để so sánh nền Tiếng Anh / Tiếng Trung">文 Tiếng Trung</button>
+        <button onclick="openSettings()" class="px-3.5 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-semibold">⚙ Cài đặt</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="relative z-10 max-w-5xl mx-auto mt-6 px-4 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Learning Path -->
+    <div class="lg:col-span-7 space-y-5">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-2">
+        <div class="flex items-center gap-3 text-xs">
+          <span class="text-slate-500 font-medium">Chuyển nhanh:</span>
+          <select class="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-slate-700 font-medium bg-slate-50">
+            <option id="unit-select-label">Unit 1 · B1 - Giao tiếp hằng ngày (0/11)</option>
+          </select>
+        </div>
+        <div class="text-[11px] text-slate-400 pl-1">Thu gọn bớt</div>
+      </div>
+
+      <!-- Active Unit Banner -->
+      <div class="bg-gradient-to-r from-teal-700 to-emerald-600 rounded-2xl p-5 text-white shadow-md flex items-center justify-between">
+        <div>
+          <span class="inline-block px-2.5 py-0.5 rounded-md bg-white/20 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+            UNIT 1 · B1
+          </span>
+          <h1 class="text-xl font-bold">Giao tiếp hằng ngày</h1>
+          <p class="text-xs text-teal-100 mt-0.5">Từ vựng cốt lõi B1 & cấu trúc câu giao tiếp hằng ngày</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="speakSample('Daily communication and core B1 vocabulary')" class="px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-xs font-semibold backdrop-blur">
+            🔊 Nghe thử
+          </button>
+          <span id="unit-progress-badge" class="px-3 py-1 rounded-full bg-black/20 text-xs font-semibold">0/11 ^</span>
+        </div>
+      </div>
+
+      <!-- Path Nodes -->
+      <div class="flex flex-col items-center py-6 space-y-6">
+        <div class="flex flex-col items-center">
+          <span class="px-3 py-1 rounded-full bg-white shadow text-[11px] font-bold text-teal-700 border border-teal-100 mb-2">
+            ● START
+          </span>
+          <div class="relative flex items-center">
+            <div class="mr-4 bg-white px-3.5 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2.5">
+              <button onclick="speakSample('Hello! Let us start Stage 1 with 5 new words.')" class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-xs">▶</button>
+              <div>
+                <div class="text-xs font-bold text-slate-800">Chặng 1</div>
+                <div class="text-[10px] text-slate-500">5 từ mới</div>
+              </div>
+            </div>
+            <button onclick="completeStageDemo()" class="w-16 h-16 rounded-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center text-2xl shadow-lg ring-4 ring-teal-600/20 transition transform hover:scale-105" title="Bấm để thử tăng XP & tiến độ">
+              ★
+            </button>
+          </div>
+        </div>
+
+        <div class="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+          📖
+        </div>
+        <div class="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+          🔒
+        </div>
+        <div class="bg-white/90 px-4 py-2.5 rounded-xl border border-slate-200 text-center shadow-sm">
+          <div class="text-xs font-bold text-slate-700">🎁 Rương cột mốc</div>
+          <div class="text-[10px] text-slate-400">Hoàn thành chặng trên</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Widgets -->
+    <div class="lg:col-span-5 space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-sm text-slate-800">My Assignments</h3>
+          <span class="text-[11px] text-slate-400">Hôm nay</span>
+        </div>
+        <div class="bg-slate-50 rounded-xl p-3.5 flex items-center justify-between border border-slate-100">
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center font-bold">⚡</span>
+            <div>
+              <div class="text-xs font-bold text-slate-800">10 XP</div>
+              <div id="assignment-xp" class="text-[11px] text-slate-400">0/10 XP</div>
+            </div>
+          </div>
+          <span class="px-3 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700">Chặng 1</span>
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-400 text-white flex items-center justify-center font-bold">🏆</div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-800">Schools Team Classroom</h3>
+            <p class="text-[11px] text-slate-500">Còn 3 ngày · <span class="text-amber-600 font-semibold">0/3343 từ (0 sao)</span></p>
+          </div>
+        </div>
+        <div class="space-y-2 pt-1 text-xs">
+          <div class="flex justify-between items-center p-2 rounded-lg">
+            <span class="font-medium">1 &nbsp; <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">JM</span> &nbsp; Jay</span>
+            <span class="text-slate-500 font-semibold">204 XP</span>
+          </div>
+          <div class="flex justify-between items-center p-2 rounded-lg">
+            <span class="font-medium">2 &nbsp; <span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-bold">BC</span> &nbsp; Bridgette</span>
+            <span class="text-slate-500 font-semibold">104 XP</span>
+          </div>
+          <div class="flex justify-between items-center p-2.5 rounded-xl bg-teal-50/80 border border-teal-200">
+            <span class="font-bold text-teal-900">4 &nbsp; <span class="px-1.5 py-0.5 rounded bg-teal-200 text-teal-900 font-bold">BN</span> &nbsp; Brown (Bạn)</span>
+            <span id="user-xp-display" class="text-teal-800 font-bold">90 XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- XP Progress -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-slate-800">XP Progress</h3>
+          <button onclick="openSettings()" class="text-xs text-teal-700 font-semibold hover:underline">Quản lý tiến độ →</button>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center font-bold">◎</div>
+          <div class="flex-1">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-600 font-medium">Mục tiêu ngày</span>
+              <span id="daily-goal-xp" class="font-bold text-teal-700">40/10 XP</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div id="xp-bar" class="h-full bg-teal-600 rounded-full transition-all" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL CÀI ĐẶT: CHỌN GIỌNG ĐỌC TIẾNG ANH & XÓA TIẾN ĐỘ -->
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">⚙ Cài đặt Tiếng Anh</h2>
+          <p class="text-xs text-slate-500">Chọn giọng đọc phát âm chuẩn & quản lý tiến độ học tập</p>
+        </div>
+        <button onclick="closeSettings()" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">✕</button>
+      </div>
+
+      <div class="mt-5 space-y-6">
+        <!-- Phần 1: Chọn giọng đọc -->
+        <div class="space-y-3">
+          <label class="block text-sm font-semibold text-slate-700">
+            🔊 Giọng đọc Tiếng Anh (Text-to-Speech)
+          </label>
+
+          <div class="flex flex-wrap gap-2" id="accent-tabs">
+            <button onclick="setAccentFilter('ALL')" data-accent="ALL" class="accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-700 text-white">Tất cả</button>
+            <button onclick="setAccentFilter('en-US')" data-accent="en-US" class="accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">🇺🇸 Anh - Mỹ</button>
+            <button onclick="setAccentFilter('en-GB')" data-accent="en-GB" class="accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">🇬🇧 Anh - Anh</button>
+            <button onclick="setAccentFilter('en-AU')" data-accent="en-AU" class="accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">🇦🇺 Anh - Úc</button>
+          </div>
+
+          <select id="voice-select" onchange="onVoiceSelectChange()" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700 focus:border-teal-600 focus:bg-white focus:outline-none">
+            <option value="">Đang tải danh sách giọng đọc...</option>
+          </select>
+
+          <div class="flex items-center justify-between gap-4 pt-1">
+            <div class="flex-1">
+              <div class="flex justify-between text-xs text-slate-600 mb-1">
+                <span>Tốc độ đọc:</span>
+                <span id="rate-label" class="font-semibold text-teal-700">1.0x</span>
+              </div>
+              <input id="rate-slider" type="range" min="0.7" max="1.3" step="0.05" value="1.0" oninput="onRateChange(this.value)" class="w-full accent-teal-700 cursor-pointer" />
+            </div>
+
+            <button onclick="speakSample('Practice makes perfect! Welcome to Melon Language English course.')" class="shrink-0 rounded-xl bg-teal-50 border border-teal-200 px-4 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-100 transition">
+              ▶ Nghe thử
+            </button>
+          </div>
+        </div>
+
+        <hr class="border-slate-100" />
+
+        <!-- Phần 2: Xóa tiến độ -->
+        <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 space-y-3">
+          <div>
+            <h3 class="text-sm font-bold text-rose-800">🗑 Quản lý & Xóa tiến độ</h3>
+            <p class="text-xs text-rose-600/90 mt-0.5">
+              Đặt lại các chặng học, điểm XP và trạng thái từ vựng Tiếng Anh về ban đầu (0 XP, 0/11 chặng).
+            </p>
+          </div>
+
+          <div id="reset-idle-box" class="flex flex-wrap gap-2 pt-1">
+            <button onclick="showResetConfirm()" class="rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-rose-700 transition shadow-sm">
+              Xóa toàn bộ tiến độ Tiếng Anh
+            </button>
+          </div>
+
+          <div id="reset-confirm-box" class="hidden rounded-lg bg-white p-3 border border-rose-200 space-y-2.5">
+            <p class="text-xs font-medium text-slate-700">
+              ⚠️ Bạn có chắc chắn muốn xóa toàn bộ tiến độ học Tiếng Anh (XP, các chặng đã mở khóa và lịch sử ôn tập)? Hành động này <b>không thể hoàn tác</b>.
+            </p>
+            <div class="flex items-center gap-2">
+              <button onclick="confirmResetProgress()" class="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-rose-700">
+                Xác nhận xóa sạch
+              </button>
+              <button onclick="hideResetConfirm()" class="rounded-lg bg-slate-100 px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200">
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end border-t border-slate-100 pt-4">
+        <button onclick="closeSettings()" class="rounded-xl bg-teal-700 px-5 py-2 text-xs font-semibold text-white hover:bg-teal-800 transition">
+          Hoàn tất
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const VOICE_STORAGE_KEY = 'melon_en_voice_config';
+    let currentConfig = {
+      voiceURI: '',
+      rate: 1.0,
+      accentFilter: 'ALL'
+    };
+    let allEnglishVoices = [];
+    let isEnglishWatermark = true;
+
+    // Load state
+    function initApp() {
+      try {
+        const saved = localStorage.getItem(VOICE_STORAGE_KEY);
+        if (saved) currentConfig = { ...currentConfig, ...JSON.parse(saved) };
+      } catch (e) {}
+
+      document.getElementById('rate-slider').value = currentConfig.rate;
+      document.getElementById('rate-label').textContent = currentConfig.rate + 'x';
+      updateAccentTabUI();
+      loadVoices();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+      renderProgressUI();
+    }
+
+    function loadVoices() {
+      if (!('speechSynthesis' in window)) return;
+      const voices = window.speechSynthesis.getVoices();
+      allEnglishVoices = voices
+        .filter(v => v.lang.toLowerCase().startsWith('en'))
+        .sort((a, b) => {
+          const aScore = (a.name.includes('Natural') || a.name.includes('Google')) ? 1 : 0;
+          const bScore = (b.name.includes('Natural') || b.name.includes('Google')) ? 1 : 0;
+          return bScore - aScore;
+        });
+      renderVoiceSelect();
+    }
+
+    function renderVoiceSelect() {
+      const select = document.getElementById('voice-select');
+      const filtered = allEnglishVoices.filter(v => {
+        if (currentConfig.accentFilter === 'ALL') return true;
+        return v.lang.replace('_', '-').startsWith(currentConfig.accentFilter);
+      });
+
+      if (filtered.length === 0) {
+        select.innerHTML = '<option value="">Giọng Tiếng Anh mặc định hệ thống (en-US)</option>';
+        return;
+      }
+
+      if (!currentConfig.voiceURI || !filtered.some(v => v.voiceURI === currentConfig.voiceURI)) {
+        currentConfig.voiceURI = filtered[0].voiceURI;
+      }
+
+      select.innerHTML = filtered.map(v => {
+        const naturalTag = v.name.includes('Natural') ? ' ⭐ Tự nhiên' : '';
+        const selected = v.voiceURI === currentConfig.voiceURI ? 'selected' : '';
+        return `<option value="${v.voiceURI}" ${selected}>${v.name} (${v.lang})${naturalTag}</option>`;
+      }).join('');
+    }
+
+    function setAccentFilter(accent) {
+      currentConfig.accentFilter = accent;
+      saveConfig();
+      updateAccentTabUI();
+      renderVoiceSelect();
+    }
+
+    function updateAccentTabUI() {
+      document.querySelectorAll('.accent-tab').forEach(btn => {
+        if (btn.getAttribute('data-accent') === currentConfig.accentFilter) {
+          btn.className = 'accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-700 text-white shadow-sm';
+        } else {
+          btn.className = 'accent-tab px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200';
+        }
+      });
+    }
+
+    function onVoiceSelectChange() {
+      currentConfig.voiceURI = document.getElementById('voice-select').value;
+      saveConfig();
+    }
+
+    function onRateChange(val) {
+      currentConfig.rate = parseFloat(val);
+      document.getElementById('rate-label').textContent = currentConfig.rate + 'x';
+      saveConfig();
+    }
+
+    function saveConfig() {
+      localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(currentConfig));
+    }
+
+    function speakSample(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      const voice = allEnglishVoices.find(v => v.voiceURI === currentConfig.voiceURI) || allEnglishVoices[0];
+      if (voice) {
+        utter.voice = voice;
+        utter.lang = voice.lang;
+      } else {
+        utter.lang = 'en-US';
+      }
+      utter.rate = currentConfig.rate || 1.0;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // Progress Demo & Reset
+    function getProgress() {
+      const saved = localStorage.getItem('melon_en_demo_progress');
+      if (saved) return JSON.parse(saved);
+      return { xp: 90, dailyXp: 40, completedUnits: 0 };
+    }
+
+    function renderProgressUI() {
+      const p = getProgress();
+      document.getElementById('user-xp-display').textContent = p.xp + ' XP';
+      document.getElementById('daily-goal-xp').textContent = p.dailyXp + '/10 XP';
+      document.getElementById('assignment-xp').textContent = Math.min(p.dailyXp, 10) + '/10 XP';
+      document.getElementById('unit-progress-badge').textContent = p.completedUnits + '/11 ^';
+      document.getElementById('unit-select-label').textContent = `Unit 1 · B1 - Giao tiếp hằng ngày (${p.completedUnits}/11)`;
+      const pct = Math.min(100, (p.dailyXp / 10) * 100);
+      document.getElementById('xp-bar').style.width = pct + '%';
+    }
+
+    function completeStageDemo() {
+      const p = getProgress();
+      p.xp += 10;
+      p.dailyXp += 10;
+      p.completedUnits = Math.min(11, p.completedUnits + 1);
+      localStorage.setItem('melon_en_demo_progress', JSON.stringify(p));
+      renderProgressUI();
+      speakSample('Stage completed! You earned 10 XP.');
+    }
+
+    function showResetConfirm() {
+      document.getElementById('reset-idle-box').classList.add('hidden');
+      document.getElementById('reset-confirm-box').classList.remove('hidden');
+    }
+
+    function hideResetConfirm() {
+      document.getElementById('reset-confirm-box').classList.add('hidden');
+      document.getElementById('reset-idle-box').classList.remove('hidden');
+    }
+
+    function confirmResetProgress() {
+      // Xóa sạch các key tiến độ Tiếng Anh trong localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key !== VOICE_STORAGE_KEY && !key.includes('supabase.auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+      localStorage.setItem('melon_en_demo_progress', JSON.stringify({ xp: 0, dailyXp: 0, completedUnits: 0 }));
+      renderProgressUI();
+      hideResetConfirm();
+      closeSettings();
+    }
+
+    function openSettings() {
+      const modal = document.getElementById('settings-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      loadVoices();
+    }
+
+    function closeSettings() {
+      const modal = document.getElementById('settings-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      hideResetConfirm();
+    }
+
+    function toggleLangWatermark() {
+      isEnglishWatermark = !isEnglishWatermark;
+      document.getElementById('wm-left').textContent = isEnglishWatermark ? 'Aa' : '西';
+      document.getElementById('wm-right').textContent = isEnglishWatermark ? '/ˈɪŋ.ɡlɪʃ/' : '瓜';
+      document.getElementById('wm-sub').style.display = isEnglishWatermark ? 'block' : 'none';
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

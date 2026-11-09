@@ -1,0 +1,43 @@
+/* Nền học thuật Tiếng Anh (thay cho chữ Hán 西 - 瓜 khi ở chế độ English) */
+.english-layout-bg {
+  position: relative;
+  min-height: 100vh;
+  background-color: #fdf8f5;
+  background-image: 
+    radial-gradient(at 15% 20%, rgba(254, 215, 170, 0.38) 0px, transparent 50%),
+    radial-gradient(at 85% 80%, rgba(167, 243, 208, 0.32) 0px, transparent 50%),
+    radial-gradient(#cbd5e1 0.8px, transparent 0.8px);
+  background-size: 100% 100%, 100% 100%, 24px 24px;
+  overflow-x: hidden;
+}
+
+.english-layout-bg::before {
+  content: "Aa";
+  position: fixed;
+  left: 4%;
+  top: 54%;
+  transform: translateY(-50%) rotate(-6deg);
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 10.5rem;
+  font-weight: 700;
+  color: rgba(15, 118, 110, 0.048);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.english-layout-bg::after {
+  content: "/ˈɪŋ.ɡlɪʃ/";
+  position: fixed;
+  right: 3.5%;
+  top: 28%;
+  transform: translateY(-50%) rotate(5deg);
+  font-family: "Georgia", "Times New Roman", serif;
+  font-style: italic;
+  font-size: 5.5rem;
+  font-weight: 600;
+  color: rgba(15, 118, 110, 0.048);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
