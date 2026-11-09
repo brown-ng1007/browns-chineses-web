@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/lib/config";
 
-/* Hệ thống Icon Vector sắc nét (thay thế hoàn toàn Emoji hệ thống) */
+/* Hệ thống Icon Vector sắc nét */
 const ICONS = {
   home: (
     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -120,84 +120,25 @@ export default function NavBar() {
     return null;
   }
 
-  if (isEn) {
-    return (
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-3 sm:px-6 py-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-          <Link href="/en" className="flex items-center gap-3 self-start sm:self-auto group">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d6e57] to-[#095240] text-white shadow-[0_2px_0_#063b2d,0_4px_10px_rgba(13,110,87,0.2)] ring-1 ring-white/20">
-              <svg className="w-5 h-5 text-[#fbbf24]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3L2 8l10 5 10-5-10-5z" fill="currentColor" fillOpacity="0.2" />
-                <path d="M2 16l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-[15px] font-bold text-slate-900 tracking-tight leading-tight">
-                  {APP_NAME}
-                </span>
-                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#0d6e57] border border-emerald-200/80">
-                  English
-                </span>
-              </div>
-              <span className="mt-0.5 text-[11px] font-semibold text-slate-500 tracking-wide">
-                Lộ trình TOEIC 635 → IELTS 5.0
-              </span>
-            </div>
-          </Link>
-
-          <nav className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
-            {ind && (
-              <span
-                aria-hidden="true"
-                className="absolute top-1 bottom-1 rounded-lg bg-[#0d6e57] shadow-[0_1px_2px_rgba(15,23,42,0.18)] transition-[left,width] duration-300 ease-out"
-                style={{ left: ind.left, width: ind.width }}
-              />
-            )}
-            {NAV_ITEMS.map((item) => {
-              const isActive = isActiveHref(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  ref={(el) => {
-                    itemRefs.current[item.href] = el;
-                  }}
-                  className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold whitespace-nowrap transition-colors duration-150 ${
-                    isActive
-                      ? "text-white"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/70"
-                  }`}
-                >
-                  <span className={isActive ? "text-[#fcd34d]" : "text-slate-500"}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </header>
-    );
-  }
-
   return (
     <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-3">
-      <div className="max-w-5xl mx-auto rounded-2xl bg-[#fffdf8]/90 backdrop-blur-xl border border-[#c99a2e]/40 shadow-[0_1px_0_0_#fff_inset,0_3px_0_0_#f2cf75,0_16px_30px_-12px_rgba(110,70,20,0.35)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+      <div className="max-w-5xl mx-auto rounded-2xl bg-[#fffdf8]/85 backdrop-blur-xl border border-[#c99a2e]/40 shadow-[0_1px_0_0_#fff_inset,0_3px_0_0_#f2cf75,0_16px_30px_-12px_rgba(110,70,20,0.35)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         <Link
-          href="/"
+          href={isEn ? "/en" : "/"}
           className="logo-wrap flex items-center gap-2.5 group self-start sm:self-auto"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-192.png" alt="" className="logo-slice w-10 h-10 rounded-xl ring-1 ring-[#c99a2e]/60 shadow-sm shadow-emerald-900/30" />
+          <img
+            src="/icon-192.png"
+            alt=""
+            className="logo-slice w-10 h-10 rounded-xl ring-1 ring-[#c99a2e]/60 shadow-sm shadow-emerald-900/30"
+          />
           <div className="flex flex-col">
             <span className="text-base font-bold text-[#064436] tracking-tight leading-tight">
               {APP_NAME}
             </span>
-            <span className="text-[11px] font-medium text-[#7a5410]/80 tracking-wide">
-              Trung · Anh · Dưa Hấu
+            <span className="text-[11px] font-semibold text-[#7a5410]/85 tracking-wide">
+              {isEn ? "English · TOEIC 635 → IELTS 5.0" : "Trung · Anh · Dưa Hấu"}
             </span>
           </div>
         </Link>

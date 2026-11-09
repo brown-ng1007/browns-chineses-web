@@ -44,14 +44,14 @@
 
 .en-page::before {
   content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  inset: -48px -24px auto -24px;
+  height: 360px;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(55% 50% at 20% 0%, rgba(13, 110, 87, 0.045), transparent 70%),
-    radial-gradient(50% 45% at 85% 10%, rgba(54, 79, 199, 0.04), transparent 70%),
-    #f4f6f9;
+    radial-gradient(60% 90% at 15% 0%, rgba(242, 207, 117, 0.35), transparent 70%),
+    radial-gradient(50% 80% at 92% 0%, rgba(251, 113, 133, 0.16), transparent 70%);
 }
 
 /* ---------- Chuyển động mượt, không làm nhòe chữ trên Windows ---------- */
@@ -71,11 +71,12 @@
 
 /* ---------- Thẻ, nút, ô nhập sắc nét ---------- */
 .en-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-bottom: 2px solid #cbd5e1;
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 154, 46, 0.28);
+  border-bottom: 2px solid rgba(201, 154, 46, 0.42);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 10px 24px -12px rgba(110, 70, 20, 0.18);
 }
 .en-note {
   border-radius: 14px;
@@ -510,12 +511,13 @@
 
 /* Các widget cột phải */
 .duo-widget {
-  border-radius: 18px;
-  border: 1px solid #e2e8f0;
-  border-bottom: 2px solid #cbd5e1;
-  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(201, 154, 46, 0.28);
+  border-bottom: 2px solid rgba(201, 154, 46, 0.42);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
   padding: 20px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 12px 26px -14px rgba(110, 70, 20, 0.2);
 }
 
 .en-badge {
