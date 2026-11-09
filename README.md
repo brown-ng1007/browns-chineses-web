@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Melon Language
 
-## Getting Started
+Ứng dụng học tiếng Trung và tiếng Anh xây dựng bằng Next.js 15, React 19 và Supabase.
 
-First, run the development server:
+## Chạy ứng dụng trên máy cá nhân
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Yêu cầu: Node.js 20 trở lên và npm.
+
+```cmd
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tạo file môi trường từ mẫu nếu máy chưa có `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```cmd
+copy .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Mở `.env.local` và điền thông tin Supabase của dự án (nếu muốn dùng dữ liệu đồng bộ). Không đưa file `.env.local` lên GitHub.
 
-## Learn More
+Khởi động chế độ phát triển:
 
-To learn more about Next.js, take a look at the following resources:
+```cmd
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Mở http://localhost:3000 trên trình duyệt.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Cập nhật phiên bản này vào repository Git hiện có
 
-## Deploy on Vercel
+1. Giữ nguyên thư mục `.git` và file `.env.local` đang có trong bản dự án của bạn.
+2. Giải nén bản ZIP cập nhật vào thư mục dự án hiện tại và cho phép ghi đè các file source khi được hỏi. Không xóa `.git` hoặc `.env.local`.
+3. Mở CMD tại thư mục dự án và chạy:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```cmd
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Khi đã kiểm tra ứng dụng hoạt động ổn, đưa thay đổi lên GitHub:
+
+```cmd
+git status
+git add .
+git commit -m "Add Melon IOE arcade games"
+git push
+```
+
+Nếu đây là thư mục mới chưa có Git remote, hãy kết nối remote repository hiện tại trước khi chạy `git push`.
+
+## Tính năng mới trong phiên bản này
+
+- Thêm **Melon IOE Arcade** tại `/en/games/ioe`, nằm trong khu vực Tiếng Anh.
+- Tích hợp 10 thử thách mini-game: ghép cặp, sút phạt, tìm chữ thừa, sắp xếp câu, khỉ đu dây, ghép cặp đại dương, leo núi điền chữ, đại bác hải tặc, bạch tuộc chèo thuyền và thử thách IOE.
+- Mini-game lấy từ vựng từ kho tiếng Anh hiện có; ưu tiên các từ người dùng đã thêm vào thẻ học, tự dùng bộ từ trong lộ trình khi chưa đủ dữ liệu.
+- Điểm cao nhất được lưu cục bộ trên thiết bị; kết quả luyện tập được ghi vào nhật ký hoạt động tiếng Anh.
+- Làm mới trang `/en/games` để đưa IOE Arcade thành tính năng nổi bật, đồng thời giữ nguyên bốn trò chơi nhanh hiện có.
+
+## Lệnh kiểm tra
+
+```cmd
+npm run lint
+npm run build
+```
+
+Lưu ý: bản ZIP bàn giao không chứa `.git`, `.next`, `node_modules`, `.vercel` hoặc `.env.local`. Đây là các dữ liệu môi trường/build riêng của máy và không cần thiết để chia sẻ source code.

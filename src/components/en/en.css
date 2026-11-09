@@ -561,3 +561,67 @@
     background-color: #94a3b8;
   }
 }
+
+/* ---------- Melon IOE Arcade: playful but consistent with the English learning area ---------- */
+.ioe-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 250px;
+  padding: 28px;
+  border: 1px solid rgba(6, 95, 70, .22);
+  border-radius: 26px;
+  background: radial-gradient(circle at 84% 18%, rgba(255,255,255,.2), transparent 23%), linear-gradient(120deg, #064e3b 0%, #087f5b 55%, #16a36c 100%);
+  box-shadow: 0 18px 38px -22px rgba(6, 78, 59, .65), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.ioe-kicker { color: #d1fae5; font-size: 10px; font-weight: 900; letter-spacing: .2em; }
+.ioe-stat { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 7px 11px; background: rgba(255,255,255,.12); color: white; }
+.ioe-hero-art { position: absolute; right: 5%; top: 50%; width: 190px; height: 190px; transform: translateY(-50%); border: 1px solid rgba(255,255,255,.2); border-radius: 50%; background: rgba(255,255,255,.09); display: grid; place-items: center; }
+.ioe-hero-art::before, .ioe-hero-art::after { content: ""; position: absolute; border: 1px dashed rgba(255,255,255,.34); border-radius: 50%; inset: 14px; }
+.ioe-hero-art::after { inset: 30px; border-style: solid; opacity: .45; }
+.ioe-hero-art span { font-size: 92px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.22)); transform: rotate(-12deg); }
+.ioe-hero-art i { position: absolute; right: 22px; top: 22px; color: #fde68a; font-size: 30px; font-style: normal; }
+.ioe-hero-art b { position: absolute; bottom: 25px; left: 4px; border-radius: 10px; padding: 5px 9px; background: #fbbf24; color: #713f12; font-size: 12px; transform: rotate(-9deg); box-shadow: 0 4px 10px #064e3b66; }
+.ioe-section-label { color: #0d6e57; font-size: 10px; font-weight: 900; letter-spacing: .18em; }
+.ioe-game-card { position: relative; display: flex; min-height: 112px; align-items: center; gap: 14px; padding: 16px; overflow: hidden; border: 1px solid #e2e8f0; border-bottom-width: 3px; border-radius: 19px; background: rgba(255,255,255,.94); box-shadow: 0 5px 15px -12px rgba(15,23,42,.32); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.ioe-game-card:hover { transform: translateY(-3px); border-color: #a7d8c6; box-shadow: 0 12px 24px -16px rgba(6,95,70,.35); }
+.ioe-game-card:active { transform: translateY(0) scale(.99); }
+.ioe-game-icon { display: grid; width: 54px; height: 54px; flex: 0 0 54px; place-items: center; border-radius: 17px; background: #ecfdf5; font-size: 29px; }
+.ioe-card-arrow { align-self: flex-start; color: #94a3b8; font-size: 17px; transition: transform .18s ease; }
+.ioe-game-card:hover .ioe-card-arrow { transform: translate(2px,-2px); color: #0d6e57; }
+.ioe-violet .ioe-game-icon { background: #f5f3ff; }
+.ioe-blue .ioe-game-icon { background: #eff6ff; }
+.ioe-orange .ioe-game-icon { background: #fff7ed; }
+.ioe-cyan .ioe-game-icon { background: #ecfeff; }
+.ioe-rose .ioe-game-icon { background: #fff1f2; }
+.ioe-indigo .ioe-game-icon { background: #eef2ff; }
+.ioe-amber .ioe-game-icon, .ioe-gold .ioe-game-icon { background: #fffbeb; }
+.ioe-footnote { display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; border: 1px solid #dbeafe; border-radius: 16px; background: #eff6ffad; color: #475569; font-size: 11px; line-height: 1.6; }
+.ioe-mini-stat { display: flex; flex-direction: column; gap: 3px; border: 1px solid #e2e8f0; border-radius: 15px; background: #f8fafc; padding: 12px 8px; }
+.ioe-mini-stat b { color: #0f766e; font-size: 22px; font-weight: 900; }
+.ioe-mini-stat span { color: #64748b; font-size: 10px; font-weight: 700; }
+.ioe-pill { display: inline-flex; align-items: center; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; padding: 7px 10px; color: #334155; font-size: 11px; font-weight: 800; }
+.ioe-pair-card { display: flex; min-height: 104px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid #e2e8f0; border-bottom-width: 3px; border-radius: 17px; background: white; padding: 12px 8px; color: #334155; font-size: 13px; font-weight: 800; overflow-wrap: anywhere; transition: .16s ease; }
+.ioe-pair-card span { color: #94a3b8; font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.ioe-pair-card:hover { border-color: #6ee7b7; background: #f0fdf4; }
+.ioe-pair-card.is-selected { border-color: #0d9488; background: #ccfbf1; color: #134e4a; transform: translateY(-2px); }
+.ioe-pair-card.is-matched { border-color: #a7f3d0; background: #ecfdf5; color: #047857; opacity: .72; }
+.ioe-letter { display: grid; width: 52px; height: 56px; place-items: center; border: 1px solid #cbd5e1; border-bottom-width: 3px; border-radius: 14px; background: white; color: #0f172a; font-size: 22px; font-weight: 900; transition: .15s ease; }
+.ioe-letter:hover:not(:disabled) { transform: translateY(-2px); border-color: #34d399; background: #ecfdf5; }
+.ioe-option { display: flex; align-items: center; gap: 12px; min-height: 58px; border: 1px solid #e2e8f0; border-bottom-width: 3px; border-radius: 15px; background: white; padding: 12px 14px; color: #334155; text-align: left; font-size: 13px; font-weight: 700; transition: .15s ease; }
+.ioe-option:hover:not(:disabled) { border-color: #6ee7b7; background: #f0fdf4; }
+.ioe-option > span { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 900; }
+.ioe-option.is-correct { border-color: #6ee7b7; background: #ecfdf5; color: #047857; }
+.ioe-answer-line { display: flex; min-height: 60px; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; border: 1.5px dashed #a7f3d0; border-radius: 17px; background: #f0fdf4; padding: 10px; }
+.ioe-word-token { border: 1px solid #cbd5e1; border-bottom-width: 3px; border-radius: 11px; background: white; padding: 9px 12px; color: #334155; font-size: 13px; font-weight: 800; }
+.ioe-word-token:hover { border-color: #34d399; background: #ecfdf5; }
+@media (max-width: 540px) {
+  .ioe-hero { min-height: 235px; padding: 22px 19px; }
+  .ioe-hero-art { right: -52px; top: auto; bottom: -62px; width: 155px; height: 155px; transform: none; opacity: .55; }
+  .ioe-hero-art span { font-size: 72px; }
+  .ioe-game-card { min-height: 104px; padding: 13px; gap: 11px; }
+  .ioe-game-icon { width: 46px; height: 46px; flex-basis: 46px; font-size: 25px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ioe-game-card, .ioe-pair-card, .ioe-letter, .ioe-option { transition: none; }
+}

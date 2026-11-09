@@ -110,8 +110,8 @@ const TOOLS: {
     ),
   },
   {
-    href: "/en/games",
-    label: "Trò chơi",
+    href: "/en/games/ioe",
+    label: "IOE Arcade",
     tone: "bg-amber-50 text-amber-700 border-amber-200/70",
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
