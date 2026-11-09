@@ -4,6 +4,7 @@
 //             build (sắp xếp câu), own (tự đặt câu có từ đó)
 import type { EnWord } from "./words";
 import { BOSS_QUESTIONS } from "./map";
+import { loadSettings } from "@/lib/settings";
 
 export type QType = "mcq" | "cloze" | "forward" | "reverse" | "build" | "own";
 // A nhận biết, B dùng trong câu, C tự đặt câu, R nhớ lại hôm sau, X chặng boss
@@ -122,8 +123,6 @@ export function answerText(q: Question): string {
   return q.word.word;
 }
 
-import { loadSettings } from "@/lib/settings";
-
 export function speak(text: string, rate?: number): void {
   try {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -158,9 +157,7 @@ export function speak(text: string, rate?: number): void {
     const finalRate = rate ?? s.enTtsRate ?? 0.95;
     u.rate = Math.max(0.5, Math.min(1.3, finalRate));
     window.speechSynthesis.speak(u);
-  } catch {}
-} catch {
+  } catch {
     // trình duyệt không hỗ trợ giọng đọc: bỏ qua
   }
 }
-
