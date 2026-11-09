@@ -2,7 +2,6 @@
 // Có bản lưu trong máy (Dexie) để mở nhanh và dùng khi mất mạng.
 // Nếu không đọc được gì, rơi về bộ từ mẫu trong code để app vẫn chạy.
 import { db, type EnVocabCache } from "@/lib/db";
-import { createClient } from "@/lib/supabase/client";
 import { EN_WORLDS, SEED_WORDS, wordsFromRows, type EnWord, type RawVocabRow } from "@/lib/en/words";
 
 export type EnSource = "supabase" | "cache" | "seed";
@@ -50,16 +49,7 @@ async function fetchAll(): Promise<RawVocabRow[]> {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!base || !key) throw new Error("thiếu biến môi trường Supabase trên trình duyệt");
   const headers: Record<string, string> = { apikey: key, Prefer: "count=exact" };
-  // Ưu tiên token của người đang đăng nhập (vai trò authenticated). Nếu chưa đăng nhập thì mới dùng khóa công khai.
-  let token = "";
-  try {
-    const { data } = await createClient().auth.getSession();
-    token = data.session?.access_token ?? "";
-  } catch {
-    // không đọc được phiên: dùng khóa công khai
-  }
-  if (token) headers.Authorization = `Bearer ${token}`;
-  else if (key.startsWith("eyJ")) headers.Authorization = `Bearer ${key}`;
+  if (key.startsWith("eyJ")) headers.Authorization = `Bearer ${key}`;
 
   const out: RawVocabRow[] = [];
   let total: number | null = null;
@@ -68,17 +58,7 @@ async function fetchAll(): Promise<RawVocabRow[]> {
       `${base}/rest/v1/english_vocabulary?select=${COLS}&order=id.asc&limit=${PAGE}&offset=${from}`,
       { headers }
     );
-    if (!res.ok) {
-      const hint =
-        res.status === 401 || res.status === 403
-          ? token
-            ? " (đã đăng nhập nhưng bảng english_vocabulary chưa cấp quyền đọc cho người dùng)"
-            : " (chưa đăng nhập trên địa chỉ này, hoặc bảng chưa cấp quyền đọc)"
-          : res.status === 404
-            ? " (không thấy bảng english_vocabulary)"
-            : "";
-      throw new Error(`Supabase trả về mã ${res.status}${hint}`);
-    }
+    if (!res.ok) throw new Error(`Supabase trả về mã ${res.status}`);
     const m = /\/(\d+)$/.exec(res.headers.get("content-range") ?? "");
     if (m) total = Number(m[1]);
     const part = (await res.json()) as RawVocabRow[];

@@ -1,8 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import TapEffects from "@/components/TapEffects";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/config";
+
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -32,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body className="min-h-screen text-stone-900 antialiased">
+    <html lang="vi" className={beVietnamPro.variable}>
+      <body className={`${beVietnamPro.className} min-h-screen text-stone-900 antialiased`}>
         <div className="bg-stage" aria-hidden="true">
           <div className="bg-blob b1" />
           <div className="bg-blob b2" />

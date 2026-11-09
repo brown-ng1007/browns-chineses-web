@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import "@/components/en/en.css";
 import { db, type EnLog } from "@/lib/db";
@@ -11,44 +11,148 @@ import { countDue, readLogs } from "@/lib/en/store";
 import { dayKey } from "@/lib/tower";
 import { STAGE_SIZE, buildStages, stageStates, type Prog, type StageState } from "@/lib/en/map";
 
-// Bảng màu chuẩn Duolingo cho từng Unit (Xanh lá -> Tím -> Xanh ngọc -> Xanh dương -> Cam)
+// Bảng màu trầm ấm, sang trọng, dịu mắt cho từng Unit
 const UNIT_THEME = [
-  { bg: "#58cc02", edge: "#46a302", text: "#58cc02" },
-  { bg: "#ce82ff", edge: "#a55eea", text: "#ce82ff" },
-  { bg: "#00cd9c", edge: "#00a37c", text: "#00cd9c" },
-  { bg: "#1cb0f6", edge: "#1899d6", text: "#1cb0f6" },
-  { bg: "#ff9600", edge: "#cc7800", text: "#ff9600" },
+  {
+    bg: "#0d6e57",
+    bg2: "#128c6e",
+    edge: "#084c3c",
+    text: "#0d6e57",
+    shadow: "rgba(13, 110, 87, 0.26)",
+    ring: "#10b981",
+  },
+  {
+    bg: "#364fc7",
+    bg2: "#4c6ef5",
+    edge: "#283b99",
+    text: "#364fc7",
+    shadow: "rgba(54, 79, 199, 0.26)",
+    ring: "#6366f1",
+  },
+  {
+    bg: "#5f3dc4",
+    bg2: "#7950f2",
+    edge: "#472d96",
+    text: "#5f3dc4",
+    shadow: "rgba(95, 61, 196, 0.26)",
+    ring: "#8b5cf6",
+  },
+  {
+    bg: "#c94814",
+    bg2: "#e8590c",
+    edge: "#9c360d",
+    text: "#c94814",
+    shadow: "rgba(201, 72, 20, 0.26)",
+    ring: "#f97316",
+  },
+  {
+    bg: "#0b7285",
+    bg2: "#1098ad",
+    edge: "#085563",
+    text: "#0b7285",
+    shadow: "rgba(11, 114, 133, 0.26)",
+    ring: "#06b6d4",
+  },
 ];
 const themeOf = (unitIndex: number) => UNIT_THEME[(unitIndex - 1) % UNIT_THEME.length];
 
-const TOOLS = [
-  { href: "/en/vocab", emoji: "📖", label: "Từ vựng" },
-  { href: "/en/review", emoji: "🔁", label: "Ôn tập" },
-  { href: "/en/listen", emoji: "🎧", label: "Nghe" },
-  { href: "/en/speak", emoji: "🎤", label: "Nói" },
-  { href: "/en/games", emoji: "🎮", label: "Trò chơi" },
-  { href: "/en/skills", emoji: "📊", label: "Kỹ năng" },
+/* Hệ thống Icon Vector cho 6 công cụ luyện tập (Thay thế toàn bộ Emoji) */
+const TOOLS: {
+  href: string;
+  label: string;
+  tone: string;
+  icon: ReactNode;
+}[] = [
+  {
+    href: "/en/vocab",
+    label: "Từ vựng",
+    tone: "bg-emerald-50 text-emerald-700 border-emerald-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+      </svg>
+    ),
+  },
+  {
+    href: "/en/review",
+    label: "Ôn tập",
+    tone: "bg-blue-50 text-blue-700 border-blue-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+        <path d="M8 16H3v5" />
+      </svg>
+    ),
+  },
+  {
+    href: "/en/listen",
+    label: "Nghe",
+    tone: "bg-indigo-50 text-indigo-700 border-indigo-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/en/speak",
+    label: "Nói",
+    tone: "bg-rose-50 text-rose-700 border-rose-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" x2="12" y1="19" y2="22" />
+      </svg>
+    ),
+  },
+  {
+    href: "/en/games",
+    label: "Trò chơi",
+    tone: "bg-amber-50 text-amber-700 border-amber-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect width="20" height="12" x="2" y="6" rx="3" />
+        <path d="M6 12h4m-2-2v4m7-1h.01M18 11h.01" />
+      </svg>
+    ),
+  },
+  {
+    href: "/en/skills",
+    label: "Kỹ năng",
+    tone: "bg-violet-50 text-violet-700 border-violet-200/70",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" x2="18" y1="20" y2="10" />
+        <line x1="12" x2="12" y1="20" y2="4" />
+        <line x1="6" x2="6" y1="20" y2="14" />
+      </svg>
+    ),
+  },
 ];
 
-const NODE_SIZE = 70;
-const BOSS_SIZE = 78;
+const NODE_SIZE = 68;
+const BOSS_SIZE = 76;
 
-// Đường cong chữ S chuẩn Duolingo
+// Đường cong chữ S cân đối
 function offsetOf(n: number, boss: boolean) {
   if (boss) return 0;
-  const pattern = [0, -44, -68, -44, 0, 44, 68, 44];
+  const pattern = [0, -40, -64, -40, 0, 40, 64, 40];
   return pattern[(n - 1) % pattern.length];
 }
 
-/* ================= CÁC ICON CHUẨN DUOLINGO ================= */
+/* ================= CÁC ICON VECTOR TRÊN NÚT CHẶNG ================= */
 function IconCheck() {
   return (
-    <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
       <path
         d="M5 12.5l4.5 4.5L19 7.5"
         fill="none"
         stroke="currentColor"
-        strokeWidth="4"
+        strokeWidth="3.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -58,20 +162,21 @@ function IconCheck() {
 
 function IconBook() {
   return (
-    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
   );
 }
 
-function IconStar({ size = 34, color = "currentColor" }: { size?: number; color?: string }) {
+function IconStar({ size = 28, color = "currentColor" }: { size?: number; color?: string }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
       <polygon
         points="12,2.5 14.9,8.7 21.6,9.5 16.6,14.1 18,20.8 12,17.4 6,20.8 7.4,14.1 2.4,9.5 9.1,8.7"
         fill={color}
         stroke={color}
-        strokeWidth="1.8"
+        strokeWidth="1.6"
         strokeLinejoin="round"
       />
     </svg>
@@ -80,126 +185,69 @@ function IconStar({ size = 34, color = "currentColor" }: { size?: number; color?
 
 function IconLock() {
   return (
-    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-      <rect x="6" y="11" width="12" height="9" rx="2.2" fill="currentColor" />
-      <path
-        d="M8.5 11V8a3.5 3.5 0 017 0v3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect width="14" height="10" x="5" y="11" rx="2.5" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   );
 }
 
-function IconTrophy({ size = 36 }: { size?: number }) {
+function IconTrophy({ size = 30 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <path d="M7 4h10v4a5 5 0 01-10 0V4z" fill="currentColor" />
-      <path
-        d="M7 6H4.6a2.6 2.6 0 002.9 3.3M17 6h2.4a2.6 2.6 0 01-2.9 3.3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <rect x="11" y="13" width="2" height="4" fill="currentColor" />
-      <rect x="8" y="17" width="8" height="3" rx="1.2" fill="currentColor" />
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
     </svg>
   );
 }
 
-/* Rương kho báu Duolingo (Vàng khi đã mở, Xám khi đang khóa) */
-function DuoChest({ unlocked }: { unlocked: boolean }) {
-  const main = unlocked ? "#ffc800" : "#e5e5e5";
-  const dark = unlocked ? "#e5a400" : "#b7b7b7";
-  const wood = unlocked ? "#b4690e" : "#999999";
-  const lock = unlocked ? "#fff4cc" : "#afafaf";
+/* Rương cột mốc Vector sắc nét (Milestone Reward Chest) */
+function MilestoneChest({ unlocked }: { unlocked: boolean }) {
+  const outer = unlocked ? "#d97706" : "#94a3b8";
+  const body = unlocked ? "#f59e0b" : "#e2e8f0";
+  const lid = unlocked ? "#fbbf24" : "#f1f5f9";
+  const band = unlocked ? "#78350f" : "#64748b";
   return (
-    <svg viewBox="0 0 80 70" width="74" height="64" aria-hidden="true">
-      {/* Đổ bóng đáy */}
-      <ellipse cx="40" cy="64" rx="32" ry="5" fill="rgba(0,0,0,0.08)" />
-      {/* Thân dưới rương */}
-      <rect x="10" y="30" width="60" height="30" rx="6" fill={wood} stroke={dark} strokeWidth="3" />
-      {/* Viền vàng quanh thân */}
-      <rect x="10" y="30" width="10" height="30" rx="2" fill={main} />
-      <rect x="60" y="30" width="10" height="30" rx="2" fill={main} />
-      {/* Nắp rương */}
-      <path d="M8 32 C8 16, 72 16, 72 32 Z" fill={main} stroke={dark} strokeWidth="3" />
-      <path d="M18 32 C18 20, 62 20, 62 32 Z" fill={wood} />
-      {/* Ổ khóa giữa */}
-      <rect x="33" y="25" width="14" height="16" rx="4" fill={main} stroke={dark} strokeWidth="2.5" />
-      <circle cx="40" cy="33" r="2.5" fill={lock} />
-    </svg>
-  );
-}
-
-/* Cú xanh Duo đang nghe nhạc / ngủ trên đường học */
-function DuoSleepingMascot() {
-  return (
-    <svg viewBox="0 0 110 100" width="86" height="78" aria-hidden="true">
-      {/* Nốt nhạc bay lên */}
-      <text x="82" y="22" fill="#84d8ff" fontSize="16" fontWeight="bold">♪</text>
-      <text x="94" y="12" fill="#1cb0f6" fontSize="14" fontWeight="bold">♫</text>
-      {/* Đế tròn xám */}
-      <ellipse cx="52" cy="84" rx="34" ry="10" fill="#e5e5e5" />
-      {/* Thân cú xanh */}
-      <ellipse cx="52" cy="56" rx="28" ry="24" fill="#58cc02" />
-      <ellipse cx="52" cy="62" rx="18" ry="14" fill="#89e219" />
-      {/* Cánh trái & phải */}
-      <path d="M25 50 C12 46, 12 64, 26 66 Z" fill="#58cc02" />
-      <path d="M79 48 C94 42, 96 58, 78 64 Z" fill="#58cc02" />
-      {/* Mắt nhắm thư giãn */}
-      <path d="M36 48 Q42 53 48 48" fill="none" stroke="#3c3c3c" strokeWidth="3" strokeLinecap="round" />
-      <path d="M56 48 Q62 53 68 48" fill="none" stroke="#3c3c3c" strokeWidth="3" strokeLinecap="round" />
-      {/* Mỏ & chân cam */}
-      <polygon points="48,53 56,53 52,60" fill="#ff9600" />
-      <ellipse cx="42" cy="80" rx="6" ry="3.5" fill="#ff9600" />
-      <ellipse cx="62" cy="80" rx="6" ry="3.5" fill="#ff9600" />
-    </svg>
-  );
-}
-
-/* Cú xanh Duo đứng vẫy tay cạnh chặng hiện tại */
-function DuoCheerMascot() {
-  return (
-    <svg viewBox="0 0 100 100" width="82" height="82" aria-hidden="true">
-      {/* Đế tròn xám */}
-      <ellipse cx="50" cy="86" rx="32" ry="9" fill="#e5e5e5" />
-      {/* Thân cú xanh */}
-      <rect x="24" y="30" width="52" height="50" rx="24" fill="#58cc02" />
-      {/* Bụng xanh nhạt */}
-      <ellipse cx="50" cy="64" rx="17" ry="13" fill="#89e219" />
-      {/* Hai cánh */}
-      <path d="M25 46 C12 48, 12 66, 26 66 Z" fill="#46a302" />
-      <path d="M75 46 C88 48, 88 66, 74 66 Z" fill="#46a302" />
-      {/* Quầng mắt trắng */}
-      <circle cx="39" cy="48" r="10" fill="#ffffff" />
-      <circle cx="61" cy="48" r="10" fill="#ffffff" />
-      {/* Con ngươi */}
-      <circle cx="40" cy="48" r="5" fill="#3c3c3c" />
-      <circle cx="60" cy="48" r="5" fill="#3c3c3c" />
-      <circle cx="42" cy="46" r="1.8" fill="#ffffff" />
-      <circle cx="62" cy="46" r="1.8" fill="#ffffff" />
-      {/* Mỏ cam */}
-      <polygon points="46,54 54,54 50,61" fill="#ff9600" />
-      {/* Hai chân cam */}
-      <ellipse cx="40" cy="82" rx="6" ry="3.5" fill="#ff9600" />
-      <ellipse cx="60" cy="82" rx="6" ry="3.5" fill="#ff9600" />
-    </svg>
+    <div
+      className={`flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 shadow-sm transition ${
+        unlocked
+          ? "border-amber-300/90 bg-gradient-to-b from-amber-50/90 to-white"
+          : "border-slate-200 bg-slate-50/80"
+      }`}
+    >
+      <svg viewBox="0 0 44 40" width="34" height="31" aria-hidden="true">
+        <rect x="4" y="16" width="36" height="20" rx="4" fill={body} stroke={outer} strokeWidth="2" />
+        <path d="M4 17 C4 9, 40 9, 40 17 Z" fill={lid} stroke={outer} strokeWidth="2" />
+        <rect x="11" y="10" width="4" height="26" fill={band} opacity="0.25" />
+        <rect x="29" y="10" width="4" height="26" fill={band} opacity="0.25" />
+        <rect x="18" y="13" width="8" height="9" rx="2.5" fill="#ffffff" stroke={outer} strokeWidth="2" />
+        <circle cx="22" cy="17.5" r="1.5" fill={band} />
+      </svg>
+      <div className="text-left">
+        <p className={`text-xs font-bold leading-tight ${unlocked ? "text-amber-900" : "text-slate-600"}`}>
+          Rương cột mốc
+        </p>
+        <p className="text-[11px] font-medium text-slate-500">
+          {unlocked ? "Đã mở khóa phần thưởng" : "Hoàn thành chặng trên"}
+        </p>
+      </div>
+    </div>
   );
 }
 
 function SmallStars({ n }: { n: number }) {
   return (
     <div
-      className="absolute left-1/2 flex -translate-x-1/2 gap-0.5 rounded-full border-2 border-[#e5e5e5] bg-white px-2 py-0.5 shadow-sm"
-      style={{ bottom: -16 }}
+      className="absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-slate-200 bg-white px-2 py-0.5 shadow-[0_2px_6px_rgba(15,23,42,0.08)]"
+      style={{ bottom: -15 }}
       aria-label={`${n} sao`}
     >
       {[1, 2, 3].map((i) => (
-        <IconStar key={i} size={12} color={i <= n ? "#ffc800" : "#e5e5e5"} />
+        <IconStar key={i} size={11} color={i <= n ? "#f59e0b" : "#cbd5e1"} />
       ))}
     </div>
   );
@@ -280,11 +328,16 @@ export default function EnMapPage() {
   function showHint(id: string) {
     setHint(id);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setHint(null), 2200);
+    timer.current = setTimeout(() => setHint(null), 2400);
   }
 
   if (!states || !groups) {
-    return <p className="py-20 text-center text-sm font-bold text-[#afafaf]">Đang dựng lộ trình Duolingo...</p>;
+    return (
+      <div className="py-20 text-center">
+        <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-[#0d6e57]" />
+        <p className="text-sm font-semibold text-slate-600">Đang tải lộ trình học...</p>
+      </div>
+    );
   }
 
   const today = dayKey(new Date());
@@ -302,11 +355,10 @@ export default function EnMapPage() {
   const now = Date.now();
   const todayLogs = logs.filter((l) => l.day === today);
   const rawTodayXp = todayLogs.reduce((a, l) => a + l.total * 2, 0) + (learnedToday ? 20 : 0);
-  const todayXp = rawTodayXp > 0 ? rawTodayXp : 40; // Hiển thị 40/10 XP giống mẫu khi bắt đầu hoặc XP thật
+  const todayXp = rawTodayXp > 0 ? rawTodayXp : 40;
   const dailyGoalXp = 10;
   const goalPct = Math.min(100, Math.round((todayXp / dailyGoalXp) * 100));
 
-  // Dữ liệu 7 ngày (Nếu chưa có log thì hiển thị đường biểu đồ mẫu của Duolingo, khi học sẽ cộng XP thật vào)
   const fallbackCurve = [920, 45, 35, 140, 10, 15, 40];
   const chartDays = WEEK_LABELS.map((dayLabel, idx) => {
     const dKey = dayKey(new Date(now - (6 - idx) * DAY_MS));
@@ -316,13 +368,37 @@ export default function EnMapPage() {
   });
   const maxChartVal = Math.max(920, ...chartDays.map((d) => d.val));
 
-  // Bảng xếp hạng Classroom (Cập nhật điểm XP thật của bạn)
+  // Bảng xếp hạng Classroom với Avatar Monogram sắc nét (không dùng Emoji)
   const userTotalXp = Math.max(90, totalStars * 20 + wordsLearned * 4 + rawTodayXp);
   const leaderboard = [
-    { name: "Jay", xp: 204, avatar: "🧑‍🎓", isMe: false },
-    { name: "Bridgette", xp: 104, avatar: "👩‍💼", isMe: false },
-    { name: "Steph", xp: 90, avatar: "👩‍🎨", isMe: false },
-    { name: "Brown (Bạn)", xp: userTotalXp, avatar: "🦉", isMe: true },
+    {
+      name: "Jay",
+      xp: 204,
+      initials: "JM",
+      avatarCls: "bg-blue-100 text-blue-800 border-blue-200",
+      isMe: false,
+    },
+    {
+      name: "Bridgette",
+      xp: 104,
+      initials: "BC",
+      avatarCls: "bg-rose-100 text-rose-800 border-rose-200",
+      isMe: false,
+    },
+    {
+      name: "Steph",
+      xp: 90,
+      initials: "SK",
+      avatarCls: "bg-violet-100 text-violet-800 border-violet-200",
+      isMe: false,
+    },
+    {
+      name: "Brown (Bạn)",
+      xp: userTotalXp,
+      initials: "BN",
+      avatarCls: "bg-emerald-100 text-emerald-800 border-emerald-300",
+      isMe: true,
+    },
   ]
     .sort((a, b) => b.xp - a.xp)
     .slice(0, 4);
@@ -330,20 +406,22 @@ export default function EnMapPage() {
   const st = getEnStatus();
   const srcNote =
     st.source === "seed"
-      ? `Đang dùng ${st.count} từ mẫu (${st.detail || "chưa kết nối bảng từ vựng"})`
-      : `Đã tải ${st.count} từ vựng Oxford/IELTS (${st.source === "cache" ? "bản lưu máy" : "Supabase"})`;
+      ? `Bộ từ vựng mẫu (${st.count} từ)`
+      : `${st.count} từ vựng Oxford / IELTS (${st.source === "cache" ? "Đã lưu trên máy" : "Supabase"})`;
 
   return (
     <main className="mx-auto w-full max-w-5xl pb-24 pt-2">
       {/* Thanh công cụ nhanh trên màn hình nhỏ (Mobile/Tablet) */}
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 lg:hidden no-scrollbar">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1 lg:hidden no-scrollbar">
         {TOOLS.map((t) => (
           <Link
             key={t.href}
             href={t.href}
-            className="relative flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-[#e5e5e5] bg-white px-3.5 py-2 text-xs font-extrabold text-[#3c3c3c] shadow-[0_3px_0_#e5e5e5] active:translate-y-0.5"
+            className="relative flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-xs active:translate-y-0.5"
           >
-            <span>{t.emoji}</span>
+            <span className={`flex h-6 w-6 items-center justify-center rounded-lg border ${t.tone}`}>
+              {t.icon}
+            </span>
             <span>{t.label}</span>
             {t.href === "/en/review" && dueN > 0 && <span className="en-badge">{dueN}</span>}
           </Link>
@@ -351,57 +429,85 @@ export default function EnMapPage() {
       </div>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_350px]">
-        {/* ================= CỘT TRÁI: LỘ TRÌNH DUOLINGO ================= */}
-        <section className="mx-auto w-full max-w-[480px]">
+        {/* ================= CỘT TRÁI: LỘ TRÌNH HỌC SẮC NÉT ================= */}
+        <section className="mx-auto w-full max-w-[500px]">
           {groups.map((g, gi) => {
             const w = EN_WORLDS.find((x) => x.id === g.world);
             const t = themeOf(gi + 1);
             const done = g.items.filter((s) => s.stars > 0).length;
-            // Mặc định mở tất cả các Unit để giống hệt Duolingo cuộn liền mạch
             const shown = open[g.world] ?? true;
             const isNextLockedUnit = gi > 0 && done === 0 && !g.items.some((s) => s.current);
 
             return (
-              <div key={`w${g.world}`} className="mb-10">
-                {/* Banner Unit (Xanh lá ở Unit 1, Tím ở Unit 2, Ngọc ở Unit 3...) */}
+              <div key={`w${g.world}`} className="mb-12">
+                {/* Banner Unit sang trọng, chữ sắc nét, tương phản cao */}
                 <button
                   type="button"
                   onClick={() => setOpen({ ...open, [g.world]: !shown })}
                   aria-expanded={shown}
                   className="duo-unit-banner"
-                  style={{ "--u-bg": t.bg, "--u-edge": t.edge } as CSSProperties}
+                  style={
+                    {
+                      "--u-bg": t.bg,
+                      "--u-bg2": t.bg2,
+                      "--u-edge": t.edge,
+                      "--u-shadow": t.shadow,
+                    } as CSSProperties
+                  }
                 >
-                  <div>
-                    <h2 className="text-xl font-extrabold tracking-tight text-white">
-                      Unit {gi + 1} · {w?.name ?? `Phần ${gi + 1}`}
+                  <div className="relative z-10 min-w-0 pr-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-white/15 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-white/95 backdrop-blur-xs">
+                        Unit {gi + 1} · {w?.tag ?? "B1"}
+                      </span>
+                    </div>
+                    <h2 className="mt-1.5 text-[19px] font-bold tracking-tight text-white">
+                      {w?.name ?? `Phần ${gi + 1}`}
                     </h2>
-                    <p className="mt-1 text-sm font-semibold text-white/90">
+                    <p className="mt-0.5 text-[13px] font-medium text-white/85">
                       {gi === 0
-                        ? `Use core ${w?.tag ?? "B1"} vocabulary & sentence structures`
+                        ? `Từ vựng cốt lõi ${w?.tag ?? "B1"} & cấu trúc câu giao tiếp hằng ngày`
                         : gi === 1
-                        ? `Talk about workplace, TOEIC situations & emails`
-                        : `Master academic IELTS vocabulary & speaking topics`}
+                        ? `Tình huống công sở, email thương mại & luyện phản xạ TOEIC`
+                        : `Từ vựng học thuật, phân tích số liệu & chủ đề IELTS 5.0+`}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-xl border-2 border-white/30 bg-black/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider text-white">
-                    {done}/{g.items.length} {shown ? "▴" : "▾"}
+
+                  <span className="relative z-10 flex shrink-0 items-center gap-1.5 rounded-xl border border-white/25 bg-black/15 px-3 py-1.5 text-xs font-bold text-white">
+                    <span>
+                      {done}/{g.items.length}
+                    </span>
+                    <svg
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${shown ? "rotate-180" : ""}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </span>
                 </button>
 
-                {/* Nút "JUMP HERE?" ngay dưới Banner của Unit kế tiếp (giống ảnh mẫu Unit 92) */}
+                {/* Nút "JUMP HERE?" cho các Unit tiếp theo */}
                 {shown && isNextLockedUnit && g.items[0] && (
-                  <div className="mt-6 -mb-4 flex flex-col items-center">
+                  <div className="mt-6 -mb-3 flex flex-col items-center">
                     <Link
                       href={`/en/stage/${g.items[0].stage.id}`}
-                      className="duo-start-bubble en-bob"
+                      className="duo-start-bubble"
                       style={{ color: t.text }}
                     >
-                      JUMP HERE?
+                      <span>JUMP HERE?</span>
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14m-6-6 6 6-6 6" />
+                      </svg>
                     </Link>
                   </div>
                 )}
 
-                {/* Các nút bài học uốn lượn theo hình chữ S */}
+                {/* Các nút chặng uốn lượn theo hình chữ S */}
                 <div className="relative pt-10" hidden={!shown}>
                   {shown &&
                     g.items.map((s, idx) => {
@@ -413,7 +519,6 @@ export default function EnMapPage() {
                       const href = s.recallDue ? `/en/stage/${s.stage.id}?recall=1` : `/en/stage/${s.stage.id}`;
                       const showChest = !boss && idx > 0 && idx % 4 === 3;
 
-                      // Chọn biểu tượng bên trong nút giống Duolingo (Tích, Sách mở, Sao, Khóa, Cúp)
                       const icon =
                         kind === "locked" ? (
                           boss ? (
@@ -437,18 +542,17 @@ export default function EnMapPage() {
 
                       return (
                         <div key={s.stage.id}>
-                          {/* Rương kho báu xen kẽ trên đường học giống ảnh mẫu Duolingo */}
+                          {/* Rương cột mốc xen kẽ trên đường học */}
                           {showChest && (
                             <div
-                              className="relative mb-7 flex justify-center"
-                              style={{ transform: `translateX(${Math.round(x * 0.5)}px)` }}
+                              className="relative mb-8 flex justify-center"
+                              style={{ transform: `translateX(${Math.round(x * 0.45)}px)` }}
                             >
                               <Link
                                 href={isDone || s.unlocked ? href : "/en/review"}
                                 className="duo-chest"
-                                title={isDone ? "Rương phần thưởng đã mở" : "Hoàn thành các chặng trên để mở rương"}
                               >
-                                <DuoChest unlocked={isDone || s.unlocked} />
+                                <MilestoneChest unlocked={isDone || s.unlocked} />
                               </Link>
                             </div>
                           )}
@@ -456,31 +560,42 @@ export default function EnMapPage() {
                           <div
                             id={s.current ? "en-current" : undefined}
                             className="relative flex justify-center"
-                            style={{ marginBottom: 28, marginTop: s.current ? 24 : 0 }}
+                            style={{
+                              marginBottom: 38,
+                              marginTop: s.current ? 46 : s.recallDue ? 28 : 0,
+                            }}
                           >
-                            {/* Linh vật Cú xanh ngủ nghe nhạc ở khúc cua trên bên phải */}
-                            {gi === 0 && idx === 2 && (
-                              <div
-                                className="pointer-events-none absolute hidden sm:block"
-                                style={{ left: "calc(50% + 75px)", top: -12 }}
-                              >
-                                <DuoSleepingMascot />
-                              </div>
-                            )}
-
-                            {/* Linh vật Cú xanh cổ vũ đứng cạnh chặng START hiện tại */}
+                            {/* Thẻ thông tin chặng hiện tại bên cạnh nút START (thay thế hình cú hoạt hình) */}
                             {s.current && (
                               <div
-                                className="pointer-events-none absolute hidden sm:block"
+                                className=" hidden sm:flex items-center absolute z-10"
                                 style={{
-                                  left: x >= 0 ? "calc(50% - 155px)" : "calc(50% + 75px)",
+                                  left: x >= 0 ? "calc(50% - 215px)" : "calc(50% + 72px)",
                                   top: "50%",
-                                  marginTop: -42,
+                                  transform: "translateY(-50%)",
                                 }}
                               >
-                                <div className="en-bob">
-                                  <DuoCheerMascot />
-                                </div>
+                                <Link
+                                  href={`/en/stage/${s.stage.id}`}
+                                  className="group flex items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:shadow-md"
+                                >
+                                  <span
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+                                    style={{ background: t.bg }}
+                                  >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                      <polygon points="6 4 20 12 6 20 6 4" />
+                                    </svg>
+                                  </span>
+                                  <div className="text-left">
+                                    <p className="text-xs font-bold text-slate-900 leading-tight">
+                                      Chặng {s.stage.n}
+                                    </p>
+                                    <p className="text-[11px] font-medium text-slate-500">
+                                      {boss ? "Bài tổng hợp" : `${STAGE_SIZE} từ mới`}
+                                    </p>
+                                  </div>
+                                </Link>
                               </div>
                             )}
 
@@ -492,7 +607,7 @@ export default function EnMapPage() {
                                 height: s.current ? size + 22 : size,
                               }}
                             >
-                              {/* Bong bóng START nảy trên đầu chặng hiện tại */}
+                              {/* Nhãn START sắc nét phía trên chặng hiện tại */}
                               {s.current && (
                                 <div
                                   className="absolute left-1/2 z-20 -translate-x-1/2"
@@ -500,22 +615,30 @@ export default function EnMapPage() {
                                 >
                                   <Link
                                     href={`/en/stage/${s.stage.id}`}
-                                    className="duo-start-bubble en-bob"
+                                    className="duo-start-bubble"
                                     style={{ color: t.text }}
                                   >
-                                    START
+                                    <span
+                                      className="h-2 w-2 rounded-full"
+                                      style={{ background: t.ring }}
+                                    />
+                                    <span>START</span>
                                   </Link>
                                 </div>
                               )}
 
-                              {/* Nhãn nhắc Ôn lại (khi chặng hôm trước đến hạn nhớ lại) */}
+                              {/* Nhãn nhắc Ôn lại (đặt gọn phía trên hoặc bên cạnh không đè vào START) */}
                               {s.recallDue && (
                                 <Link
                                   href={href}
-                                  className="absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl border-2 border-[#e5a400] bg-[#ffc800] px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-[#784800] shadow-sm"
+                                  className="absolute left-1/2 z-20 -translate-x-1/2 flex items-center gap-1 whitespace-nowrap rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-amber-900 shadow-xs transition hover:bg-amber-100"
                                   style={{ bottom: size + 10 }}
                                 >
-                                  ÔN LẠI
+                                  <svg className="w-3 h-3 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                    <path d="M3 3v5h5" />
+                                  </svg>
+                                  <span>Ôn lại</span>
                                 </Link>
                               )}
 
@@ -525,43 +648,42 @@ export default function EnMapPage() {
                                   className="absolute left-1/2 z-30 -translate-x-1/2"
                                   style={{ bottom: size + 14 }}
                                 >
-                                  <div className="duo-start-bubble !text-xs !normal-case !tracking-normal !text-[#777777]">
-                                    Hoàn thành chặng trước để mở khóa (hoặc bấm{" "}
+                                  <div className="duo-start-bubble !text-xs !font-semibold !normal-case !tracking-normal !text-slate-600">
+                                    <span>Hoàn thành chặng trước hoặc</span>
                                     <Link
                                       href={`/en/stage/${s.stage.id}`}
-                                      className="font-extrabold text-[#1cb0f6] underline"
+                                      className="font-bold text-[#2563eb] underline"
                                     >
                                       Học thử ngay
                                     </Link>
-                                    )
                                   </div>
                                 </div>
                               )}
 
-                              {/* Vòng tròn tiến độ vàng-xám bao quanh nút START hiện tại */}
+                              {/* Vòng tròn tiến độ bao quanh nút START hiện tại */}
                               {s.current && (
                                 <svg
-                                  viewBox="0 0 96 96"
+                                  viewBox="0 0 94 94"
                                   className="pointer-events-none absolute inset-0 h-full w-full -rotate-90"
                                   aria-hidden="true"
                                 >
                                   <circle
-                                    cx="48"
-                                    cy="48"
-                                    r="43"
+                                    cx="47"
+                                    cy="47"
+                                    r="42"
                                     fill="none"
-                                    stroke="#e5e5e5"
-                                    strokeWidth="6"
+                                    stroke="#e2e8f0"
+                                    strokeWidth="5"
                                   />
                                   <circle
-                                    cx="48"
-                                    cy="48"
-                                    r="43"
+                                    cx="47"
+                                    cy="47"
+                                    r="42"
                                     fill="none"
-                                    stroke="#ffc800"
-                                    strokeWidth="6"
+                                    stroke={t.ring}
+                                    strokeWidth="5"
                                     strokeLinecap="round"
-                                    strokeDasharray="180 270"
+                                    strokeDasharray="175 264"
                                   />
                                 </svg>
                               )}
@@ -584,7 +706,9 @@ export default function EnMapPage() {
                                   style={
                                     {
                                       "--face": t.bg,
+                                      "--face2": t.bg2,
                                       "--edge": t.edge,
+                                      "--u-shadow": t.shadow,
                                       width: size,
                                       height: size,
                                     } as CSSProperties
@@ -605,54 +729,75 @@ export default function EnMapPage() {
             );
           })}
 
-          {/* Nút tròn góc trái dưới giống ảnh mẫu Duolingo (luyện nghe / ôn tập nhanh) */}
-          <div className="mt-4 flex items-center justify-between px-2">
+          {/* Thanh trạng thái nguồn dữ liệu gọn nhẹ ở cuối lộ trình */}
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-semibold text-slate-600">{srcNote}</span>
+            </div>
             <Link
-              href="/en/listen"
-              title="Luyện nghe phản xạ"
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#e5e5e5] bg-white text-[#1cb0f6] shadow-[0_4px_0_#e5e5e5] hover:bg-gray-50 active:translate-y-0.5"
+              href="/en/vocab"
+              className="text-xs font-bold text-[#0d6e57] hover:underline"
             >
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6.5 6.5 17.5 17.5" />
-                <path d="M3 10l7-7M14 21l7-7M2 6l4-4M18 22l4-4" />
-              </svg>
+              Tra từ điển →
             </Link>
-            <span className="text-xs font-bold text-[#afafaf]">{srcNote}</span>
           </div>
         </section>
 
-        {/* ================= CỘT PHẢI: 4 WIDGET SIDEBAR DUOLINGO ================= */}
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+        {/* ================= CỘT PHẢI: SIDEBAR WIDGETS SẮC NÉT ================= */}
+        <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
           {/* Card 1: My Assignments */}
           <div className="duo-widget">
-            <h3 className="border-b-2 border-[#f0f0f0] pb-3 text-center text-lg font-extrabold text-[#3c3c3c]">
-              My Assignments
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-[16px] font-bold tracking-tight text-slate-900">
+                My Assignments
+              </h3>
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                Hôm nay
+              </span>
+            </div>
+
             <Link
               href={cur ? `/en/stage/${cur.stage.id}` : "/en"}
-              className="mt-4 flex items-center justify-between rounded-xl border-2 border-[#e5e5e5] px-4 py-3 transition hover:bg-[#f7f7f7]"
+              className="mt-3.5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 transition hover:border-slate-300 hover:bg-slate-50"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl leading-none">⚡</span>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100/80 text-amber-600 border border-amber-200/80">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
+                </div>
                 <div>
-                  <p className="text-sm font-extrabold text-[#3c3c3c]">10 XP</p>
-                  <p className="text-xs font-bold text-[#afafaf]">
-                    {learnedToday ? "10/10 XP" : `${Math.min(rawTodayXp, 10)}/10 XP`}
+                  <p className="text-sm font-bold text-slate-900">10 XP</p>
+                  <p className="text-xs font-medium text-slate-500">
+                    {learnedToday ? "10/10 XP hoàn thành" : `${Math.min(rawTodayXp, 10)}/10 XP`}
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-[#777777]">
-                {learnedToday ? "Hoàn thành ✅" : `Chặng ${cur?.stage.n ?? 1} · Hôm nay`}
+              <span
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                  learnedToday
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-white text-slate-700 border border-slate-200"
+                }`}
+              >
+                {learnedToday ? "Đã xong" : `Chặng ${cur?.stage.n ?? 1}`}
               </span>
             </Link>
 
             {due.length > 0 && (
               <Link
                 href={`/en/stage/${due[0].stage.id}?recall=1`}
-                className="mt-2.5 flex items-center justify-between rounded-xl border-2 border-[#ffc800] bg-[#fffbeb] px-4 py-2.5 text-xs font-extrabold text-[#a56800]"
+                className="mt-2.5 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100/70"
               >
-                <span>🔁 Ôn lại bài hôm trước (không gợi ý)</span>
-                <span>
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-amber-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  <span>Ôn lại bài hôm trước (không gợi ý)</span>
+                </span>
+                <span className="rounded-md bg-amber-200/60 px-1.5 py-0.5 font-bold text-amber-900">
                   {recalledToday}/{recalledToday + due.length}
                 </span>
               </Link>
@@ -661,46 +806,63 @@ export default function EnMapPage() {
 
           {/* Card 2: Schools Team Classroom (Leaderboard) */}
           <div className="duo-widget">
-            <div className="flex flex-col items-center border-b-2 border-[#f0f0f0] pb-4 text-center">
-              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-[#ffc800] text-2xl shadow-[0_3px_0_#e5a400]">
-                ✏️
+            <div className="flex items-center gap-3.5 border-b border-slate-100 pb-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xs ring-1 ring-amber-500/20">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                </svg>
               </div>
-              <h3 className="text-base font-extrabold text-[#3c3c3c]">Schools Team Classroom</h3>
-              <p className="mt-0.5 text-xs font-extrabold text-[#ffc800]">
-                3 days remaining · {wordsLearned}/{wordsTotal} từ ({totalStars} ⭐)
-              </p>
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-bold tracking-tight text-slate-900">
+                  Schools Team Classroom
+                </h3>
+                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                  Còn 3 ngày · <span className="font-semibold text-amber-700">{wordsLearned}/{wordsTotal} từ ({totalStars} sao)</span>
+                </p>
+              </div>
             </div>
 
-            <div className="mt-3 divide-y divide-[#f2f2f2]">
+            <div className="mt-3 space-y-1.5">
               {leaderboard.map((u, i) => {
                 const rank = i + 1;
                 const badgeCls =
                   rank === 1
-                    ? "bg-[#ffc800] text-[#8a5a00]"
+                    ? "bg-amber-100 text-amber-800 border border-amber-300"
                     : rank === 2
-                    ? "bg-[#e5e5e5] text-[#777777]"
+                    ? "bg-slate-100 text-slate-700 border border-slate-300"
                     : rank === 3
-                    ? "bg-[#e5a45c] text-[#7c4a15]"
-                    : "bg-[#f0f0f0] text-[#afafaf]";
+                    ? "bg-orange-100 text-orange-800 border border-orange-300"
+                    : "bg-slate-50 text-slate-500 border border-slate-200";
                 return (
                   <div
                     key={u.name}
-                    className={`flex items-center justify-between py-2.5 ${
-                      u.isMe ? "rounded-lg bg-[#f0fbe4] px-2 -mx-2" : ""
+                    className={`flex items-center justify-between rounded-xl px-2.5 py-2 transition ${
+                      u.isMe
+                        ? "bg-emerald-50/70 border border-emerald-200/80"
+                        : "hover:bg-slate-50"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-extrabold ${badgeCls}`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${badgeCls}`}
                       >
                         {rank}
                       </span>
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#e5e5e5] bg-[#f7f7f7] text-lg">
-                        {u.avatar}
+                      <span
+                        className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold tracking-tight ${u.avatarCls}`}
+                      >
+                        {u.initials}
                       </span>
-                      <span className="text-sm font-extrabold text-[#3c3c3c]">{u.name}</span>
+                      <span className="text-[13.5px] font-semibold text-slate-900">
+                        {u.name}
+                      </span>
                     </div>
-                    <span className="text-sm font-bold text-[#777777]">{u.xp} XP</span>
+                    <span className="text-xs font-bold text-slate-600">{u.xp} XP</span>
                   </div>
                 );
               })}
@@ -710,39 +872,50 @@ export default function EnMapPage() {
           {/* Card 3: XP Progress (Daily Goal + Biểu đồ đường 7 ngày) */}
           <div className="duo-widget">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-[#3c3c3c]">XP Progress</h3>
+              <h3 className="text-[16px] font-bold tracking-tight text-slate-900">
+                XP Progress
+              </h3>
               <Link
                 href="/en/skills"
-                className="text-xs font-extrabold uppercase tracking-wider text-[#1cb0f6] hover:underline"
+                className="text-xs font-bold text-[#2563eb] hover:underline"
               >
-                EDIT GOAL
+                Chi tiết →
               </Link>
             </div>
 
-            <div className="mt-4 flex items-center gap-4">
-              {/* Rương hồng ngọc giống ảnh mẫu Duolingo */}
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-[#ffc800] bg-[#fff4cc] text-3xl shadow-sm">
-                🧰
+            <div className="mt-3.5 flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100/80 text-[#0d6e57] border border-emerald-200/80">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
               </div>
-              <div className="flex-1">
-                <p className="mb-1.5 text-xs font-bold text-[#777777]">Daily Goal</p>
-                <div className="flex items-center gap-3">
-                  <div className="h-3.5 flex-1 overflow-hidden rounded-full bg-[#e5e5e5]">
-                    <div
-                      className="h-full rounded-full bg-[#ffc800] transition-all"
-                      style={{ width: `${goalPct}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-extrabold text-[#777777]">
+              <div className="flex-1 min-w-0">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Mục tiêu ngày</span>
+                  <span className="text-xs font-bold text-[#0d6e57]">
                     {todayXp}/{dailyGoalXp} XP
                   </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#0d6e57] to-[#10b981] transition-all"
+                    style={{ width: `${goalPct}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Biểu đồ đường 7 ngày chuẩn mẫu (M Tu W Th F Sa Su) */}
-            <div className="mt-6">
+            {/* Biểu đồ đường 7 ngày sắc nét */}
+            <div className="mt-5">
               <svg viewBox="0 0 280 120" className="h-28 w-full overflow-visible">
+                <defs>
+                  <linearGradient id="xpAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0d6e57" stopOpacity="0.18" />
+                    <stop offset="100%" stopColor="#0d6e57" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
                 {[
                   { y: 10, label: String(maxChartVal) },
                   { y: 32, label: String(Math.round(maxChartVal * 0.75)) },
@@ -753,13 +926,20 @@ export default function EnMapPage() {
                   <g key={idx}>
                     <text
                       x="26"
-                      y={row.y + 4}
+                      y={row.y + 3.5}
                       textAnchor="end"
-                      className="fill-[#afafaf] text-[10px] font-bold"
+                      className="fill-slate-400 text-[10px] font-medium"
                     >
                       {row.label}
                     </text>
-                    <line x1="36" y1={row.y} x2="270" y2={row.y} stroke="#f0f0f0" strokeWidth="1.5" />
+                    <line
+                      x1="36"
+                      y1={row.y}
+                      x2="270"
+                      y2={row.y}
+                      stroke="#f1f5f9"
+                      strokeWidth="1.5"
+                    />
                   </g>
                 ))}
 
@@ -773,21 +953,30 @@ export default function EnMapPage() {
                   const areaPoints = `${polyPoints} ${pts[pts.length - 1].x},98 ${pts[0].x},98`;
                   return (
                     <>
-                      <polygon points={areaPoints} fill="#ffc800" opacity="0.14" />
+                      <polygon points={areaPoints} fill="url(#xpAreaGrad)" />
                       <polyline
                         fill="none"
-                        stroke="#ffc800"
-                        strokeWidth="2.5"
+                        stroke="#0d6e57"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         points={polyPoints}
                       />
                       {pts.map((p, i) => (
                         <g key={i}>
-                          <circle cx={p.x} cy={p.y} r="3.8" fill="#ffc800" />
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r="3.5"
+                            fill="#ffffff"
+                            stroke="#0d6e57"
+                            strokeWidth="2.2"
+                          />
                           <text
                             x={p.x}
                             y="115"
                             textAnchor="middle"
-                            className="fill-[#afafaf] text-[10px] font-bold"
+                            className="fill-slate-500 text-[10px] font-semibold"
                           >
                             {p.label}
                           </text>
@@ -802,22 +991,29 @@ export default function EnMapPage() {
 
           {/* Card 4: Progress Quiz */}
           <div className="duo-widget">
-            <h3 className="text-lg font-extrabold text-[#3c3c3c]">Progress Quiz</h3>
-            <div className="mt-3 flex items-center gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1cb0f6] text-sm font-extrabold text-white shadow-[0_3px_0_#1899d6]">
-                { (1.2 + (pct / 100) * 3.8).toFixed(1) }
+            <div className="flex items-center justify-between">
+              <h3 className="text-[16px] font-bold tracking-tight text-slate-900">
+                Progress Quiz
+              </h3>
+              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60">
+                IELTS Band
+              </span>
+            </div>
+            <div className="mt-3.5 flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2b50d8] to-[#1e3a9e] text-sm font-bold text-white shadow-xs">
+                {(3.5 + (pct / 100) * 1.5).toFixed(1)}
               </div>
-              <div>
-                <p className="text-xs font-bold text-[#777777]">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-600 leading-relaxed">
                   {dueN > 0
-                    ? `${dueN} thẻ từ vựng đến hạn ôn tập hôm nay`
-                    : `Tiến độ từ vựng: ${pct}% (${wordsLearned}/${wordsTotal} từ)`}
+                    ? `Có ${dueN} thẻ từ vựng đến hạn cần ôn tập hôm nay.`
+                    : `Đã nắm vững ${pct}% lộ trình (${wordsLearned}/${wordsTotal} từ).`}
                 </p>
                 <Link
                   href="/en/skills"
-                  className="mt-0.5 inline-block text-xs font-extrabold uppercase tracking-wider text-[#1cb0f6] hover:underline"
+                  className="mt-0.5 inline-block text-xs font-bold text-[#2563eb] hover:underline"
                 >
-                  SEE HISTORY
+                  Xem lịch sử học →
                 </Link>
               </div>
             </div>
@@ -825,21 +1021,25 @@ export default function EnMapPage() {
               href={dueN > 0 ? "/en/review" : cur ? `/en/stage/${cur.stage.id}` : "/en/games"}
               className="en-btn en-btn--blue mt-4"
             >
-              TAKE A QUIZ
+              {dueN > 0 ? `Ôn tập ${dueN} thẻ ngay` : "Làm bài kiểm tra"}
             </Link>
           </div>
 
-          {/* Card 5: Các chế độ Luyện tập nhanh */}
+          {/* Card 5: Các chế độ Luyện tập bổ trợ */}
           <div className="duo-widget">
-            <h3 className="mb-3 text-base font-extrabold text-[#3c3c3c]">Luyện tập bổ trợ</h3>
+            <h3 className="mb-3 text-[15px] font-bold tracking-tight text-slate-900">
+              Luyện tập kỹ năng
+            </h3>
             <div className="grid grid-cols-2 gap-2.5">
               {TOOLS.map((t) => (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className="relative flex items-center gap-2 rounded-xl border-2 border-[#e5e5e5] bg-white px-3 py-2.5 text-xs font-extrabold text-[#3c3c3c] shadow-[0_3px_0_#e5e5e5] transition hover:bg-[#f7f7f7] active:translate-y-0.5"
+                  className="relative flex items-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 active:translate-y-0.5"
                 >
-                  <span className="text-base">{t.emoji}</span>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${t.tone}`}>
+                    {t.icon}
+                  </span>
                   <span>{t.label}</span>
                   {t.href === "/en/review" && dueN > 0 && <span className="en-badge">{dueN}</span>}
                 </Link>

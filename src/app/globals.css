@@ -294,11 +294,13 @@ button:not(:disabled):hover {
 }
 .anim-fade-in { animation: page-in 0.4s var(--ease-out) backwards; }
 
-/* Tiêu đề chữ có chân cho cảm giác sang trọng (chữ Hán vẫn dùng font Hán) */
+/* Tiêu đề sắc nét chuẩn tiếng Việt trên mọi màn hình Windows / macOS / iPad */
 @layer base {
-  h1, h2 {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
-      "Songti SC", "Noto Serif SC", serif;
+  body, h1, h2, h3, h4, button, input, select, textarea {
+    font-family: var(--font-sans), "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 }
 
