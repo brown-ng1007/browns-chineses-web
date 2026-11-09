@@ -310,16 +310,17 @@ function StageChips({ chips, max = 30 }: { chips: StageChip[]; max?: number }) {
   );
 }
 
-// ===== Hình học cây dây đậu thần kỳ (đơn vị viewBox; cây co giãn theo bề ngang màn hình) =====
-const VB_W = 400;
+// ===== Hình học cây dây đậu thần kỳ tán rộng (đơn vị viewBox; cây co giãn toàn chiều ngang khung) =====
+const VB_W = 760;
+const CX = 380; // trục giữa của cây
 const ROW_H = 170; // mỗi tầng (cành) cao 170
-const TOP_H = 250; // mây + quả dưa khổng lồ trên đỉnh
+const TOP_H = 250; // mây + đàn hạc vàng + tán ngọn cây
 const GROUND_H = 175; // đảo nổi + biển mây
 const VB_H = TOP_H + FLOORS.length * ROW_H + GROUND_H;
 const TRUNK_TOP = 168;
 const GROUND_Y = VB_H - GROUND_H + 14;
 const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
-const FRUIT_DX = [92, 132, 170]; // khoảng cách 3 quả tới trục thân
+const FRUIT_DX = [132, 214, 296]; // khoảng cách 3 quả tới trục thân trên tán rộng
 
 type Pt = [number, number];
 
@@ -351,13 +352,13 @@ const polyPath = (l: Pt[], r: Pt[]) =>
     .map(fmt)
     .join(" L")}Z`;
 
-// ----- Thân đậu xoắn: dây leo bện xoắn ốc tự nhiên như tranh vẽ, to ở gốc, thon dần lên mây -----
-const stalkCx = (y: number) => 200 + 22 * Math.sin(y / 165 + 0.55);
+// ----- Thân đậu xoắn: dây leo bện xoắn ốc tự nhiên, to khỏe ở gốc, vươn lên mây -----
+const stalkCx = (y: number) => CX + 28 * Math.sin(y / 160 + 0.55);
 const stalkHw = (y: number) => {
   const t = clamp01((y - TRUNK_TOP) / (GROUND_Y - TRUNK_TOP));
-  const flare = t > 0.93 ? 56 * Math.pow((t - 0.93) / 0.07, 2) : 0;
-  const ropeBulge = 4.2 * Math.sin(((y - TRUNK_TOP) / 95) * Math.PI * 2);
-  return 32 + 32 * Math.pow(t, 0.85) + ropeBulge + flare;
+  const flare = t > 0.92 ? 78 * Math.pow((t - 0.92) / 0.08, 2) : 0;
+  const ropeBulge = 5.2 * Math.sin(((y - TRUNK_TOP) / 92) * Math.PI * 2);
+  return 40 + 38 * Math.pow(t, 0.85) + ropeBulge + flare;
 };
 const STALK_YS: number[] = (() => {
   const a: number[] = [];
@@ -368,7 +369,7 @@ const STALK_YS: number[] = (() => {
 })();
 const edgeLine = (f: number): Pt[] =>
   STALK_YS.map((y) => {
-    const ripple = f * 3.2 * Math.cos(((y - TRUNK_TOP) / 75) * Math.PI * 2 + (f > 0 ? 1.1 : 0));
+    const ripple = f * 3.8 * Math.cos(((y - TRUNK_TOP) / 75) * Math.PI * 2 + (f > 0 ? 1.1 : 0));
     return [stalkCx(y) + f * stalkHw(y) + ripple, y] as Pt;
   });
 const STALK_PATH = joinPath(edgeLine(-1), edgeLine(1));
@@ -414,15 +415,17 @@ const STRANDS = [0, 1, 2].map((s) => {
   return { fill: STRAND_FILL[s], bands, glints };
 });
 
-// ----- Cành dây leo: dày ở gốc, thon dần ra ngọn, lá mọc dọc cành -----
-const BR_W0 = 11;
-const BR_W1 = 3.4;
+// ----- Cành dây leo tán rộng: vươn xa sang hai bên, nhiều lá to xanh mướt -----
+const BR_W0 = 15.5;
+const BR_W1 = 4.6;
 const LEAF_SPECS: [number, number, number][] = [
-  [0.2, -64, 0.95],
-  [0.4, -40, 1.1],
-  [0.6, -62, 1.0],
-  [0.78, -36, 0.95],
-  [0.94, -18, 0.8],
+  [0.14, -68, 1.18],
+  [0.28, -42, 1.32],
+  [0.44, -64, 1.25],
+  [0.60, -38, 1.30],
+  [0.74, -58, 1.18],
+  [0.86, -32, 1.12],
+  [0.96, -16, 0.98],
 ];
 
 interface LeafPos {
@@ -434,15 +437,15 @@ interface LeafPos {
 }
 
 const curl = (x: number, y: number, s: number) =>
-  `M${r1(x)} ${r1(y)} c${s * 4} -8 ${s * 3} -18 ${-s * 6} -20 c${-s * 8} -2 ${-s * 11} 7 ${-s * 4} 10`;
+  `M${r1(x)} ${r1(y)} c${s * 6} -10 ${s * 4} -22 ${-s * 8} -24 c${-s * 10} -2 ${-s * 14} 9 ${-s * 5} 13`;
 
 function branchGeometry(level: number) {
   const s = sideOf(level);
   const ay = attachY(level);
-  const x0 = stalkCx(ay) + s * (stalkHw(ay) - 6);
-  const p0: Pt = [x0, ay + 10];
-  const p1: Pt = [x0 + s * 52, ay - 30];
-  const p2: Pt = [200 + s * 178, ay - 14];
+  const x0 = stalkCx(ay) + s * (stalkHw(ay) - 8);
+  const p0: Pt = [x0, ay + 12];
+  const p1: Pt = [x0 + s * 135, ay - 44];
+  const p2: Pt = [CX + s * 328, ay - 18];
   const at = (t: number): Pt => [
     (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
     (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
@@ -456,8 +459,8 @@ function branchGeometry(level: number) {
   const top: Pt[] = [];
   const bot: Pt[] = [];
   const mid: Pt[] = [];
-  for (let i = 0; i <= 12; i++) {
-    const t = i / 12;
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14;
     const [x, y] = at(t);
     const [dx, dy] = tan(t);
     const n = Math.hypot(dx, dy) || 1;
@@ -469,12 +472,12 @@ function branchGeometry(level: number) {
     if (t >= 0.06 && t <= 0.92) mid.push([x + nx * h * 0.35, y + ny * h * 0.35]);
   }
 
-  // Vị trí treo của 3 quả: điểm trên cành gần x mong muốn nhất
+  // Vị trí treo của 3 quả: trải rộng dọc theo tán cành lớn
   const hang: Pt[] = FRUIT_DX.map((dx) => {
-    const target = 200 + s * dx;
+    const target = CX + s * dx;
     let best = 1;
     let bestD = Infinity;
-    for (let i = 20; i <= 100; i++) {
+    for (let i = 15; i <= 100; i++) {
       const t = i / 100;
       const d = Math.abs(at(t)[0] - target);
       if (d < bestD) {
@@ -483,27 +486,43 @@ function branchGeometry(level: number) {
       }
     }
     const [x, y] = at(best);
-    return [r1(x), r1(y + half(best) * 0.4)] as Pt;
+    return [r1(x), r1(y + half(best) * 0.42)] as Pt;
   });
 
-  // Lá phía trên cành (quả treo phía dưới nên không vướng nhau)
+  // Lá phía trên cành + lá đệm ở gốc cành tạo tán dày
   const leaves: LeafPos[] = LEAF_SPECS.map(([t, ang, sc]) => {
     const [x, y] = at(t);
     return { x: r1(x), y: r1(y - half(t) * 0.6), ang, sc, s };
   });
-  const [ux, uy] = at(0.12);
-  leaves.push({ x: r1(ux), y: r1(uy + half(0.12) * 0.6), ang: 70, sc: 0.8, s });
+  const [ux1, uy1] = at(0.10);
+  const [ux2, uy2] = at(0.36);
+  leaves.push({ x: r1(ux1), y: r1(uy1 + half(0.10) * 0.65), ang: 66, sc: 1.05, s });
+  leaves.push({ x: r1(ux2), y: r1(uy2 + half(0.36) * 0.65), ang: 58, sc: 0.95, s });
 
   const [tx, ty] = at(1);
 
-  // Nhánh nhỏ bên kia thân cho cây đầy đặn
-  const oy = ay + 70;
-  const ox = stalkCx(oy) - s * (stalkHw(oy) - 6);
-  const twigLeaves: LeafPos[] = [
-    { x: r1(ox - s * 22), y: r1(oy - 13), ang: -55, sc: 0.9, s: (-s) as 1 | -1 },
-    { x: r1(ox - s * 48), y: r1(oy - 10), ang: -22, sc: 1.0, s: (-s) as 1 | -1 },
+  // Cành tán phụ bên đối diện thân cây: vươn dài tạo tán cây đối xứng sum suê
+  const oy = ay + 64;
+  const ox = stalkCx(oy) - s * (stalkHw(oy) - 8);
+  const twigEndX = ox - s * 185;
+  const twigCtrlX = ox - s * 88;
+  const twigCtrlY = oy - 36;
+  const twigEndY = oy - 16;
+  const twigAt = (t: number): Pt => [
+    (1 - t) * (1 - t) * ox + 2 * (1 - t) * t * twigCtrlX + t * t * twigEndX,
+    (1 - t) * (1 - t) * oy + 2 * (1 - t) * t * twigCtrlY + t * t * twigEndY,
   ];
-  const [bgx, bgy] = at(0.2);
+  const twigLeaves: LeafPos[] = [
+    [0.22, -60, 1.12],
+    [0.45, -36, 1.24],
+    [0.68, -56, 1.15],
+    [0.88, -24, 1.05],
+    [0.32, 62, 0.95],
+  ].map(([t, ang, sc]) => {
+    const [lx, ly] = twigAt(t);
+    return { x: r1(lx), y: r1(ly - 3), ang, sc, s: (-s) as 1 | -1 };
+  });
+  const [bgx, bgy] = at(0.22);
 
   return {
     s,
@@ -511,22 +530,22 @@ function branchGeometry(level: number) {
     shape: `${smooth(top)}${smooth(bot.slice().reverse()).replace(/^M/, " L")} Z`,
     highlight: smooth(mid),
     hang,
-    bug: [r1(bgx), r1(bgy - 24)] as Pt,
+    bug: [r1(bgx), r1(bgy - 26)] as Pt,
     leaves,
     tendril: curl(tx, ty, -s),
-    twig: `M${r1(ox)} ${r1(oy)} Q${r1(ox - s * 22)} ${r1(oy - 18)} ${r1(ox - s * 50)} ${r1(oy - 10)}`,
-    twigTendril: curl(ox - s * 50, oy - 10, s),
+    twig: `M${r1(ox)} ${r1(oy)} Q${r1(twigCtrlX)} ${r1(twigCtrlY)} ${r1(twigEndX)} ${r1(twigEndY)}`,
+    twigTendril: curl(twigEndX, twigEndY, s),
     twigLeaves,
   };
 }
 const GEOM = FLOORS.map((f) => branchGeometry(f.level));
 
-// Lá hình trái tim nhọn, có gân giữa
-const LEAF = "M0 0 C6 -13 24 -17 38 0 C24 17 6 13 0 0Z";
-const LEAF_HI = "M0 0 C6 -13 24 -17 38 0 C22 -4 8 -3 0 0Z";
-const LEAF_VEIN = "M3 0 L31 0";
+// Lá hình trái tim nhọn, kích thước lớn hơn và có gân lá rõ nét
+const LEAF = "M0 0 C7 -15 28 -20 44 0 C28 20 7 15 0 0Z";
+const LEAF_HI = "M0 0 C7 -15 28 -20 44 0 C26 -5 9 -3 0 0Z";
+const LEAF_VEIN = "M3 0 L36 0";
 
-// Cỏ ở gốc, ngôi sao lấp lánh: tạo cố định để máy chủ và trình duyệt vẽ giống nhau
+// Cỏ ở gốc, ngôi sao lấp lánh: tạo cố định trên toàn bề ngang rộng
 const lcg = (seed: number) => {
   let s = seed;
   return () => {
@@ -537,13 +556,13 @@ const lcg = (seed: number) => {
 const GRASS = (() => {
   const rnd = lcg(11);
   const out: string[] = [];
-  for (let i = 0; i < 46; i++) {
-    const x = 30 + i * (340 / 45) + (rnd() - 0.5) * 6;
-    const h = 16 + rnd() * 20;
-    const lean = (rnd() - 0.5) * 16;
+  for (let i = 0; i < 72; i++) {
+    const x = 68 + i * (624 / 71) + (rnd() - 0.5) * 7;
+    const h = 18 + rnd() * 24;
+    const lean = (rnd() - 0.5) * 18;
     const y = GROUND_Y + 6 + (rnd() - 0.5) * 8;
     out.push(
-      `M${r1(x - 4)} ${r1(y)} Q${r1(x + lean * 0.3)} ${r1(y - h * 0.6)} ${r1(x + lean)} ${r1(y - h)} Q${r1(x + 4 + lean * 0.2)} ${r1(y - h * 0.45)} ${r1(x + 4)} ${r1(y)}Z`
+      `M${r1(x - 4.5)} ${r1(y)} Q${r1(x + lean * 0.3)} ${r1(y - h * 0.6)} ${r1(x + lean)} ${r1(y - h)} Q${r1(x + 4.5 + lean * 0.2)} ${r1(y - h * 0.45)} ${r1(x + 4.5)} ${r1(y)}Z`
     );
   }
   return out;
@@ -553,11 +572,11 @@ const sparkPath = (r: number) =>
 const SPARKLES = (() => {
   const rnd = lcg(7);
   const out: { x: number; y: number; r: number; d: number }[] = [];
-  for (let i = 0; i < 34; i++) {
+  for (let i = 0; i < 48; i++) {
     out.push({
-      x: r1(70 + rnd() * 260),
+      x: r1(75 + rnd() * 610),
       y: r1(TOP_H + rnd() * (GROUND_Y - TOP_H - 90)),
-      r: r1(3 + rnd() * 4.5),
+      r: r1(3.2 + rnd() * 5),
       d: r1(rnd() * 4),
     });
   }
@@ -565,32 +584,21 @@ const SPARKLES = (() => {
 })();
 
 const BACK_CLOUDS = [
-  { x: 55, y: 440, d: "0s", sc: 1.3 },
-  { x: 335, y: 660, d: "-9s", sc: 1.1 },
-  { x: 60, y: 1000, d: "-4s", sc: 1.3 },
-  { x: 340, y: 1290, d: "-14s", sc: 1.2 },
-  { x: 60, y: 1520, d: "-7s", sc: 1.1 },
+  { x: 110, y: 420, d: "0s", sc: 1.45 },
+  { x: 640, y: 650, d: "-9s", sc: 1.3 },
+  { x: 120, y: 980, d: "-4s", sc: 1.5 },
+  { x: 635, y: 1280, d: "-14s", sc: 1.35 },
+  { x: 115, y: 1520, d: "-7s", sc: 1.3 },
 ];
-// Mây bay ngang thân, nằm ở khoảng trống giữa các cành
+// Mây bay ngang thân ở khoảng trống giữa các cành
 const FRONT_CLOUDS = FLOORS.filter((f) => f.level >= 2 && f.level <= 8 && f.level % 2 === 0).map(
   (f) => ({
-    x: 348,
+    x: f.level % 4 === 0 ? 610 : 150,
     y: rowTop(f.level) + 140,
     d: `${-f.level * 3}s`,
-    sc: 0.9 + (f.level % 3) * 0.15,
+    sc: 1.05 + (f.level % 3) * 0.15,
   })
 );
-// Đám mây lớn trên đỉnh đỡ quả dưa khổng lồ
-const CROWN_CLOUD: [number, number, number][] = [
-  [128, 162, 30],
-  [160, 146, 36],
-  [200, 138, 42],
-  [242, 146, 38],
-  [274, 162, 30],
-  [200, 166, 36],
-  [164, 172, 28],
-  [238, 172, 28],
-];
 
 type FruitState = "locked" | "unripe" | "ripe" | "picked";
 
@@ -1082,7 +1090,7 @@ export default function TowerHome() {
           </div>
         )}
 
-        <div className="relative mx-auto max-w-[620px]">
+                <div className="relative mx-auto w-full">
           <div
             className="wm-tree relative overflow-hidden rounded-3xl border border-white/80 shadow-[0_20px_60px_rgb(60,110,60,0.25)]"
             style={{ aspectRatio: `${VB_W} / ${VB_H}` }}
@@ -1091,45 +1099,45 @@ export default function TowerHome() {
               viewBox={`0 0 ${VB_W} ${VB_H}`}
               className="absolute inset-0 h-full w-full"
               role="img"
-              aria-label="Cây dưa hấu thần kỳ có thân xoắn, mỗi tầng là một cành có ba quả dưa"
+              aria-label="Cây đậu thần kỳ tán rộng có thân xoắn, đỉnh Đàn Hạc Hoàng Kim trên mây và mỗi tầng một cành lớn"
             >
               {/* Mây phía sau */}
               {BACK_CLOUDS.map((c, i) => (
                 <Cloud key={i} x={c.x} y={c.y} sc={c.sc} d={c.d} />
               ))}
 
-              {/* Đảo nổi */}
+              {/* Đảo nổi rộng ở gốc cây */}
               <path
-                d={`M20 ${GROUND_Y} C34 ${GROUND_Y + 62} 130 ${GROUND_Y + 104} 200 ${GROUND_Y + 122} C270 ${GROUND_Y + 104} 366 ${GROUND_Y + 62} 380 ${GROUND_Y} Z`}
+                d={`M60 ${GROUND_Y} C88 ${GROUND_Y + 66} 245 ${GROUND_Y + 108} ${CX} ${GROUND_Y + 126} C515 ${GROUND_Y + 108} 672 ${GROUND_Y + 66} 700 ${GROUND_Y} Z`}
                 fill="#8a5a34"
                 stroke="#3d2412"
                 strokeWidth="2.5"
               />
-              <path d={`M56 ${GROUND_Y + 26} Q200 ${GROUND_Y + 56} 344 ${GROUND_Y + 26}`} fill="none" stroke="#6b4226" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
-              <path d={`M92 ${GROUND_Y + 56} Q200 ${GROUND_Y + 82} 308 ${GROUND_Y + 56}`} fill="none" stroke="#6b4226" strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+              <path d={`M115 ${GROUND_Y + 28} Q${CX} ${GROUND_Y + 60} 645 ${GROUND_Y + 28}`} fill="none" stroke="#6b4226" strokeWidth="3.2" opacity="0.6" strokeLinecap="round" />
+              <path d={`M180 ${GROUND_Y + 58} Q${CX} ${GROUND_Y + 86} 580 ${GROUND_Y + 58}`} fill="none" stroke="#6b4226" strokeWidth="3.2" opacity="0.6" strokeLinecap="round" />
               {[
-                [150, 86],
-                [200, 108],
-                [252, 88],
+                [275, 88],
+                [CX, 110],
+                [485, 90],
               ].map(([x, y], i) => (
                 <path
                   key={i}
                   d={`M${x} ${GROUND_Y + y} q${i === 1 ? 4 : -6} 18 ${i === 1 ? -2 : 3} 32`}
                   fill="none"
                   stroke="#5a3a1e"
-                  strokeWidth="4"
+                  strokeWidth="4.5"
                   strokeLinecap="round"
                 />
               ))}
               <path
-                d={`M14 ${GROUND_Y + 2} C70 ${GROUND_Y - 30} 330 ${GROUND_Y - 30} 386 ${GROUND_Y + 2} C384 ${GROUND_Y + 18} 300 ${GROUND_Y + 26} 200 ${GROUND_Y + 26} C100 ${GROUND_Y + 26} 16 ${GROUND_Y + 18} 14 ${GROUND_Y + 2} Z`}
+                d={`M48 ${GROUND_Y + 2} C150 ${GROUND_Y - 34} 610 ${GROUND_Y - 34} 712 ${GROUND_Y + 2} C708 ${GROUND_Y + 20} 560 ${GROUND_Y + 28} ${CX} ${GROUND_Y + 28} C200 ${GROUND_Y + 28} 52 ${GROUND_Y + 20} 48 ${GROUND_Y + 2} Z`}
                 fill="#7cc24a"
                 stroke="#3f8a2c"
                 strokeWidth="2.5"
               />
-              <path d={`M40 ${GROUND_Y - 4} C100 ${GROUND_Y - 24} 300 ${GROUND_Y - 24} 360 ${GROUND_Y - 4}`} fill="none" stroke="#b6ec84" strokeWidth="4" opacity="0.7" strokeLinecap="round" />
+              <path d={`M95 ${GROUND_Y - 4} C210 ${GROUND_Y - 26} 550 ${GROUND_Y - 26} 665 ${GROUND_Y - 4}`} fill="none" stroke="#b6ec84" strokeWidth="4.5" opacity="0.7" strokeLinecap="round" />
 
-              {/* Từng cành = từng tầng */}
+              {/* Từng cành = từng tầng (tán chính + tán phụ đối xứng) */}
               {FLOORS.map((def) => {
                 const f = floors[def.level - 1];
                 const g = GEOM[def.level - 1];
@@ -1142,16 +1150,16 @@ export default function TowerHome() {
                     className={locked ? "wm-locked" : undefined}
                     style={{ "--d": `${d}s` } as React.CSSProperties}
                   >
-                    <path d={g.twig} fill="none" strokeWidth="5" strokeLinecap="round" className="wm-twig" />
-                    <path d={g.twigTendril} fill="none" strokeWidth="2.2" strokeLinecap="round" className="wm-tendril" />
+                    <path d={g.twig} fill="none" strokeWidth="8.5" strokeLinecap="round" className="wm-twig" />
+                    <path d={g.twigTendril} fill="none" strokeWidth="2.6" strokeLinecap="round" className="wm-tendril" />
                     {g.twigLeaves.map((p, i) => (
-                      <Leaf key={`t${i}`} p={p} delay={d + 0.8 + i * 0.12} />
+                      <Leaf key={`t${i}`} p={p} delay={d + 0.75 + i * 0.1} />
                     ))}
-                    <path d={g.shape} strokeWidth="1.8" strokeLinejoin="round" className={`wm-stem ${ext}`} />
-                    <path d={g.highlight} fill="none" strokeWidth="2.4" strokeLinecap="round" className={`wm-stem-hl ${ext}`} />
-                    <path d={g.tendril} fill="none" strokeWidth="2.4" strokeLinecap="round" className="wm-tendril" />
+                    <path d={g.shape} strokeWidth="2" strokeLinejoin="round" className={`wm-stem ${ext}`} />
+                    <path d={g.highlight} fill="none" strokeWidth="3" strokeLinecap="round" className={`wm-stem-hl ${ext}`} />
+                    <path d={g.tendril} fill="none" strokeWidth="2.8" strokeLinecap="round" className="wm-tendril" />
                     {g.leaves.map((p, i) => (
-                      <Leaf key={i} p={p} delay={d + 0.6 + i * 0.1} />
+                      <Leaf key={i} p={p} delay={d + 0.55 + i * 0.08} />
                     ))}
                   </g>
                 );
@@ -1162,16 +1170,16 @@ export default function TowerHome() {
               {STRANDS.map((st, si) => (
                 <g key={si}>
                   {st.bands.map((b, i) => (
-                    <path key={i} d={b} fill={st.fill} stroke="#2c5a16" strokeWidth="1.3" strokeLinejoin="round" />
+                    <path key={i} d={b} fill={st.fill} stroke="#2c5a16" strokeWidth="1.4" strokeLinejoin="round" />
                   ))}
                   {st.glints.map((gl, i) => (
-                    <path key={`g${i}`} d={gl} fill="none" stroke="#d2f59a" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
+                    <path key={`g${i}`} d={gl} fill="none" stroke="#d2f59a" strokeWidth="1.8" strokeLinecap="round" opacity="0.52" />
                   ))}
                 </g>
               ))}
               <path d={STALK_LIGHT} fill="#d9f7a5" opacity="0.22" />
               <path d={STALK_SHADE} fill="#1d3f0c" opacity="0.22" />
-              <path d={STALK_PATH} fill="none" stroke="#2c5a16" strokeWidth="2.6" strokeLinejoin="round" />
+              <path d={STALK_PATH} fill="none" stroke="#2c5a16" strokeWidth="2.8" strokeLinejoin="round" />
 
               {/* Cỏ ở gốc */}
               {GRASS.map((gp, i) => (
@@ -1193,8 +1201,8 @@ export default function TowerHome() {
                 </linearGradient>
                 <linearGradient id="cloudShade" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#ffffff" />
-                  <stop offset="70%" stopColor="#f6f4e6" />
-                  <stop offset="100%" stopColor="#ded9c1" />
+                  <stop offset="72%" stopColor="#f8f6eb" />
+                  <stop offset="100%" stopColor="#dfd9c0" />
                 </linearGradient>
                 <linearGradient id="topVineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#94d82d" />
@@ -1203,7 +1211,7 @@ export default function TowerHome() {
                 </linearGradient>
               </defs>
 
-              {/* Ла́ mầm lớn mọc trực tiếp dọc thân cây đậu giống tranh mẫu */}
+              {/* Lá mầm lớn mọc trực tiếp dọc thân cây đậu */}
               {FLOORS.map((def) => {
                 const yMid = rowTop(def.level) + 115;
                 const s = sideOf(def.level);
@@ -1211,60 +1219,78 @@ export default function TowerHome() {
                 return (
                   <g key={`trunk-lf-${def.level}`}>
                     <Leaf
-                      p={{ x: r1(lx), y: r1(yMid), ang: -28, sc: 1.25, s: (-s) as 1 | -1 }}
+                      p={{ x: r1(lx), y: r1(yMid), ang: -26, sc: 1.38, s: (-s) as 1 | -1 }}
                       delay={def.level * 0.1}
                     />
                     <path
-                      d={curl(lx - s * 10, yMid - 18, s)}
+                      d={curl(lx - s * 12, yMid - 20, s)}
                       fill="none"
                       stroke="#7cc63b"
-                      strokeWidth="2.5"
+                      strokeWidth="2.8"
                       strokeLinecap="round"
                     />
                   </g>
                 );
               })}
 
-              {/* Đọt dây leo uốn lượn vươn cao bên trái đám mây (giống hệt ảnh mẫu) */}
+              {/* Tán lá rộng & đọt dây leo uốn lượn vươn cao ở đỉnh cây (quanh đám mây) */}
               <g>
-                {/* Nhánh dây leo chính vươn lên bên trái mây */}
+                {/* Cành tán vòm bên trái dưới đám mây */}
                 <path
-                  d="M192 200 C175 165, 165 135, 168 95 C170 65, 152 40, 148 16 C142 42, 156 68, 152 98 C148 135, 155 168, 174 205 Z"
+                  d={`M${CX - 20} 198 Q${CX - 115} 162 ${CX - 210} 182`}
+                  fill="none"
+                  stroke="#4d8828"
+                  strokeWidth="9"
+                  strokeLinecap="round"
+                />
+                <path d={curl(CX - 210, 182, 1)} fill="none" stroke="#7cc63b" strokeWidth="3" strokeLinecap="round" />
+                <Leaf p={{ x: CX - 85, y: 174, ang: -48, sc: 1.35, s: -1 }} delay={0.3} />
+                <Leaf p={{ x: CX - 145, y: 172, ang: -28, sc: 1.28, s: -1 }} delay={0.38} />
+                <Leaf p={{ x: CX - 195, y: 178, ang: -14, sc: 1.12, s: -1 }} delay={0.45} />
+
+                {/* Cành tán vòm bên phải dưới đám mây */}
+                <path
+                  d={`M${CX + 24} 198 Q${CX + 125} 164 ${CX + 220} 184`}
+                  fill="none"
+                  stroke="#4d8828"
+                  strokeWidth="9"
+                  strokeLinecap="round"
+                />
+                <path d={curl(CX + 220, 184, -1)} fill="none" stroke="#7cc63b" strokeWidth="3" strokeLinecap="round" />
+                <Leaf p={{ x: CX + 90, y: 174, ang: -46, sc: 1.35, s: 1 }} delay={0.32} />
+                <Leaf p={{ x: CX + 152, y: 173, ang: -26, sc: 1.28, s: 1 }} delay={0.4} />
+                <Leaf p={{ x: CX + 202, y: 180, ang: -12, sc: 1.12, s: 1 }} delay={0.48} />
+
+                {/* Nhánh đọt dây leo chính vươn cao lên trời bên trái Đàn Hạc (giống hệt tranh mẫu) */}
+                <path
+                  d={`M${CX - 10} 195 C${CX - 34} 158, ${CX - 48} 125, ${CX - 44} 84 C${CX - 40} 52, ${CX - 62} 28, ${CX - 68} 8 C${CX - 74} 34, ${CX - 56} 62, ${CX - 62} 92 C${CX - 68} 128, ${CX - 54} 162, ${CX - 32} 200 Z`}
                   fill="url(#topVineGrad)"
                   stroke="#244712"
-                  strokeWidth="2.2"
+                  strokeWidth="2.4"
                   strokeLinejoin="round"
                 />
                 {/* Đọt xoắn ốc bên phải ngọn dây leo */}
                 <path
-                  d="M166 86 C176 62, 198 58, 196 42 C194 28, 174 34, 180 46"
+                  d={`M${CX - 46} 76 C${CX - 34} 50, ${CX - 8} 46, ${CX - 10} 28 C${CX - 12} 14, ${CX - 36} 20, ${CX - 28} 34`}
                   fill="none"
                   stroke="#6eb030"
-                  strokeWidth="4.5"
+                  strokeWidth="4.8"
                   strokeLinecap="round"
                 />
                 {/* Đọt xoắn ốc vươn sang trái */}
                 <path
-                  d="M156 76 C135 64, 118 72, 116 56 C114 42, 132 40, 130 52"
+                  d={`M${CX - 58} 68 C${CX - 84} 54, ${CX - 104} 62, ${CX - 106} 44 C${CX - 108} 28, ${CX - 86} 26, ${CX - 88} 40`}
                   fill="none"
                   stroke="#7cc63b"
-                  strokeWidth="4"
+                  strokeWidth="4.2"
                   strokeLinecap="round"
                 />
-                {/* Đọt tua rua nhỏ gần mây */}
-                <path
-                  d="M168 118 C184 102, 194 110, 188 122"
-                  fill="none"
-                  stroke="#7cc63b"
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                />
-                {/* Hai chiếc lá lớn ở cổ mây (1 lá bên trái, 1 lá ngay dưới mây) */}
-                <Leaf p={{ x: 156, y: 132, ang: -24, sc: 1.32, s: -1 }} delay={0.4} />
-                <Leaf p={{ x: 196, y: 192, ang: -16, sc: 1.38, s: 1 }} delay={0.5} />
+                {/* Lá lớn ở cổ mây */}
+                <Leaf p={{ x: CX - 58, y: 122, ang: -24, sc: 1.42, s: -1 }} delay={0.4} />
+                <Leaf p={{ x: CX + 18, y: 186, ang: -16, sc: 1.45, s: 1 }} delay={0.5} />
               </g>
 
-              {/* Lấp lánh 4 cánh vàng quanh thân cây & đỉnh đàn hạc */}
+              {/* Lấp lánh 4 cánh vàng quanh thân cây & tán lá */}
               {SPARKLES.map((sp, i) => (
                 <path
                   key={i}
@@ -1277,12 +1303,12 @@ export default function TowerHome() {
                   style={{ "--sd": `${sp.d}s` } as React.CSSProperties}
                 />
               ))}
-              {/* Thêm các ngôi sao lớn lấp lánh ngay cạnh Đàn Hạc & Ngọn Đậu */}
+              {/* Các ngôi sao lớn lấp lánh quanh Đàn Hạc & Ngọn Đậu */}
               {[
-                { x: 122, y: 168, r: 7.5, d: 0.2 },
-                { x: 288, y: 176, r: 6.5, d: 1.1 },
-                { x: 302, y: 205, r: 9.0, d: 0.6 },
-                { x: 148, y: 198, r: 4.5, d: 1.8 },
+                { x: CX - 135, y: 142, r: 8.5, d: 0.2 },
+                { x: CX + 135, y: 138, r: 7.5, d: 1.1 },
+                { x: CX + 155, y: 185, r: 10.0, d: 0.6 },
+                { x: CX - 115, y: 195, r: 6.0, d: 1.8 },
               ].map((sp, idx) => (
                 <path
                   key={`top-sp-${idx}`}
@@ -1296,110 +1322,112 @@ export default function TowerHome() {
                 />
               ))}
 
-              {/* ĐÀN HẠC HOÀNG KIM (GOLDEN HARP) ĐẶT TRÊN MÂY BỒNG BỀNH */}
-              <g transform="translate(226 84)">
+              {/* ĐÀN HẠC HOÀNG KIM (GOLDEN HARP) ĐẶT TRÊN ĐÁM MÂY BỒNG BỀNH */}
+              <g transform={`translate(${CX + 22} 122)`}>
                 {crownReady && (
-                  <g className="wm-rays">
+                  <g className="wm-rays" transform="translate(0 -42)">
                     {Array.from({ length: 12 }, (_, i) => (
-                      <rect key={i} x="-2" y="-82" width="4" height="18" rx="2" fill="#ffd43b" transform={`rotate(${i * 30})`} />
+                      <rect key={i} x="-2.5" y="-92" width="5" height="20" rx="2.5" fill="#ffd43b" transform={`rotate(${i * 30})`} />
                     ))}
                   </g>
                 )}
 
-                {/* Đám mây hậu cảnh phía sau Đàn Hạc */}
+                {/* Lớp mây hậu cảnh phía sau lưng Đàn Hạc */}
                 <path
-                  d="M-64 56 C-88 56, -92 26, -66 20 C-60 -2, -24 -8, -4 6 C16 -10, 54 -4, 62 20 C86 22, 88 54, 62 58 Z"
+                  d="M-88 32 C-118 32, -122 2, -90 -6 C-82 -28, -36 -34, -8 -18 C18 -36, 68 -28, 78 -4 C110 -2, 112 30, 80 36 Z"
                   fill="url(#cloudShade)"
                   stroke="#d5cfb8"
-                  strokeWidth="2"
+                  strokeWidth="2.2"
                 />
 
-                {/* Cây Đàn Hạc Hoàng Kim (Golden Harp) */}
-                <g className="wm-crown" transform="translate(-48 -68)">
-                  {/* Dây đàn hạc vàng óng */}
-                  {[26, 35, 44, 53, 62, 71, 80].map((sx, idx) => (
-                    <line
-                      key={idx}
-                      x1={sx}
-                      y1={24 + idx * 2.4}
-                      x2={sx - 5}
-                      y2={106}
-                      stroke="#fff3bf"
-                      strokeWidth="1.9"
-                       opacity="0.95"
+                {/* Cây Đàn Hạc Hoàng Kim: tách riêng thẻ <g transform> ngoài để CSS .wm-crown không đè tọa độ */}
+                <g transform="translate(-54 -102) scale(1.12)">
+                  <g className="wm-crown">
+                    {/* Dây đàn hạc vàng óng */}
+                    {[26, 35, 44, 53, 62, 71, 80].map((sx, idx) => (
+                      <line
+                        key={idx}
+                        x1={sx}
+                        y1={24 + idx * 2.4}
+                        x2={sx - 5}
+                        y2={104}
+                        stroke="#fff3bf"
+                        strokeWidth="2"
+                        opacity="0.95"
+                      />
+                    ))}
+
+                    {/* Hộp cộng hưởng bên phải (Soundbox) */}
+                    <path
+                      d="M66 104 L82 104 L96 34 C96 28, 86 28, 84 35 L62 102 Z"
+                      fill="url(#harpGoldMain)"
+                      stroke="#5c2b04"
+                      strokeWidth="2.6"
+                      strokeLinejoin="round"
                     />
-                  ))}
 
-                  {/* Hộp cộng hưởng bên phải (Soundbox) */}
-                  <path
-                    d="M66 106 L82 106 L96 34 C96 28, 86 28, 84 35 L62 104 Z"
-                    fill="url(#harpGoldMain)"
-                    stroke="#5c2b04"
-                    strokeWidth="2.6"
-                    strokeLinejoin="round"
-                  />
+                    {/* Trụ đàn uốn cong bên trái + Đầu xoắn ốc cổ điển (Pillar & Scroll) */}
+                    <path
+                      d="M22 104 C10 74, 10 42, 16 20 C8 20, 4 10, 12 4 C22 -2, 34 6, 38 14 C52 28, 72 32, 92 24 C98 21, 103 28, 96 34 C74 44, 50 40, 32 24 C24 46, 24 74, 36 104 Z"
+                      fill="url(#harpGoldMain)"
+                      stroke="#5c2b04"
+                      strokeWidth="2.6"
+                      strokeLinejoin="round"
+                    />
 
-                  {/* Trụ đàn uốn cong bên trái + Đầu xoắn ốc cổ điển (Pillar & Scroll) */}
-                  <path
-                    d="M22 106 C10 76, 10 42, 16 20 C8 20, 4 10, 12 4 C22 -2, 34 6, 38 14 C52 28, 72 32, 92 24 C98 21, 103 28, 96 34 C74 44, 50 40, 32 24 C24 46, 24 76, 36 106 Z"
-                    fill="url(#harpGoldMain)"
-                    stroke="#5c2b04"
-                    strokeWidth="2.6"
-                    strokeLinejoin="round"
-                  />
+                    {/* Đường viền sáng bóng 3D trên thân đàn */}
+                    <path
+                      d="M15 10 C22 4, 30 10, 35 17 C50 31, 70 35, 90 27"
+                      fill="none"
+                      stroke="url(#harpGoldLight)"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M20 24 C15 48, 16 74, 27 100"
+                      fill="none"
+                      stroke="#fff3bf"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      opacity="0.85"
+                    />
+                    {/* Xoắn ốc chạm khắc ở đỉnh trái */}
+                    <path
+                      d="M14 14 C10 10, 15 5, 20 9 C23 12, 19 17, 16 15"
+                      fill="none"
+                      stroke="#5c2b04"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
 
-                  {/* Đường viền sáng bóng 3D trên thân đàn */}
-                  <path
-                    d="M15 10 C22 4, 30 10, 35 17 C50 31, 70 35, 90 27"
-                    fill="none"
-                    stroke="url(#harpGoldLight)"
-                    strokeWidth="3.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M20 24 C15 48, 16 74, 27 102"
-                    fill="none"
-                    stroke="#fff3bf"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    opacity="0.8"
-                  />
-                  {/* Xoắn ốc chạm khắc ở đỉnh trái */}
-                  <path
-                    d="M14 14 C10 10, 15 5, 20 9 C23 12, 19 17, 16 15"
-                    fill="none"
-                    stroke="#5c2b04"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Đế đàn hạc (Pedestal Base) */}
-                  <rect
-                    x="18"
-                    y="102"
-                    width="68"
-                    height="11"
-                    rx="4"
-                    fill="url(#harpGoldLight)"
-                    stroke="#5c2b04"
-                    strokeWidth="2.5"
-                  />
+                    {/* Đế đàn hạc (Pedestal Base) nằm gọn trên mặt đám mây */}
+                    <rect
+                      x="18"
+                      y="100"
+                      width="68"
+                      height="11"
+                      rx="4"
+                      fill="url(#harpGoldLight)"
+                      stroke="#5c2b04"
+                      strokeWidth="2.5"
+                    />
+                  </g>
                 </g>
 
-                {/* Lớp mây bồng bềnh phía trước ôm lấy chân Đàn Hạc */}
+                {/* Lớp mây trắng bồng bềnh phía trước ôm nhẹ dưới chân Đàn Hạc */}
                 <path
-                  d="M-68 58 C-92 58, -94 30, -68 26 C-56 12, -30 14, -18 26 C-4 14, 24 14, 36 28 C54 16, 82 24, 80 46 C86 64, 58 76, 34 68 C14 78, -18 78, -36 66 C-52 72, -72 68, -68 58 Z"
+                  d="M-92 34 C-122 34, -124 4, -92 0 C-76 -16, -40 -14, -24 0 C-6 -14, 30 -14, 46 2 C68 -12, 104 -2, 102 22 C110 42, 74 56, 44 46 C18 58, -22 58, -46 44 C-68 52, -96 46, -92 34 Z"
                   fill="url(#cloudShade)"
                   stroke="#d0cab2"
-                  strokeWidth="2.2"
+                  strokeWidth="2.4"
                   strokeLinejoin="round"
                 />
                 {/* Ánh sáng trắng mịn trên đỉnh các múi mây */}
                 <path
-                  d="M-64 32 C-52 18, -30 18, -18 30 C-4 18, 22 18, 34 32 C50 22, 74 28, 74 44"
+                  d="M-86 8 C-70 -8, -40 -8, -24 6 C-6 -8, 28 -8, 44 8 C64 -4, 94 2, 94 20"
                   fill="none"
                   stroke="#ffffff"
-                  strokeWidth="4"
+                  strokeWidth="4.5"
                   strokeLinecap="round"
                 />
               </g>
@@ -1409,16 +1437,16 @@ export default function TowerHome() {
                 <Cloud key={i} x={c.x} y={c.y} sc={c.sc} d={c.d} opacity={0.92} />
               ))}
               <g className="wm-cloud" style={{ "--cd": "-5s" } as React.CSSProperties}>
-                {Array.from({ length: 11 }, (_, i) => (
-                  <circle key={i} cx={-20 + i * 44} cy={VB_H - 62 + (i % 2) * 10} r="44" fill="#dff1ff" />
+                {Array.from({ length: 19 }, (_, i) => (
+                  <circle key={i} cx={-20 + i * 44} cy={VB_H - 62 + (i % 2) * 10} r="46" fill="#dff1ff" />
                 ))}
               </g>
               <g className="wm-cloud" style={{ "--cd": "-12s" } as React.CSSProperties}>
-                {Array.from({ length: 11 }, (_, i) => (
-                  <circle key={i} cx={-10 + i * 42} cy={VB_H - 36 + (i % 2) * 8} r="40" fill="#fff" />
+                {Array.from({ length: 19 }, (_, i) => (
+                  <circle key={i} cx={-10 + i * 42} cy={VB_H - 36 + (i % 2) * 8} r="42" fill="#fff" />
                 ))}
               </g>
-              <rect x="-40" y={VB_H - 30} width="480" height="40" fill="#fff" />
+              <rect x="-60" y={VB_H - 30} width="880" height="40" fill="#fff" />
             </svg>
 
             {/* Lớp chạm: biển tên tầng gắn trên thân, quả dưa, bọ rùa */}

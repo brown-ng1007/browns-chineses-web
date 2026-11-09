@@ -157,8 +157,8 @@
 /* ---------- Quả trên cành ---------- */
 .wm-fruit {
   position: absolute;
-  width: 8.5%;
-  margin-left: -4.25%;
+  width: 5.4%;
+  margin-left: -2.7%;
   padding: 0;
   border: 0;
   background: none;
@@ -286,8 +286,8 @@
 /* ---------- Biển tên tầng ---------- */
 .wm-label {
   position: absolute;
-  width: 35%;
-  margin-left: -17.5%;
+  width: 24%;
+  margin-left: -12%;
   text-align: left;
   animation: wm-fade-up 0.5s ease-out calc(var(--d, 0s) + 0.4s) backwards;
   transition:
@@ -416,5 +416,17 @@
   .wm-bump,
   .wm-sheet {
     animation: none !important;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .wm-label {
+    width: 34%;
+    margin-left: -17%;
+  }
+  .wm-fruit {
+    width: 6.4%;
+    margin-left: -3.2%;
   }
 }
