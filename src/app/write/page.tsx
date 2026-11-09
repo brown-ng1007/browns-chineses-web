@@ -55,6 +55,11 @@ export default function WritePage() {
   const [demoRound, setDemoRound] = useState<number>(0);
   const [turnMsg, setTurnMsg] = useState<boolean>(false);
   const [autoDemo, setAutoDemo] = useState<boolean>(true);
+  const [pencil, setPencil] = useState<boolean>(false); // chế độ Apple Pencil: chỉ bút viết được, tay bị bỏ qua
+  const [penSeen, setPenSeen] = useState<boolean>(false); // đã thấy bút chạm vào màn hình
+  const pencilRef = useRef<boolean>(false);
+  const penDownRef = useRef<boolean>(false);
+  const frameRef = useRef<HTMLDivElement | null>(null);
 
   const autoDemoRef = useRef<boolean>(true);
   const forceDemoRef = useRef<boolean>(false);
@@ -80,6 +85,114 @@ export default function WritePage() {
       // bỏ qua
     }
   }, []);
+
+  // Nhớ lựa chọn chế độ Pencil
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("write.pencil") === "1") {
+        pencilRef.current = true;
+        setPencil(true);
+      }
+    } catch {
+      // bỏ qua
+    }
+  }, []);
+
+  function togglePencil(v: boolean) {
+    setPencil(v);
+    pencilRef.current = v;
+    try {
+      localStorage.setItem("write.pencil", v ? "1" : "0");
+    } catch {
+      // bỏ qua
+    }
+  }
+
+  // Phát hiện bút (để gợi ý bật chế độ Pencil) và theo dõi lúc bút đang chạm màn hình
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === "pen") {
+        penDownRef.current = true;
+        setPenSeen(true);
+      }
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerType === "pen") {
+        // chờ một chút để nét cuối kết thúc hẳn rồi mới cho phép cuộn lại
+        window.setTimeout(() => {
+          penDownRef.current = false;
+        }, 350);
+      }
+    };
+    // Khi bút đang đặt xuống, mọi ngón tay hay cạnh bàn tay kéo trên trang không được làm trang cuộn
+    const move = (e: TouchEvent) => {
+      if (!pencilRef.current || !penDownRef.current) return;
+      if (e.cancelable) e.preventDefault();
+    };
+    document.addEventListener("pointerdown", down, true);
+    document.addEventListener("pointerup", up, true);
+    document.addEventListener("pointercancel", up, true);
+    document.addEventListener("touchmove", move, { capture: true, passive: false });
+    return () => {
+      document.removeEventListener("pointerdown", down, true);
+      document.removeEventListener("pointerup", up, true);
+      document.removeEventListener("pointercancel", up, true);
+      document.removeEventListener("touchmove", move, true);
+    };
+  }, []);
+
+  // Chế độ Pencil: bỏ qua mọi chạm bằng ngón tay/bàn tay trên khung viết, chỉ nhận bút (hoặc chuột)
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!pencil || !el) return;
+    let lastType = "";
+    let passing = false;
+    const onPointer = (e: PointerEvent) => {
+      lastType = e.pointerType;
+    };
+    // Safari trên iPad cho biết loại chạm: "direct" là ngón tay, "stylus" là Apple Pencil.
+    // Trình duyệt khác thì dựa vào loại con trỏ ngay trước đó.
+    const isFinger = (t: Touch) => {
+      const tt = (t as unknown as { touchType?: string }).touchType;
+      if (tt) return tt === "direct";
+      return lastType === "touch";
+    };
+    const onTouch = (e: TouchEvent) => {
+      if (passing) return;
+      const all = Array.from(e.touches);
+      const changed = Array.from(e.changedTouches);
+      const keepAll = all.filter((t) => !isFinger(t));
+      const keepChanged = changed.filter((t) => !isFinger(t));
+      if (keepAll.length === all.length && keepChanged.length === changed.length) return; // toàn là bút
+      e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault();
+      // Có cả bàn tay lẫn bút trong cùng một sự kiện: gửi lại bản chỉ có bút để nét không bị lệch
+      if (keepChanged.length > 0) {
+        const ev = new Event(e.type, { bubbles: true, cancelable: true });
+        Object.defineProperties(ev, {
+          touches: { value: keepAll },
+          targetTouches: { value: keepAll },
+          changedTouches: { value: keepChanged },
+        });
+        passing = true;
+        try {
+          (e.target as Element).dispatchEvent(ev);
+        } finally {
+          passing = false;
+        }
+      }
+    };
+    const noGesture = (e: Event) => e.preventDefault(); // chặn chụm hai ngón để phóng to trên iOS
+    const types = ["touchstart", "touchmove", "touchend", "touchcancel"] as const;
+    el.addEventListener("pointerdown", onPointer, true);
+    el.addEventListener("gesturestart", noGesture);
+    types.forEach((t) => el.addEventListener(t, onTouch, { capture: true, passive: false }));
+    return () => {
+      el.removeEventListener("pointerdown", onPointer, true);
+      el.removeEventListener("gesturestart", noGesture);
+      types.forEach((t) => el.removeEventListener(t, onTouch, true));
+    };
+  }, [pencil, size]);
 
   function toggleAutoDemo(v: boolean) {
     setAutoDemo(v);
@@ -337,8 +450,18 @@ export default function WritePage() {
           <div ref={wrapRef} className="w-full flex justify-center">
             {size > 0 && (
               <div
-                className="relative rounded-3xl border-2 border-rose-300/80 bg-white/90 overflow-hidden shadow-[0_8px_30px_rgb(244,63,94,0.10)]"
-                style={{ width: size, height: size, touchAction: "none" }}
+                ref={frameRef}
+                className={`relative rounded-3xl border-2 ${
+                  pencil ? "border-emerald-600/70" : "border-rose-300/80"
+                } bg-white/90 overflow-hidden shadow-[0_8px_30px_rgb(244,63,94,0.10)]`}
+                style={{
+                  width: size,
+                  height: size,
+                  touchAction: "none",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  WebkitTouchCallout: "none",
+                }}
               >
                 <svg
                   className="absolute inset-0 pointer-events-none"
@@ -363,7 +486,11 @@ export default function WritePage() {
                 {demoRound > 0 && (
                   <div
                     role="presentation"
-                    onPointerDown={() => skipRef.current?.()}
+                    onPointerDown={(e) => {
+                      // chế độ Pencil: ngón tay hay bàn tay không được bỏ qua phần mô phỏng
+                      if (pencil && e.pointerType === "touch") return;
+                      skipRef.current?.();
+                    }}
                     className="absolute inset-0 z-10 cursor-pointer"
                     style={{ touchAction: "none" }}
                   />
@@ -371,6 +498,12 @@ export default function WritePage() {
               </div>
             )}
           </div>
+
+          {pencil && (
+            <p className="text-center text-xs font-semibold text-emerald-700">
+              ✏️ Chế độ Pencil đang bật: chỉ bút viết được, chạm tay vào khung sẽ bị bỏ qua.
+            </p>
+          )}
 
           {status === "nodata" && (
             <div className="rounded-2xl bg-amber-50/90 border border-amber-200 px-3.5 py-2.5 text-sm text-amber-800">
@@ -516,6 +649,28 @@ export default function WritePage() {
           </div>
 
           <div className="space-y-2 text-sm text-slate-700">
+            <label className="flex items-center justify-between gap-3">
+              <span className="font-semibold">Chế độ Apple Pencil (chống chạm tay)</span>
+              <input
+                type="checkbox"
+                checked={pencil}
+                onChange={(e) => togglePencil(e.target.checked)}
+                className="h-5 w-5 accent-emerald-600"
+              />
+            </label>
+            <p className="text-xs text-slate-500 -mt-1">
+              Chỉ bút (hoặc chuột) được viết. Ngón tay, cạnh bàn tay chạm vào khung sẽ bị bỏ
+              qua, và trang không bị kéo đi khi bạn đang đặt bút.
+            </p>
+            {penSeen && !pencil && (
+              <button
+                type="button"
+                onClick={() => togglePencil(true)}
+                className="w-full rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800"
+              >
+                Phát hiện Apple Pencil. Bấm để bật chế độ Pencil
+              </button>
+            )}
             <label className="flex items-center justify-between gap-3">
               <span>Hiện chữ mẫu mờ</span>
               <input
