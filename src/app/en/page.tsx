@@ -428,18 +428,76 @@ export default function EnMapPage() {
         ))}
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_350px]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         {/* ================= CỘT TRÁI: LỘ TRÌNH HỌC SẮC NÉT ================= */}
         <section className="mx-auto w-full max-w-[500px]">
+          {/* Thanh nhảy nhanh Unit khi có hàng nghìn từ (60+ Units) */}
+          {groups.length > 2 && (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <label htmlFor="unit-jump" className="text-xs font-bold text-slate-700">
+                  Chuyển nhanh:
+                </label>
+                <select
+                  id="unit-jump"
+                  defaultValue={cur ? String(cur.stage.world) : String(groups[0]?.world ?? 1)}
+                  onChange={(e) => {
+                    const worldId = Number(e.target.value);
+                    setOpen((prev) => ({ ...prev, [worldId]: true }));
+                    setTimeout(() => {
+                      document
+                        .getElementById(`unit-box-${worldId}`)
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 60);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-800 outline-none focus:border-[#0d6e57]"
+                >
+                  {groups.map((g, idx) => {
+                    const w = EN_WORLDS.find((x) => x.id === g.world);
+                    const doneCount = g.items.filter((s) => s.stars > 0).length;
+                    return (
+                      <option key={g.world} value={g.world}>
+                        Unit {idx + 1} · {w?.tag ?? "B1"} - {w?.name ?? `Phần ${idx + 1}`} ({doneCount}/{g.items.length})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextState: Record<number, boolean> = {};
+                    groups.forEach((g, idx) => {
+                      const isCur = g.items.some((s) => s.current) || (!cur && idx === 0);
+                      nextState[g.world] = isCur;
+                    });
+                    setOpen(nextState);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Thu gọn bớt
+                </button>
+              </div>
+            </div>
+          )}
+
           {groups.map((g, gi) => {
             const w = EN_WORLDS.find((x) => x.id === g.world);
             const t = themeOf(gi + 1);
             const done = g.items.filter((s) => s.stars > 0).length;
-            const shown = open[g.world] ?? true;
+            const curUnitIdx = Math.max(
+              0,
+              groups.findIndex((grp) => grp.items.some((s) => s.current))
+            );
+            // Mặc định chỉ mở Unit đang học và Unit kế tiếp để trang không bị dài hàng chục nghìn px khi có 4.000 từ
+            const defaultOpen = gi === curUnitIdx || gi === curUnitIdx + 1;
+            const shown = open[g.world] ?? defaultOpen;
             const isNextLockedUnit = gi > 0 && done === 0 && !g.items.some((s) => s.current);
 
             return (
-              <div key={`w${g.world}`} className="mb-12">
+              <div key={`w${g.world}`} id={`unit-box-${g.world}`} className="mb-8 scroll-mt-24">
                 {/* Banner Unit sang trọng, chữ sắc nét, tương phản cao */}
                 <button
                   type="button"
@@ -744,8 +802,8 @@ export default function EnMapPage() {
           </div>
         </section>
 
-        {/* ================= CỘT PHẢI: SIDEBAR WIDGETS SẮC NÉT ================= */}
-        <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
+        {/* ================= CỘT PHẢI: SIDEBAR CUỘN ĐỘC LẬP ================= */}
+        <aside className="en-sidebar-scroll space-y-4 lg:self-start">
           {/* Card 1: My Assignments */}
           <div className="duo-widget">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
