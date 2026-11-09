@@ -56,7 +56,7 @@ const ZH_ITEMS = [
   {
     href: "/en",
     label: "Tiếng Anh",
-    icon: EMOJI("🍈"),
+    icon: EMOJI("🦉"),
   },
   {
     href: "/settings",
@@ -71,7 +71,11 @@ const ZH_ITEMS = [
 ];
 
 const EN_ITEMS = [
-  { href: "/en", label: "Bản đồ", icon: EMOJI("🗺️") },
+  { href: "/en", label: "Lộ trình", icon: EMOJI("🏠") },
+  { href: "/en/vocab", label: "Từ vựng", icon: EMOJI("📖") },
+  { href: "/en/review", label: "Ôn tập", icon: EMOJI("🔁") },
+  { href: "/en/games", label: "Trò chơi", icon: EMOJI("🎮") },
+  { href: "/en/skills", label: "Kỹ năng", icon: EMOJI("📊") },
   { href: "/", label: "Tiếng Trung", icon: EMOJI("🍉") },
   ZH_ITEMS[ZH_ITEMS.length - 1],
 ];
@@ -83,8 +87,11 @@ export default function NavBar() {
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [ind, setInd] = useState<{ left: number; width: number } | null>(null);
 
-  const isActiveHref = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActiveHref = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href === "/en") return pathname === "/en" || pathname.startsWith("/en/stage/");
+    return pathname.startsWith(href);
+  };
   const activeHref = NAV_ITEMS.find((i) => isActiveHref(i.href))?.href ?? null;
 
   const measure = () => {
@@ -110,8 +117,59 @@ export default function NavBar() {
     return null;
   }
 
+  if (isEn) {
+    return (
+      <header className="sticky top-0 z-40 bg-white border-b-2 border-[#e5e5e5] px-3 sm:px-6 py-2.5">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          <Link href="/en" className="flex items-center gap-2.5 self-start sm:self-auto">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#58cc02] text-2xl shadow-[0_3px_0_#46a302]">
+              🦉
+            </span>
+            <div className="flex flex-col">
+              <span className="text-base font-extrabold text-[#58cc02] tracking-tight leading-tight">
+                {APP_NAME} · English
+              </span>
+              <span className="text-[11px] font-bold text-[#afafaf] uppercase tracking-wider">
+                TOEIC 635 → IELTS 5.0
+              </span>
+            </div>
+          </Link>
+
+          <nav className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#f7f7f7] p-1 rounded-xl border-2 border-[#e5e5e5]">
+            {ind && (
+              <span
+                aria-hidden="true"
+                className="absolute top-1 bottom-1 rounded-lg bg-[#58cc02] shadow-[0_2px_0_#46a302] transition-[left,width] duration-300 ease-out"
+                style={{ left: ind.left, width: ind.width }}
+              />
+            )}
+            {NAV_ITEMS.map((item) => {
+              const isActive = isActiveHref(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  ref={(el) => {
+                    itemRefs.current[item.href] = el;
+                  }}
+                  className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors duration-150 ${
+                    isActive
+                      ? "text-white"
+                      : "text-[#777777] hover:text-[#3c3c3c] hover:bg-white/80"
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <>
     <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 pb-3">
       <div className="max-w-5xl mx-auto rounded-2xl bg-[#fffdf8]/85 backdrop-blur-xl border border-[#c99a2e]/40 shadow-[0_1px_0_0_#fff_inset,0_3px_0_0_#f2cf75,0_16px_30px_-12px_rgba(110,70,20,0.35)] px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         <Link
@@ -130,7 +188,7 @@ export default function NavBar() {
           </div>
         </Link>
 
-        <nav className="relative hidden sm:flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#fff6df]/80 p-1 rounded-xl border border-[#c99a2e]/30">
+        <nav className="relative flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#fff6df]/80 p-1 rounded-xl border border-[#c99a2e]/30">
           {ind && (
             <span
               aria-hidden="true"
@@ -167,39 +225,5 @@ export default function NavBar() {
         </nav>
       </div>
     </header>
-
-    {/* Thanh tab dưới cùng cho điện thoại: dễ chạm bằng ngón cái */}
-    <nav
-      aria-label="Điều hướng chính"
-      className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#c99a2e]/40 bg-[#fffdf8]/92 backdrop-blur-xl shadow-[0_-10px_30px_-12px_rgba(110,70,20,0.35)] pb-[env(safe-area-inset-bottom)]"
-    >
-      <div className="flex overflow-x-auto no-scrollbar px-1 pt-1.5 pb-1.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = isActiveHref(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={`nav-link flex-1 min-w-[52px] flex flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                isActive
-                  ? "bg-gradient-to-b from-[#12896a] to-[#0b6b53] text-white shadow-md shadow-emerald-900/25"
-                  : "text-stone-500 active:bg-[#fff6df]"
-              }`}
-            >
-              <span
-                className={`nav-ico [&_svg]:w-5 [&_svg]:h-5 [&>span]:text-lg ${
-                  isActive ? "text-[#f2cf75]" : "text-[#c99a2e]"
-                }`}
-              >
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-    </>
   );
 }

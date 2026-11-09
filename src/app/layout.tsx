@@ -19,7 +19,6 @@ export const viewport: Viewport = {
   themeColor: "#064436",
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover",
 };
 
 const HANZI = [
@@ -60,7 +59,7 @@ export default function RootLayout({
         </div>
         <TapEffects />
         <NavBar />
-        <div className="max-w-5xl mx-auto px-4 pt-6 pb-28 sm:pb-6">{children}</div>
+        <div className="max-w-5xl mx-auto px-4 py-6">{children}</div>
       </body>
     </html>
   );
