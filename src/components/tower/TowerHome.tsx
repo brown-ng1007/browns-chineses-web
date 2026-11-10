@@ -9,6 +9,7 @@ import { refreshSettings } from "@/lib/settings";
 import {
   FLOORS,
   FRUITS_PER_BRANCH,
+  FRUIT_MICRO_LESSONS,
   REVIEW_TARGET,
   LISTEN_TARGET,
   SPEAK_TARGET,
@@ -321,7 +322,10 @@ const VB_H = TOP_H + FLOORS.length * ROW_H + GROUND_H;
 const TRUNK_TOP = 168;
 const GROUND_Y = VB_H - GROUND_H + 14;
 const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
-const FRUIT_T = Array.from({ length: FRUITS_PER_BRANCH }, (_, i) => 0.20 + (i / Math.max(1, FRUITS_PER_BRANCH - 1)) * 0.76); // 8 quả trải đều trên mỗi cành
+const MAIN_FRUITS_PER_BRANCH = 8;
+const TWIG_FRUITS_PER_BRANCH = FRUITS_PER_BRANCH - MAIN_FRUITS_PER_BRANCH;
+const FRUIT_T = Array.from({ length: MAIN_FRUITS_PER_BRANCH }, (_, i) => 0.16 + (i / Math.max(1, MAIN_FRUITS_PER_BRANCH - 1)) * 0.80);
+const TWIG_FRUIT_T = Array.from({ length: TWIG_FRUITS_PER_BRANCH }, (_, i) => 0.08 + (i / Math.max(1, TWIG_FRUITS_PER_BRANCH - 1)) * 0.84);
 
 type Pt = [number, number];
 
@@ -495,14 +499,19 @@ function branchGeometry(level: number) {
   // Cành tán phụ bên đối diện thân cây: vươn dài tạo tán cây đối xứng sum suê
   const oy = ay + 64;
   const ox = stalkCx(oy) - s * (stalkHw(oy) - 8);
-  const twigEndX = ox - s * 185;
-  const twigCtrlX = ox - s * 88;
+  const twigEndX = ox - s * 210;
+  const twigCtrlX = ox - s * 102;
   const twigCtrlY = oy - 36;
   const twigEndY = oy - 16;
   const twigAt = (t: number): Pt => [
     (1 - t) * (1 - t) * ox + 2 * (1 - t) * t * twigCtrlX + t * t * twigEndX,
     (1 - t) * (1 - t) * oy + 2 * (1 - t) * t * twigCtrlY + t * t * twigEndY,
   ];
+  // Tám quả treo đều trên cành phụ để lấp đầy các nhánh nhỏ và tạo thêm mục tiêu học.
+  const twigHang: Pt[] = TWIG_FRUIT_T.map((t, i) => {
+    const [x, y] = twigAt(t);
+    return [r1(x), r1(y + 7 + (i % 2) * 5)] as Pt;
+  });
   const twigLeaves: LeafPos[] = [
     [0.22, -60, 1.12],
     [0.45, -36, 1.24],
@@ -521,6 +530,7 @@ function branchGeometry(level: number) {
     shape: `${smooth(top)}${smooth(bot.slice().reverse()).replace(/^M/, " L")} Z`,
     highlight: smooth(mid),
     hang,
+    twigHang,
     bug: [r1(bgx), r1(bgy - 26)] as Pt,
     leaves,
     tendril: curl(tx, ty, -s),
@@ -735,23 +745,26 @@ export default function TowerHome() {
           if (raw) {
             const saved = JSON.parse(raw) as string[];
             const version = localStorage.getItem(versionKey);
-            if (version !== "2") {
-              // Mốc cũ: quả 1=40, quả 2=120, quả 3=300 từ đã thuộc.
-              // Chúng tương ứng với quả 2, 4, 8 trong hệ thống 8 mục tiêu mới.
-              const legacyMap: Record<string, number> = { "0": 1, "1": 3, "2": 7 };
+            if (version !== "4") {
+              // v1: 3 mốc; v2: 8 mốc nền; v3: 12 checkpoint.
+              // Ánh xạ các quả cũ về đúng ngưỡng cũ trong bộ 16 quả mới.
+              const legacy3To16: Record<string, number> = { "0": 3, "1": 7, "2": 15 };
+              const legacy8To16: Record<string, number> = { "0": 1, "1": 3, "2": 5, "3": 7, "4": 9, "5": 11, "6": 13, "7": 15 };
+              const legacy12To16: Record<string, number> = { "0": 1, "1": 2, "2": 3, "3": 4, "4": 5, "5": 6, "6": 7, "7": 8, "8": 9, "9": 11, "10": 13, "11": 15 };
+              const map = version === "3" ? legacy12To16 : version === "2" ? legacy8To16 : legacy3To16;
               const migrated = saved.map((entry) => {
                 const [level, index] = entry.split("-");
-                const nextIndex = legacyMap[index];
+                const nextIndex = map[index];
                 return nextIndex === undefined ? entry : `${level}-${nextIndex}`;
               });
               localStorage.setItem(storageKey, JSON.stringify(migrated));
-              localStorage.setItem(versionKey, "2");
+              localStorage.setItem(versionKey, "4");
               setPicked(new Set(migrated));
             } else {
               setPicked(new Set(saved));
             }
           } else {
-            localStorage.setItem(versionKey, "2");
+            localStorage.setItem(versionKey, "4");
           }
         } catch {
           /* bỏ qua nếu trình duyệt chặn localStorage */
@@ -998,7 +1011,7 @@ export default function TowerHome() {
               </>
             ) : (
               <p className="text-sm font-semibold text-emerald-800">
-                Cây đã đủ 8 quả ở mọi tầng. Giữ nhịp học để khu vườn tiếp tục xanh tốt!
+                Cây đã đủ 16 quả ở mọi tầng. Giữ nhịp học để khu vườn tiếp tục xanh tốt!
               </p>
             )}
           </div>
@@ -1010,7 +1023,7 @@ export default function TowerHome() {
               return (
                 <div
                   key={i}
-                  className="h-[68px] rounded-2xl bg-rose-50/70 animate-pulse"
+                  className="h-[68px] rounded-2xl bg-rose-50/70"
                 />
               );
             }
@@ -1089,7 +1102,7 @@ export default function TowerHome() {
         <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400">
-              Cây Dưa Hấu thần kỳ · HSK 3.0
+              Cây Dưa Hấu thần kỳ · 16 mục tiêu mỗi tầng · HSK 3.0
             </h2>
             <p className="mt-0.5 text-xs text-emerald-700/70">
               {data ? `Đang leo tầng ${current}` : "Đang tải cây..."}
@@ -1499,6 +1512,7 @@ export default function TowerHome() {
               const d = (def.level - 1) * 0.14;
               const top = rowTop(def.level);
               const cx = stalkCx(top + 100);
+              const fruitPoints = [...g.hang, ...g.twigHang];
               // Thanh tiến độ của biển = tiến độ tới quả tiếp theo của tầng
               const nk = Math.min(FRUITS_PER_BRANCH - 1, f.stars);
               const full = f.stars >= FRUITS_PER_BRANCH;
@@ -1571,7 +1585,7 @@ export default function TowerHome() {
                   {Array.from({ length: FRUITS_PER_BRANCH }, (_, k) => {
                     const key = `${def.level}-${k}`;
                     const state = fruitState(f, k, picked, locked);
-                    const [fx, by] = g.hang[k];
+                    const [fx, by] = fruitPoints[k];
                     const popping = pickKey === key;
                     const need = f.targets[k];
                     const label =
@@ -1587,7 +1601,7 @@ export default function TowerHome() {
                           data-no-burst={state === "ripe" ? "" : undefined}
                           aria-label={label}
                           onClick={() => onFruit(def.level, k, state)}
-                          className={`wm-fruit wm-fruit-${state} ${popping ? "wm-popping" : ""}`}
+                          className={`wm-fruit wm-fruit-${state} ${k >= MAIN_FRUITS_PER_BRANCH ? "wm-fruit--twig" : "wm-fruit--main"} ${popping ? "wm-popping" : ""}`}
                           style={
                             {
                               left: pctX(fx),
@@ -1665,14 +1679,15 @@ export default function TowerHome() {
               ) : (
                 <>
                   <p className="mt-2 text-xs text-stone-500">
-                    Mỗi chặng = 1 ngày = {pace} từ (đổi số từ mới mỗi ngày trong Cài đặt). Xong chặng
-                    nào thì ô đó hiện ✓.
+                    Mỗi quả là một mục tiêu nhỏ trong 16 checkpoint. Các mốc tăng dần theo số từ đã thuộc; chỉnh nhịp học mỗi ngày trong Cài đặt.
                   </p>
                   <ul className="mt-3 space-y-2">
                     {sel.targets.map((t, k) => {
                       const plan = fruitPlan(sel, k, pace);
                       const isPicked = picked.has(`${sel.level}-${k}`);
                       const focus = selected.fruit === k;
+                      const lesson = FRUIT_MICRO_LESSONS[k] ?? FRUIT_MICRO_LESSONS[0];
+                      const lessonHref = `${lesson.href}?melonGoal=${k + 1}&hskLevel=${selDef.level}`;
                       return (
                         <li
                           key={k}
@@ -1696,8 +1711,20 @@ export default function TowerHome() {
                                 {plan.stageTotal} chặng · chặng {plan.stageNow} cần thuộc đến{" "}
                                 {plan.stageGoal} từ (còn {plan.stageLeft})
                               </p>
-                              <StageChips chips={stageChips(sel, k, pace)} />
+                              {focus && <StageChips chips={stageChips(sel, k, pace)} />}
                             </>
+                          )}
+                          {focus && (
+                            <div className="wm-fruit-lesson-plan">
+                              <div className="wm-fruit-lesson-heading">
+                                <span>BÀI HỌC NHỎ · CHECKPOINT {String(k + 1).padStart(2, "0")}</span>
+                                <small>{lesson.minutes} phút · Mốc {plan.prev} → {t} từ</small>
+                              </div>
+                              <strong className="wm-fruit-lesson-title">{lesson.title}</strong>
+                              <p className="wm-fruit-lesson-description">{lesson.description}</p>
+                              <Link href={lessonHref} className="wm-fruit-lesson-cta">Bắt đầu bài luyện <span aria-hidden="true">→</span></Link>
+                              <p className="wm-fruit-lesson-note">Mỗi quả là một mục tiêu ngắn. Hoàn thành bài luyện, tiếp tục tích lũy từ đã thuộc rồi quay lại thu hoạch.</p>
+                            </div>
                           )}
                         </li>
                       );

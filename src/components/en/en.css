@@ -955,11 +955,79 @@
 .ioe-play-scene.is-saved .ioe-penalty-ball { animation:ioe-ball-save 720ms cubic-bezier(.2,.75,.2,1) both; }
 .ioe-play-scene.is-saved .ioe-save-burst { animation:ioe-goal-pop 780ms cubic-bezier(.2,1.3,.35,1) both; }
 @keyframes ioe-kick { 0% { transform:rotate(0); } 55% { transform:rotate(-38deg); } 100% { transform:rotate(4deg); } }
-@keyframes ioe-keeper-dive-right { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(38px,-10px) rotate(34deg) scale(.92); } 100% { transform:translate(44px,7px) rotate(48deg) scale(.88); } }
-@keyframes ioe-keeper-save { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(-42px,-14px) rotate(-42deg) scale(.9); } 100% { transform:translate(-50px,1px) rotate(-48deg) scale(.88); } }
-@keyframes ioe-ball-goal { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(-48px,-132px) rotate(620deg) scale(.56); } 100% { transform:translate(-50%,-50%) translate(-64px,-145px) rotate(760deg) scale(.42); } }
-@keyframes ioe-ball-save { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(90px,-122px) rotate(560deg) scale(.5); } 100% { transform:translate(-50%,-50%) translate(118px,-110px) rotate(700deg) scale(.38); } }
-@keyframes ioe-goal-pop { 0% { opacity:0; transform:translate(-50%,-50%) scale(.35) rotate(-8deg); } 55% { opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(3deg); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0); } }
-@keyframes ioe-confetti-fly { 0% { opacity:0; transform:translate(-50%,-50%) scale(.2) rotate(0); } 20% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(300deg); } }
+@keyframes ioe-keeper-dive-right { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(30px,-7px) rotate(22deg) scale(.98); } 100% { transform:translate(36px,4px) rotate(28deg) scale(.96); } }
+@keyframes ioe-keeper-save { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(-34px,-10px) rotate(-25deg) scale(.97); } 100% { transform:translate(-40px,1px) rotate(-30deg) scale(.95); } }
+@keyframes ioe-ball-goal { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(-42px,-120px) rotate(28deg) scale(.76); } 100% { transform:translate(-50%,-50%) translate(-56px,-134px) rotate(42deg) scale(.72); } }
+@keyframes ioe-ball-save { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(72px,-104px) rotate(24deg) scale(.78); } 100% { transform:translate(-50%,-50%) translate(92px,-96px) rotate(38deg) scale(.74); } }
+@keyframes ioe-goal-pop { 0% { opacity:0; transform:translate(-50%,-50%) scale(.92); } 55% { opacity:1; transform:translate(-50%,-50%) scale(1.02); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@keyframes ioe-confetti-fly { 0% { opacity:0; transform:translate(-50%,-50%) scale(.7); } 20% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(24deg); } }
 @media (max-width:640px) { .ioe-play-scene { width:100%; border-radius:16px; } .ioe-penalty-ball { width:17%; } .ioe-goal-burst,.ioe-save-burst { top:37%; padding:7px 12px; } }
 @media (prefers-reduced-motion:reduce) { .ioe-penalty-kick-leg,.ioe-penalty-keeper,.ioe-penalty-ball,.ioe-goal-burst,.ioe-save-burst,.ioe-goal-confetti i { animation:none!important; } .ioe-play-scene.is-goal .ioe-goal-burst,.ioe-play-scene.is-saved .ioe-save-burst { opacity:1; transform:translate(-50%,-50%); } }
+
+
+/* ================= MELON CALM MOTION + TREASURE MAP ================= */
+/* Keep scene videos as atmosphere; stop the repeated zoom/bob loops that caused motion fatigue. */
+.ioe-play-scene .ioe-scene-cloud,
+.ioe-play-scene .ioe-scene-actor,
+.ioe-play-scene .ioe-scene-spark { animation: none !important; transform: none; }
+.ioe-scene-video { transform: none !important; filter: saturate(.96) contrast(1.01); }
+.ioe-game-card:hover .ioe-game-art img { transform: none !important; }
+.ioe-game-card, .ioe-quick-card, .ioe-option, .ioe-pair-card { transition-duration: .14s; }
+.duo-node--current, .duo-node--current::before { animation: none !important; }
+.duo-node--current::before { opacity: .45; transform: none; }
+
+/* Treasure parchment: a warm map surface with an ochre dotted trail and compass markers. */
+.en-map-stage-field {
+  border: 1px solid rgba(173,133,73,.34);
+  background:
+    radial-gradient(ellipse at 13% 15%,rgba(230,190,112,.23),transparent 30%),
+    radial-gradient(ellipse at 88% 75%,rgba(120,166,126,.16),transparent 32%),
+    repeating-linear-gradient(135deg,rgba(167,128,72,.035) 0 1px,transparent 1px 13px),
+    linear-gradient(145deg,#fbf3df 0%,#f5eddc 56%,#edf2e4 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), inset 0 0 46px rgba(164,125,65,.10), 0 10px 26px -22px rgba(105,75,32,.35);
+}
+.en-map-stage-field::before,.en-map-stage-field::after { border-color:rgba(161,120,61,.16); box-shadow:0 0 0 15px rgba(255,255,255,.16),0 0 0 31px rgba(161,120,61,.04); }
+.duo-map-start-marker { position:absolute; z-index:4; left:14px; top:12px; border:1px solid rgba(151,104,45,.28); border-radius:999px; padding:5px 9px; color:#785326; background:rgba(255,250,235,.92); box-shadow:0 2px 7px rgba(105,75,32,.08); font-size:8px; font-weight:950; letter-spacing:.12em; }
+.duo-map-compass { position:absolute; z-index:4; top:8px; right:12px; display:flex; align-items:center; gap:3px; color:#956b32; opacity:.82; }
+.duo-map-compass span { font-size:8px; font-weight:950; }
+.duo-stage-path { width:5px; border-radius:999px; background:repeating-linear-gradient(to bottom,#bf914d 0 8px,rgba(255,255,255,.72) 8px 13px,transparent 13px 21px); filter:drop-shadow(0 1px 0 rgba(255,255,255,.86)); }
+.duo-route-spur { border-top:3px dashed rgba(183,132,61,.62); filter:drop-shadow(0 1px 0 rgba(255,255,255,.8)); }
+.duo-node-code { position:absolute; bottom:7px; left:0; right:0; color:currentColor; font-size:7px; font-weight:950; letter-spacing:.08em; text-align:center; opacity:.78; }
+.duo-node-glyph { display:flex; align-items:center; justify-content:center; transform:translateY(-4px); }
+.duo-node--locked { background:linear-gradient(145deg,#fffdf6,#e8e4d7); border-color:#c9bea5; color:#879080; box-shadow:inset 0 1px 0 #fff,0 4px 0 #c9bea5,0 8px 18px -10px rgba(92,74,43,.22); }
+.duo-node--done { background:linear-gradient(155deg,#f8d88e,#d8a44b); color:#4a3214; border-color:#fff0bf; box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 4px 0 #9a6b2a,0 8px 16px -5px rgba(147,99,36,.26); }
+.duo-node--current { background:linear-gradient(150deg,#3d73c8,#244b91); border-color:#fff4d6; box-shadow:0 0 0 4px rgba(238,195,105,.24),0 5px 0 #173a73,0 10px 20px -7px rgba(31,68,125,.4); }
+.duo-node--current::before { border-color:rgba(194,145,68,.48); }
+.duo-start-bubble { border-color:#d8bd84 !important; color:#785326 !important; background:#fff9e9 !important; }
+.duo-start-bubble::after { background:#fff9e9 !important; border-color:#d8bd84 !important; }
+.duo-final-treasure { display:grid; grid-template-columns:112px minmax(0,1fr) auto; align-items:center; gap:15px; margin:22px 0 14px; border:1px solid rgba(181,133,57,.34); border-radius:22px; padding:15px 17px; background:radial-gradient(circle at 10% 5%,rgba(246,211,135,.32),transparent 35%),linear-gradient(125deg,#fff9e9,#f2ead7); box-shadow:0 12px 30px -23px rgba(111,74,24,.4),inset 0 1px 0 #fff; }
+.duo-final-treasure-art { display:grid; min-height:94px; place-items:center; border:1px dashed rgba(170,124,54,.35); border-radius:17px; background:rgba(255,255,255,.5); }
+.duo-final-kicker { color:#9b6b2d; font-size:8px; font-weight:950; letter-spacing:.16em; }
+.duo-final-treasure-copy h3 { margin-top:4px; color:#463016; font-size:17px; font-weight:950; letter-spacing:-.02em; }
+.duo-final-treasure-copy p { margin-top:3px; color:#76664e; font-size:10px; line-height:1.5; }
+.duo-treasure-progress { height:7px; overflow:hidden; margin-top:9px; border-radius:999px; background:#e5dcc8; }
+.duo-treasure-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#c28d43,#efc66e); transition:width .35s ease; }
+.duo-treasure-action,.duo-treasure-locked { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:12px; padding:10px 13px; white-space:nowrap; font-size:10px; font-weight:950; }
+.duo-treasure-action { color:#fff; background:linear-gradient(120deg,#9b682a,#c18a3b); box-shadow:0 4px 0 #81521f; }
+.duo-treasure-locked { color:#866c45; background:#eee5d3; border:1px solid #ddceb1; }
+.duo-final-treasure.is-unlocked { border-color:#d6aa56; box-shadow:0 0 0 3px rgba(214,170,86,.12),0 14px 30px -22px rgba(111,74,24,.48),inset 0 1px 0 #fff; }
+@media (max-width:760px) { .duo-final-treasure { grid-template-columns:72px minmax(0,1fr); gap:10px; padding:12px; } .duo-final-treasure-art { min-height:78px; } .duo-final-treasure-art svg { width:72px; height:auto; } .duo-treasure-action,.duo-treasure-locked { grid-column:1/-1; width:100%; } }
+@media (prefers-reduced-motion:reduce) { .ioe-play-scene *, .duo-node--current, .duo-node--current::before, .duo-treasure-progress span { animation:none!important; transition:none!important; } }
+
+
+/* ================= MELON ARCADE · MOTION COMFORT ================= */
+/* No idle bobbing, shaking, pulsing or repeated zoom in game scenes/cards.
+   Event animations (kick, goal, save, correct/wrong feedback) remain one-shot. */
+.ioe-scene-cloud,.ioe-scene-actor,.ioe-scene-spark { animation:none!important; }
+.ioe-play-scene .ioe-scene-cloud,.ioe-play-scene .ioe-scene-actor,.ioe-play-scene .ioe-scene-spark { animation:none!important; }
+.ioe-game-card:hover .ioe-game-art img,.ioe-quick-card:hover .ioe-game-icon img { transform:none!important; }
+.ioe-game-art img,.ioe-game-icon img { transition:filter .14s ease,opacity .14s ease!important; }
+.ioe-game-card:hover,.ioe-quick-card:hover,.ioe-option:hover,.ioe-pair-card:hover { transform:none; }
+.ioe-arcade-page .animate-bounce,.ioe-arcade-page .animate-pulse,.ioe-arcade-page .animate-ping { animation:none!important; }
+/* Treasure route: checkpoints remain still and clearly connected; no pulsing node. */
+.duo-node--current,.duo-node--current::before { animation:none!important; }
+.duo-stage-path { background:repeating-linear-gradient(to bottom,#b8843c 0 9px,rgba(255,251,238,.94) 9px 15px,transparent 15px 23px); }
+.duo-route-spur { border-top-style:dashed; border-top-color:rgba(174,124,54,.72); }
+.duo-map-start-marker { letter-spacing:.08em; }
+.duo-node-code { font-variant-numeric:tabular-nums; }
+@media (prefers-reduced-motion:reduce) { .ioe-play-scene *, .ioe-play-scene *::before, .ioe-play-scene *::after, .duo-node--current,.duo-node--current::before { animation:none!important; transition:none!important; } }

@@ -170,40 +170,6 @@ function IconTrophy({ size = 30 }: { size?: number }) {
   );
 }
 
-/* Rương cột mốc Vector sắc nét (Milestone Reward Chest) */
-function MilestoneChest({ unlocked }: { unlocked: boolean }) {
-  const outer = unlocked ? "#d97706" : "#94a3b8";
-  const body = unlocked ? "#f59e0b" : "#e2e8f0";
-  const lid = unlocked ? "#fbbf24" : "#f1f5f9";
-  const band = unlocked ? "#78350f" : "#64748b";
-  return (
-    <div
-      className={`flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 shadow-sm transition ${
-        unlocked
-          ? "border-amber-300/90 bg-gradient-to-b from-amber-50/90 to-white"
-          : "border-slate-200 bg-slate-50/80"
-      }`}
-    >
-      <svg viewBox="0 0 44 40" width="34" height="31" aria-hidden="true">
-        <rect x="4" y="16" width="36" height="20" rx="4" fill={body} stroke={outer} strokeWidth="2" />
-        <path d="M4 17 C4 9, 40 9, 40 17 Z" fill={lid} stroke={outer} strokeWidth="2" />
-        <rect x="11" y="10" width="4" height="26" fill={band} opacity="0.25" />
-        <rect x="29" y="10" width="4" height="26" fill={band} opacity="0.25" />
-        <rect x="18" y="13" width="8" height="9" rx="2.5" fill="#ffffff" stroke={outer} strokeWidth="2" />
-        <circle cx="22" cy="17.5" r="1.5" fill={band} />
-      </svg>
-      <div className="text-left">
-        <p className={`text-xs font-bold leading-tight ${unlocked ? "text-amber-900" : "text-slate-600"}`}>
-          Rương cột mốc
-        </p>
-        <p className="text-[11px] font-medium text-slate-500">
-          {unlocked ? "Đã mở khóa phần thưởng" : "Hoàn thành chặng trên"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function SmallStars({ n }: { n: number }) {
   return (
     <div
@@ -315,6 +281,11 @@ export default function EnMapPage() {
   const wordsTotal = normal.reduce((a, s) => a + s.stage.wordIds.length, 0);
   const wordsLearned = normal.filter((s) => s.stars > 0).reduce((a, s) => a + s.stage.wordIds.length, 0);
   const pct = wordsTotal > 0 ? Math.round((wordsLearned / wordsTotal) * 100) : 0;
+  // Đích kho báu chỉ mở khi mọi checkpoint trên toàn bộ bản đồ đã đạt ít nhất 1 sao.
+  const checkpointsPassed = states.filter((stage) => stage.unlocked && stage.stars >= 1).length;
+  const checkpointsTotal = states.length;
+  const treasureProgress = checkpointsTotal > 0 ? Math.round((checkpointsPassed / checkpointsTotal) * 100) : 0;
+  const treasureUnlocked = checkpointsTotal > 0 && checkpointsPassed === checkpointsTotal;
 
   // Tính XP hôm nay và dữ liệu biểu đồ 7 ngày
   const now = Date.now();
@@ -422,7 +393,7 @@ export default function EnMapPage() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         {/* ================= CỘT TRÁI: LỘ TRÌNH HỌC SẮC NÉT ================= */}
-        <section className="mx-auto w-full max-w-[500px]">
+        <section className="mx-auto w-full max-w-[620px]">
           {/* Thanh nhảy nhanh Unit khi có hàng nghìn từ (60+ Units) */}
           {groups.length > 2 && (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 shadow-2xs">
@@ -487,7 +458,6 @@ export default function EnMapPage() {
             // Mặc định chỉ mở Unit đang học và Unit kế tiếp để trang không bị dài hàng chục nghìn px khi có 4.000 từ
             const defaultOpen = gi === curUnitIdx || gi === curUnitIdx + 1;
             const shown = open[g.world] ?? defaultOpen;
-            const isNextLockedUnit = gi > 0 && done === 0 && !g.items.some((s) => s.current);
 
             return (
               <div key={`w${g.world}`} id={`unit-box-${g.world}`} className="mb-8 scroll-mt-24">
@@ -542,24 +512,18 @@ export default function EnMapPage() {
                   </span>
                 </button>
 
-                {/* Nút "JUMP HERE?" cho các Unit tiếp theo */}
-                {shown && isNextLockedUnit && g.items[0] && (
-                  <div className="mt-6 -mb-3 flex flex-col items-center">
-                    <Link
-                      href={`/en/stage/${g.items[0].stage.id}`}
-                      className="duo-start-bubble"
-                      style={{ color: t.text }}
-                    >
-                      <span>JUMP HERE?</span>
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12h14m-6-6 6 6-6 6" />
-                      </svg>
-                    </Link>
+                {/* Tuyến kho báu: mỗi checkpoint nối tiếp checkpoint trước */}
+                <div className="en-map-stage-field relative pt-12" hidden={!shown}>
+                  <div className="duo-map-start-marker" aria-hidden="true">BẾN KHỞI HÀNH · UNIT {gi + 1}</div>
+                  <div className="duo-map-compass" aria-hidden="true">
+                    <svg viewBox="0 0 40 40" width="30" height="30" fill="none">
+                      <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="1.4" />
+                      <path d="M20 5 23.5 20 20 35 16.5 20Z" fill="#c28c3f" stroke="#8c6128" strokeWidth="1" />
+                      <path d="M20 5 16.5 20 20 18Z" fill="#fff2c8" />
+                      <circle cx="20" cy="20" r="2.3" fill="#8c6128" />
+                    </svg>
+                    <span>N</span>
                   </div>
-                )}
-
-                {/* Các nút chặng uốn lượn theo hình chữ S */}
-                <div className="en-map-stage-field relative pt-10" hidden={!shown}>
                   <span className="duo-stage-path" aria-hidden="true" />
                   {shown &&
                     g.items.map((s, idx) => {
@@ -569,7 +533,6 @@ export default function EnMapPage() {
                       const isDone = s.unlocked && s.stars > 0;
                       const kind = !s.unlocked ? "locked" : isDone ? "done" : "current";
                       const href = s.recallDue ? `/en/stage/${s.stage.id}?recall=1` : `/en/stage/${s.stage.id}`;
-                      const showChest = !boss && idx > 0 && idx % 4 === 3;
 
                       const icon =
                         kind === "locked" ? (
@@ -594,21 +557,6 @@ export default function EnMapPage() {
 
                       return (
                         <div key={s.stage.id}>
-                          {/* Rương cột mốc xen kẽ trên đường học */}
-                          {showChest && (
-                            <div
-                              className="relative mb-8 flex justify-center"
-                              style={{ transform: `translateX(${Math.round(x * 0.45)}px)` }}
-                            >
-                              <Link
-                                href={isDone || s.unlocked ? href : "/en/review"}
-                                className="duo-chest"
-                              >
-                                <MilestoneChest unlocked={isDone || s.unlocked} />
-                              </Link>
-                            </div>
-                          )}
-
                           <div
                             id={s.current ? "en-current" : undefined}
                             className="relative flex justify-center"
@@ -710,13 +658,7 @@ export default function EnMapPage() {
                                   style={{ bottom: size + 14 }}
                                 >
                                   <div className="duo-start-bubble !text-xs !font-semibold !normal-case !tracking-normal !text-slate-600">
-                                    <span>Hoàn thành chặng trước hoặc</span>
-                                    <Link
-                                      href={`/en/stage/${s.stage.id}`}
-                                      className="font-bold text-[#2563eb] underline"
-                                    >
-                                      Học thử ngay
-                                    </Link>
+                                    <span>Hoàn thành checkpoint ngay trước để mở chặng này.</span>
                                   </div>
                                 </div>
                               )}
@@ -754,10 +696,11 @@ export default function EnMapPage() {
                                   type="button"
                                   onClick={() => showHint(s.stage.id)}
                                   aria-label={`Chặng ${s.stage.n} đang khóa`}
-                                  className={`duo-node duo-node--locked ${hint === s.stage.id ? "en-shake" : ""}`}
+                                  className="duo-node duo-node--locked"
                                   style={{ width: size, height: size }}
                                 >
-                                  {icon}
+                                  <span className="duo-node-glyph">{icon}</span>
+                                  <span className="duo-node-code">{boss ? "BOSS" : `CP ${String(s.stage.index + 1).padStart(2, "0")}`}</span>
                                 </button>
                               ) : (
                                 <Link
@@ -775,7 +718,8 @@ export default function EnMapPage() {
                                     } as CSSProperties
                                   }
                                 >
-                                  {icon}
+                                  <span className="duo-node-glyph">{icon}</span>
+                                  <span className="duo-node-code">{boss ? "BOSS" : `CP ${String(s.stage.index + 1).padStart(2, "0")}`}</span>
                                 </Link>
                               )}
 
@@ -789,6 +733,32 @@ export default function EnMapPage() {
               </div>
             );
           })}
+
+          <section className={`duo-final-treasure ${treasureUnlocked ? "is-unlocked" : ""}`} aria-label="Đích đến cuối hành trình tiếng Anh">
+            <div className="duo-final-treasure-art" aria-hidden="true">
+              <svg viewBox="0 0 112 92" width="104" height="86" fill="none">
+                <path d="M14 38h84v43H14z" fill={treasureUnlocked ? "#d99a37" : "#cbd5e1"} stroke={treasureUnlocked ? "#8c6128" : "#64748b"} strokeWidth="3" strokeLinejoin="round"/>
+                <path d="M10 39c0-20 92-20 92 0v8H10z" fill={treasureUnlocked ? "#f4c76c" : "#e2e8f0"} stroke={treasureUnlocked ? "#8c6128" : "#64748b"} strokeWidth="3"/>
+                <path d="M26 30v50m60-50v50" stroke={treasureUnlocked ? "#8c6128" : "#94a3b8"} strokeWidth="7" opacity=".72"/>
+                <rect x="46" y="42" width="20" height="23" rx="5" fill="#fff6d8" stroke={treasureUnlocked ? "#8c6128" : "#64748b"} strokeWidth="2.5"/>
+                <path d="M56 49v8m-4-4h8" stroke="#8c6128" strokeWidth="2.5" strokeLinecap="round"/>
+                {treasureUnlocked && <path d="M56 4 61 17 75 13 68 26 80 34 65 35 62 50 54 38 41 44 46 30 34 22 49 20Z" fill="#f6c76e" stroke="#b7791f" strokeWidth="1.6"/>}
+              </svg>
+            </div>
+            <div className="duo-final-treasure-copy">
+              <span className="duo-final-kicker">FINAL DESTINATION · ĐẢO KHO BÁU</span>
+              <h3>{treasureUnlocked ? "Cậu đã tìm thấy kho báu!" : "Đảo kho báu đang chờ cậu"}</h3>
+              <p>{treasureUnlocked ? "Tất cả checkpoint đã hoàn thành. Mở thử thách tổng kết để nhận phần thưởng cuối hành trình." : `Đã vượt ${checkpointsPassed}/${checkpointsTotal} checkpoint. Đi tiếp từng chặng để mở chiếc rương cuối bản đồ.`}</p>
+              <div className="duo-treasure-progress" role="progressbar" aria-valuenow={treasureProgress} aria-valuemin={0} aria-valuemax={100} aria-label="Tiến độ tới kho báu">
+                <span style={{ width: `${treasureProgress}%` }} />
+              </div>
+            </div>
+            {treasureUnlocked ? (
+              <Link href="/en/games/ioe" className="duo-treasure-action">Mở rương kho báu <span>→</span></Link>
+            ) : (
+              <span className="duo-treasure-locked">Còn {Math.max(0, checkpointsTotal - checkpointsPassed)} checkpoint</span>
+            )}
+          </section>
 
           {/* Thanh trạng thái nguồn dữ liệu gọn nhẹ ở cuối lộ trình */}
           <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-2xs">

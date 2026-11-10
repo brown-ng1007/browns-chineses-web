@@ -8,17 +8,52 @@ export const SPEAK_TARGET = 5; // lần đọc Nói mỗi ngày
 // Ngưỡng sao cũ vẫn dùng ở một số thống kê phụ trợ.
 const STAR_THRESHOLDS = [0.25, 0.5, 0.8];
 
-// Mỗi cành có 8 mục tiêu nhỏ, chia theo số từ đã thuộc.
-export const FRUITS_PER_BRANCH = 8;
-// Mốc nhỏ hơn để người bận rộn vẫn thường xuyên đạt được mục tiêu.
-// Giữ các mốc cũ 40, 120 và 300 ở vị trí 2, 4 và 8 để bảo toàn tiến độ thu hoạch trước đây.
+// Mỗi cành có 16 checkpoint dưa hấu, chia nhỏ theo số từ đã thuộc.
+export const FRUITS_PER_BRANCH = 16;
+// Mỗi cành có 16 checkpoint: 8 quả trên cành chính và 8 quả trên cành phụ.
+// Tám ngưỡng nền cũ vẫn được giữ nguyên; mỗi ngưỡng có thêm một mốc trung gian.
 export const FRUIT_CAPS = [20, 40, 80, 120, 160, 200, 250, 300];
 
 export function fruitTargetsFor(total: number): number[] {
-  return FRUIT_CAPS.map((cap, i) =>
-    Math.max(1, Math.min(Math.ceil(total * ((i + 1) / FRUITS_PER_BRANCH)), cap))
+  const base = FRUIT_CAPS.map((cap, i) =>
+    Math.max(1, Math.min(Math.ceil(total * ((i + 1) / FRUIT_CAPS.length)), cap))
   );
+  const targets: number[] = [];
+  base.forEach((target, index) => {
+    const previous = index === 0 ? 0 : base[index - 1];
+    // Mỗi cặp gồm một mục tiêu nhỏ ở giữa và ngưỡng gốc; ngưỡng cũ không bị thay đổi.
+    targets.push(Math.max(1, Math.ceil((previous + target) / 2)));
+    targets.push(target);
+  });
+  return targets;
 }
+
+export interface FruitMicroLesson {
+  title: string;
+  description: string;
+  href: string;
+  minutes: number;
+}
+
+// Mỗi quả đại diện một bài luyện nhỏ khác nhau, dùng các công cụ học đã có sẵn.
+export const FRUIT_MICRO_LESSONS: readonly FruitMicroLesson[] = [
+  { title: "Gieo hạt · Học 5 từ mới", description: "Chọn một nhóm từ nhỏ và thêm vào bộ thẻ đang học.", href: "/vocab", minutes: 5 },
+  { title: "Tưới cây · Ôn 5 thẻ", description: "Củng cố những từ đã gặp để chuyển dần sang trạng thái đã thuộc.", href: "/review", minutes: 5 },
+  { title: "Lắng nghe · Nhận diện từ", description: "Nghe âm tiếng Trung rồi chọn từ tương ứng.", href: "/listen", minutes: 5 },
+  { title: "Cất tiếng · Đọc thành tiếng", description: "Luyện phát âm từng từ, chú ý âm đầu và thanh điệu.", href: "/speak", minutes: 5 },
+  { title: "Nét chữ · Viết 3 chữ Hán", description: "Quan sát thứ tự nét và tự viết lại một nhóm chữ ngắn.", href: "/write", minutes: 6 },
+  { title: "Gắn nghĩa · Ôn từ theo cặp", description: "Nhắc lại mặt chữ, pinyin và nghĩa của các từ đã lưu.", href: "/review", minutes: 5 },
+  { title: "Từ theo chủ đề · Mở rộng vốn từ", description: "Tìm thêm từ cùng chủ đề để dễ liên kết và ghi nhớ.", href: "/vocab", minutes: 6 },
+  { title: "Ôn đúng lúc · Củng cố từ khó", description: "Ưu tiên thẻ đến hạn để giảm quên và giữ nhịp SRS.", href: "/review", minutes: 5 },
+  { title: "Nghe phân biệt · Chọn âm đúng", description: "Nghe kỹ và phân biệt những từ có âm gần nhau.", href: "/listen", minutes: 5 },
+  { title: "Thanh điệu · Phát âm theo mẫu", description: "Đọc theo mẫu và chú ý đường đi của bốn thanh điệu.", href: "/speak", minutes: 5 },
+  { title: "Viết từ ghép · Nhớ mặt chữ", description: "Luyện viết một vài chữ trong từ ghép đã học.", href: "/write", minutes: 7 },
+  { title: "Nghe rồi nhắc · Luyện phản xạ", description: "Nghe từ/cụm từ và nhắc lại ngay sau khi nhận diện.", href: "/listen", minutes: 5 },
+  { title: "Cụm từ · Kết hợp từ mới", description: "Mở rộng từ đơn thành cụm từ quen thuộc.", href: "/vocab", minutes: 6 },
+  { title: "Ôn tổng hợp · Nhớ lại từ cũ", description: "Ôn các thẻ đến hạn trước khi chuyển sang nhóm mới.", href: "/review", minutes: 6 },
+  { title: "Nghe nhanh · Kiểm tra tai", description: "Làm một lượt nghe ngắn để tự kiểm tra khả năng nhận diện.", href: "/listen", minutes: 5 },
+  { title: "Bài tổng kết · Chạm checkpoint", description: "Ôn lại nhóm từ vừa tích lũy trước khi đi tới quả tiếp theo.", href: "/review", minutes: 7 },
+];
 
 export interface FloorDef {
   level: number;
@@ -46,7 +81,7 @@ export interface FloorStat {
   learned: number; // số từ đã thuộc (thẻ ở trạng thái "review")
   pct: number; // 0-1
   stars: number; // số quả đã đạt (0..FRUITS_PER_BRANCH)
-  targets: number[]; // số từ đã thuộc cần để mỗi quả (1, 2, 3) chín
+  targets: number[]; // số từ đã thuộc cần để từng checkpoint dưa hấu chín
   unlocked: boolean;
   milestonesDone: number;
   milestonesTotal: number;
@@ -89,7 +124,7 @@ export function buildFloors(
   return out;
 }
 
-// Tầng đang leo: tầng đã mở đầu tiên chưa đủ 3 sao
+// Tầng đang leo: tầng đã mở đầu tiên chưa hoàn thành đủ 16 checkpoint
 export function currentFloorLevel(floors: FloorStat[]): number {
   const f = floors.find((x) => x.unlocked && x.stars < FRUITS_PER_BRANCH);
   return f ? f.level : FLOORS.length;

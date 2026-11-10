@@ -1,18 +1,33 @@
-MELON LANGUAGE – IOE ARCADE + CHINESE DAILY GOAL VISUAL PATCH
+MELON – ONE-PASS UX / GAMEPLAY UPDATE
+====================================
 
-What is included
-- Restores the Gemini-style IOE lesson flow: 3 lessons, random session selection of 4 / 6 / 10 mini-games, session timer, score summary, best scores, and lesson unlock progress.
-- Keeps the original 10 Melon mini-game modes and adds 29 unique, self-authored IOE-format practice modes (39 selectable activities total).
-- Adds Listening and pronunciation formats, odd-one-out, synonyms/antonyms, spelling, grammar, dialogue, reading/cloze, sentence transformation, and the Sailor Rescue task referenced by the original Lesson 3 but missing from the prototype.
-- Listening tasks attempt automatic speech playback and retain a replay button as a fallback.
-- Adds 10 lightweight local MP4 loop clips (4 seconds, H.264, 640x360) and 10 local WebP illustrations for in-game scenes. The clips are gentle camera-motion loops over illustrations, with additional CSS motion overlays; they are not full character-animation footage. All assets are local and do not rely on a CDN.
-- Restores the four quick-play cards to a horizontal layout using isolated CSS classes so IOE art styles cannot override them.
-- Adds a small watermelon slice to each Chinese daily-goal card. A goal's fruit brightens and gently bobs when that goal is complete. Existing Chinese tower, daily target, and fruit-stage calculations are otherwise unchanged.
+1) Chinese Garden – 16 watermelon checkpoints per floor
+- Each floor now has 16 small goals: 8 fruits on the main branch and 8 on the side branch.
+- The eight previous threshold milestones are retained; an intermediate goal is inserted before each one.
+- For the sample 584-word floor, targets are: 10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 200, 225, 250, 275, 300 learned words.
+- Each fruit has its own short learning objective (new vocabulary, SRS review, listening, speaking, handwriting, etc.) and links to an existing Chinese learning module.
+- Existing harvested-fruit state is migrated from 3-, 8-, or 12-fruit versions to the new 16-fruit layout. SRS calculations and Supabase progress are not changed.
 
-Files are intended to be overlaid onto the root of the existing project. This patch intentionally does not include .git, .env.local, node_modules, .next, or Vercel secrets/configuration. Keep your local .git and .env.local files.
+2) English Quest – treasure-map route
+- The route is presented as a parchment treasure map with a start harbor, compass, connected checkpoints, and a final treasure chest.
+- Checkpoints remain sequential: the next checkpoint only unlocks after the previous checkpoint earns at least one star.
+- The final chest only unlocks after every checkpoint across the roadmap is completed.
+- Removed the shake effect from locked checkpoints.
 
-Important content note
-The 29 added activities are original practice examples based on common IOE exercise formats. They are not official IOE game titles and do not reproduce official exam questions. A number of new modes currently contain one curated sample prompt each; expanding them into larger randomized question banks is a suitable next iteration.
+3) IOE Arcade – calmer game motion
+- Removed endless bobbing, rocking, shaking, pulsing, and repeated zoom from the scene actors and game artwork.
+- Removed image zoom on card hover and movement on game-card hover.
+- Kept short, event-based feedback such as the penalty kick, goalkeeper save, GOAL banner, and fruit harvest.
+- Penalty Shootout keeps its 16:9 scene, visible striker/goalkeeper SVG overlay, and answer-driven goal/save feedback from the previous patch.
+- The MP4 scene backgrounds remain looping as subtle environmental visuals; the repeated CSS motion on foreground objects is disabled.
 
-After applying
-Run `npm run build` locally to verify against your installed dependencies. If the project is connected to Vercel through GitHub, pushing the commit may trigger deployment automatically according to that repository's Vercel settings.
+4) Data and compatibility
+- No database migration, SRS formula, daily-goal formula, or Supabase table is changed in this patch.
+- No .env.local, .git, node_modules, or .next files are included.
+
+Validation performed
+- TypeScript/TSX syntax transpilation: passed for the changed TS/TSX files.
+- Strict type-check of src/lib/tower.ts: passed.
+- PostCSS parsing of en.css and tower.css: passed.
+- Runtime checks: 16 thresholds are returned for each floor, are monotonic, and 16 Chinese micro-lessons are defined.
+- Full Next.js production build and device/emulator visual test were not run in this environment; install dependencies and test locally after applying the patch.

@@ -187,14 +187,17 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
         <>
           <svg className="ioe-penalty-actors" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
             <g className="ioe-penalty-keeper" transform="translate(320 177)">
+              <g transform="scale(1.55)">
               <circle cx="0" cy="-25" r="11" fill="#e8b58e" stroke="#633d2d" strokeWidth="2" />
               <path d="M-13 -14 Q0 -21 13 -14 L18 24 Q0 33 -18 24 Z" fill="#f7c948" stroke="#8c6516" strokeWidth="2" />
               <path d="M-13 -8 L-39 2 L-47 -11 M13 -8 L39 2 L47 -11" fill="none" stroke="#e8b58e" strokeWidth="9" strokeLinecap="round" />
               <path d="M-39 2 L-47 -11 M39 2 L47 -11" fill="none" stroke="#f8fafc" strokeWidth="8" strokeLinecap="round" />
               <path d="M-8 24 L-13 48 M8 24 L13 48" fill="none" stroke="#253b58" strokeWidth="10" strokeLinecap="round" />
               <path d="M-13 48 L-25 51 M13 48 L25 51" fill="none" stroke="#e5edf7" strokeWidth="8" strokeLinecap="round" />
+              </g>
             </g>
             <g className="ioe-penalty-kicker" transform="translate(170 260)">
+              <g transform="scale(1.35)">
               <circle cx="0" cy="-61" r="13" fill="#d9a27d" stroke="#593a2b" strokeWidth="2" />
               <path d="M-12 -70 Q-4 -83 10 -71 L12 -62 L-12 -62 Z" fill="#26364e" />
               <path d="M-18 -46 Q0 -56 18 -43 L24 -7 L-18 -5 Z" fill="#2466bd" stroke="#164b91" strokeWidth="2" />
@@ -204,6 +207,7 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
               <g className="ioe-penalty-kick-leg">
                 <path d="M10 11 L31 34 L48 42" fill="none" stroke="#d9a27d" strokeWidth="11" strokeLinecap="round" />
                 <path d="M43 41 L58 43" fill="none" stroke="#172b47" strokeWidth="9" strokeLinecap="round" />
+              </g>
               </g>
             </g>
           </svg>
@@ -412,7 +416,7 @@ export default function IoeArcadePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-5 pb-24 pt-2">
+    <main className="ioe-arcade-page mx-auto w-full max-w-5xl space-y-5 pb-24 pt-2">
       <EnHeader title="Melon IOE Arcade" sub="Ôn luyện theo Lesson, chọn 4 / 6 / 10 mini-game và chinh phục thử thách IOE." />
 
       {phase === "hub" && (
