@@ -479,6 +479,7 @@ export default function EnMapPage() {
             const w = EN_WORLDS.find((x) => x.id === g.world);
             const t = themeOf(gi + 1);
             const done = g.items.filter((s) => s.stars > 0).length;
+            const unitPct = Math.round((done / Math.max(1, g.items.length)) * 100);
             const curUnitIdx = Math.max(
               0,
               groups.findIndex((grp) => grp.items.some((s) => s.current))
@@ -558,7 +559,8 @@ export default function EnMapPage() {
                 )}
 
                 {/* Các nút chặng uốn lượn theo hình chữ S */}
-                <div className="relative pt-10" hidden={!shown}>
+                <div className="en-map-stage-field relative pt-10" hidden={!shown}>
+                  <span className="duo-stage-path" aria-hidden="true" />
                   {shown &&
                     g.items.map((s, idx) => {
                       const boss = s.stage.boss;
@@ -649,8 +651,17 @@ export default function EnMapPage() {
                               </div>
                             )}
 
+                            <span
+                              className="duo-route-spur"
+                              aria-hidden="true"
+                              style={{
+                                left: `calc(50% + ${Math.min(0, x)}px)`,
+                                width: `${Math.abs(x)}px`,
+                                top: "50%",
+                              }}
+                            />
                             <div
-                              className="relative flex items-center justify-center"
+                              className="relative z-10 flex items-center justify-center"
                               style={{
                                 transform: `translateX(${x}px)`,
                                 width: s.current ? size + 22 : size,

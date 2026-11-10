@@ -321,7 +321,7 @@ const VB_H = TOP_H + FLOORS.length * ROW_H + GROUND_H;
 const TRUNK_TOP = 168;
 const GROUND_Y = VB_H - GROUND_H + 14;
 const FRUIT_CENTER_Y = 31; // tâm quả tính từ điểm treo
-const FRUIT_DX = [132, 214, 296]; // khoảng cách 3 quả tới trục thân trên tán rộng
+const FRUIT_T = Array.from({ length: FRUITS_PER_BRANCH }, (_, i) => 0.20 + (i / Math.max(1, FRUITS_PER_BRANCH - 1)) * 0.76); // 8 quả trải đều trên mỗi cành
 
 type Pt = [number, number];
 
@@ -473,21 +473,11 @@ function branchGeometry(level: number) {
     if (t >= 0.06 && t <= 0.92) mid.push([x + nx * h * 0.35, y + ny * h * 0.35]);
   }
 
-  // Vị trí treo của 3 quả: trải rộng dọc theo tán cành lớn
-  const hang: Pt[] = FRUIT_DX.map((dx) => {
-    const target = CX + s * dx;
-    let best = 1;
-    let bestD = Infinity;
-    for (let i = 15; i <= 100; i++) {
-      const t = i / 100;
-      const d = Math.abs(at(t)[0] - target);
-      if (d < bestD) {
-        bestD = d;
-        best = t;
-      }
-    }
-    const [x, y] = at(best);
-    return [r1(x), r1(y + half(best) * 0.42)] as Pt;
+  // 8 vị trí treo quả theo chiều dài cành; xen kẽ độ cao nhẹ để không dính vào lá.
+  const hang: Pt[] = FRUIT_T.map((t, i) => {
+    const [x, y] = at(t);
+    const stagger = i % 2 === 0 ? 0 : 5;
+    return [r1(x), r1(y + half(t) * 0.46 + stagger)] as Pt;
   });
 
   // Lá phía trên cành + lá đệm ở gốc cành tạo tán dày
@@ -667,8 +657,11 @@ function FruitArt({ state }: { state: FruitState }) {
       <path d="M17 0 V16" stroke="#4d8b2f" strokeWidth="2.2" strokeLinecap="round" fill="none" />
       {state === "locked" && (
         <>
-          <circle cx="17" cy="23" r="7" fill="#c9cfc6" />
-          <path d="M14 20 Q17 17 20 20" stroke="#e3e7e1" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <circle cx="17" cy="31" r="12.5" fill="#7cae58" />
+          <path d="M11 21 Q8 31 12 41 M17 18.5 Q14 31 17 43.5 M23 21 Q26 31 22 41" stroke="#2f6b35" strokeWidth="2" opacity="0.58" fill="none" strokeLinecap="round" />
+          <rect x="20" y="10" width="11" height="11" rx="3" fill="#f8fafc" stroke="#81917d" strokeWidth="1" />
+          <path d="M23 10V8a2.5 2.5 0 0 1 5 0v2" stroke="#64748b" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <rect x="23.5" y="13.5" width="4" height="3.5" rx="1" fill="#64748b" />
         </>
       )}
       {state === "unripe" && (
@@ -736,8 +729,30 @@ export default function TowerHome() {
         const id = s.session?.user.id ?? "anon";
         setUid(id);
         try {
-          const raw = localStorage.getItem(`tower.picked.${id}`);
-          if (raw) setPicked(new Set(JSON.parse(raw) as string[]));
+          const storageKey = `tower.picked.${id}`;
+          const versionKey = `tower.picked.version.${id}`;
+          const raw = localStorage.getItem(storageKey);
+          if (raw) {
+            const saved = JSON.parse(raw) as string[];
+            const version = localStorage.getItem(versionKey);
+            if (version !== "2") {
+              // Mốc cũ: quả 1=40, quả 2=120, quả 3=300 từ đã thuộc.
+              // Chúng tương ứng với quả 2, 4, 8 trong hệ thống 8 mục tiêu mới.
+              const legacyMap: Record<string, number> = { "0": 1, "1": 3, "2": 7 };
+              const migrated = saved.map((entry) => {
+                const [level, index] = entry.split("-");
+                const nextIndex = legacyMap[index];
+                return nextIndex === undefined ? entry : `${level}-${nextIndex}`;
+              });
+              localStorage.setItem(storageKey, JSON.stringify(migrated));
+              localStorage.setItem(versionKey, "2");
+              setPicked(new Set(migrated));
+            } else {
+              setPicked(new Set(saved));
+            }
+          } else {
+            localStorage.setItem(versionKey, "2");
+          }
         } catch {
           /* bỏ qua nếu trình duyệt chặn localStorage */
         }
@@ -756,7 +771,7 @@ export default function TowerHome() {
   // Quả tiếp theo trên cành đang leo, và kế hoạch chặng ngày của nó
   const curFloor = data ? floors[current - 1] : null;
   const nextPlan =
-    curFloor && curFloor.total > 0 && curFloor.stars < 3
+    curFloor && curFloor.total > 0 && curFloor.stars < FRUITS_PER_BRANCH
       ? fruitPlan(curFloor, curFloor.stars, pace)
       : null;
   const nextChips = curFloor && nextPlan ? stageChips(curFloor, nextPlan.k, pace) : [];
@@ -813,7 +828,7 @@ export default function TowerHome() {
   const week = data ? weekStrip(data.active, today) : [];
 
   const loading = data === null;
-  const crownReady = data !== null && floors[FLOORS.length - 1].stars === 3;
+  const crownReady = data !== null && floors[FLOORS.length - 1].stars === FRUITS_PER_BRANCH;
   const chineseCardsTotal = floors.reduce((sum, floor) => sum + floor.cards, 0);
   const chineseWordsLearned = floors.reduce((sum, floor) => sum + floor.learned, 0);
   const chineseProgressPct = chineseCardsTotal > 0 ? Math.round((chineseWordsLearned / chineseCardsTotal) * 100) : 0;
@@ -983,7 +998,7 @@ export default function TowerHome() {
               </>
             ) : (
               <p className="text-sm font-semibold text-emerald-800">
-                Cây đã đủ 3 quả ở mọi tầng. Giữ chuỗi ngày để dưa luôn tươi!
+                Cây đã đủ 8 quả ở mọi tầng. Giữ nhịp học để khu vườn tiếp tục xanh tốt!
               </p>
             )}
           </div>
@@ -1485,8 +1500,8 @@ export default function TowerHome() {
               const top = rowTop(def.level);
               const cx = stalkCx(top + 100);
               // Thanh tiến độ của biển = tiến độ tới quả tiếp theo của tầng
-              const nk = Math.min(2, f.stars);
-              const full = f.stars >= 3;
+              const nk = Math.min(FRUITS_PER_BRANCH - 1, f.stars);
+              const full = f.stars >= FRUITS_PER_BRANCH;
               const nPrev = nk > 0 ? f.targets[nk - 1] : 0;
               const nTarget = f.targets[nk];
               const barPct = loading || empty
@@ -1541,10 +1556,10 @@ export default function TowerHome() {
                           : empty
                             ? "Đang ươm"
                             : full
-                              ? "Đủ 3 quả"
+                              ? `Đủ ${FRUITS_PER_BRANCH} quả`
                               : `${f.learned}/${nTarget} từ`}
                       </span>
-                      <span>🍉{f.stars}/3</span>
+                      <span>🍉{f.stars}/{FRUITS_PER_BRANCH}</span>
                     </span>
                     {isCurrent && (
                       <span className="absolute -right-1.5 -top-3 whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
@@ -1553,7 +1568,7 @@ export default function TowerHome() {
                     )}
                   </button>
 
-                  {[0, 1, 2].map((k) => {
+                  {Array.from({ length: FRUITS_PER_BRANCH }, (_, k) => {
                     const key = `${def.level}-${k}`;
                     const state = fruitState(f, k, picked, locked);
                     const [fx, by] = g.hang[k];

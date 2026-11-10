@@ -5,19 +5,18 @@ export const REVIEW_TARGET = 20; // lượt chấm thẻ mỗi ngày
 export const LISTEN_TARGET = 1; // lượt Nghe mỗi ngày
 export const SPEAK_TARGET = 5; // lần đọc Nói mỗi ngày
 
-// Ngưỡng sao theo % từ đã thuộc của cả tầng (tạm, chỉnh được)
+// Ngưỡng sao cũ vẫn dùng ở một số thống kê phụ trợ.
 const STAR_THRESHOLDS = [0.25, 0.5, 0.8];
 
-// Mỗi cành có 3 quả dưa = 3 sao. Quả k chín khi số từ đã thuộc đạt
-// min(ngưỡng % x số từ của tầng, trần). Trần giúp tầng rất lớn (vd 5.000 từ)
-// vẫn hái được dưa. Muốn khó hơn: tăng số trần, hoặc đặt Infinity để quay lại
-// đúng 25% / 50% / 80%.
-export const FRUIT_CAPS = [40, 120, 300];
-export const FRUITS_PER_BRANCH = 3;
+// Mỗi cành có 8 mục tiêu nhỏ, chia theo số từ đã thuộc.
+export const FRUITS_PER_BRANCH = 8;
+// Mốc nhỏ hơn để người bận rộn vẫn thường xuyên đạt được mục tiêu.
+// Giữ các mốc cũ 40, 120 và 300 ở vị trí 2, 4 và 8 để bảo toàn tiến độ thu hoạch trước đây.
+export const FRUIT_CAPS = [20, 40, 80, 120, 160, 200, 250, 300];
 
 export function fruitTargetsFor(total: number): number[] {
-  return STAR_THRESHOLDS.map((t, i) =>
-    Math.max(1, Math.min(Math.ceil(total * t), FRUIT_CAPS[i]))
+  return FRUIT_CAPS.map((cap, i) =>
+    Math.max(1, Math.min(Math.ceil(total * ((i + 1) / FRUITS_PER_BRANCH)), cap))
   );
 }
 
@@ -46,7 +45,7 @@ export interface FloorStat {
   cards: number; // số từ đã có thẻ
   learned: number; // số từ đã thuộc (thẻ ở trạng thái "review")
   pct: number; // 0-1
-  stars: 0 | 1 | 2 | 3;
+  stars: number; // số quả đã đạt (0..FRUITS_PER_BRANCH)
   targets: number[]; // số từ đã thuộc cần để mỗi quả (1, 2, 3) chín
   unlocked: boolean;
   milestonesDone: number;
@@ -71,10 +70,8 @@ export function buildFloors(
     const pct = total > 0 ? Math.min(1, l / total) : 0;
     const targets = fruitTargetsFor(total);
     // Tầng chưa có từ nào thì chưa có quả chín
-    const stars = (total > 0
-      ? targets.filter((t) => l >= t).length
-      : 0) as 0 | 1 | 2 | 3;
-    const prevStars = i > 0 ? out[i - 1].stars : 3;
+    const stars = total > 0 ? targets.filter((t) => l >= t).length : 0;
+    const prevStars = i > 0 ? out[i - 1].stars : FRUITS_PER_BRANCH;
     out.push({
       level: i + 1,
       total,
@@ -94,7 +91,7 @@ export function buildFloors(
 
 // Tầng đang leo: tầng đã mở đầu tiên chưa đủ 3 sao
 export function currentFloorLevel(floors: FloorStat[]): number {
-  const f = floors.find((x) => x.unlocked && x.stars < 3);
+  const f = floors.find((x) => x.unlocked && x.stars < FRUITS_PER_BRANCH);
   return f ? f.level : FLOORS.length;
 }
 
@@ -198,7 +195,7 @@ export function floorOfWord(
 // chia thành các chặng liên tiếp; xong chặng nào là xong mục tiêu của ngày đó.
 
 export interface FruitPlan {
-  k: number; // 0, 1, 2
+  k: number; // chỉ số quả, từ 0 đến FRUITS_PER_BRANCH - 1
   target: number; // số từ đã thuộc để quả chín
   prev: number; // mốc của quả trước (0 nếu là quả đầu)
   need: number; // còn thiếu bao nhiêu từ

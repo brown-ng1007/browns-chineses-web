@@ -157,8 +157,8 @@
 /* ---------- Quả trên cành ---------- */
 .wm-fruit {
   position: absolute;
-  width: 5.4%;
-  margin-left: -2.7%;
+  width: 3.6%;
+  margin-left: -1.8%;
   padding: 0;
   border: 0;
   background: none;
@@ -426,8 +426,8 @@
     margin-left: -17%;
   }
   .wm-fruit {
-    width: 6.4%;
-    margin-left: -3.2%;
+    width: 3.6%;
+    margin-left: -1.8%;
   }
 }
 
@@ -530,3 +530,10 @@
 @media (prefers-reduced-motion: reduce) {
   .zh-journey-progress span,.en-gateway-card { transition: none; }
 }
+
+
+/* 8 quả nhỏ trên mỗi cành: dày dặn hơn nhưng vẫn tách biệt khi xem trên điện thoại. */
+.wm-fruit-locked { opacity: .78; filter: saturate(.72); }
+.wm-fruit-unripe { opacity: .96; }
+.wm-fruit-locked svg { filter: drop-shadow(0 1px 1px rgba(37,80,27,.18)); }
+@media (max-width: 420px) { .wm-fruit { width: 3.6%; margin-left: -1.8%; } }

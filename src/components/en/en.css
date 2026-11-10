@@ -907,3 +907,59 @@
 .ioe-quick-card .ioe-game-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .ioe-hero-art { overflow: hidden; }
 .ioe-renderer-label { display: inline-flex; align-items: center; margin-bottom: 4px; border: 1px solid #d5e4f4; border-radius: 999px; padding: 5px 9px; color: #315d8b; background: #f0f6fd; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+
+/* ================= MELON QUEST MAP · lively, readable route ================= */
+.duo-unit-progress { position:relative; width:min(100%,340px); height:5px; overflow:hidden; margin-top:10px; border-radius:999px; background:rgba(255,255,255,.23); box-shadow:inset 0 1px 2px rgba(5,20,55,.16); }
+.duo-unit-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#b7f3df,#fff1a6); box-shadow:0 0 12px rgba(255,255,255,.34); transition:width .55s ease; }
+.en-map-stage-field { isolation:isolate; overflow:hidden; border:1px solid rgba(145,176,218,.22); border-radius:26px; background:radial-gradient(circle at 15% 13%,rgba(250,211,123,.20),transparent 23%),radial-gradient(circle at 87% 70%,rgba(103,174,239,.17),transparent 28%),linear-gradient(180deg,rgba(248,252,255,.66),rgba(238,246,255,.34)); }
+.en-map-stage-field::before,.en-map-stage-field::after { content:""; position:absolute; z-index:-1; width:118px; height:118px; border:1px solid rgba(117,157,207,.13); border-radius:50%; pointer-events:none; }
+.en-map-stage-field::before { left:-65px; top:14%; box-shadow:0 0 0 14px rgba(255,255,255,.18),0 0 0 30px rgba(117,157,207,.035); }
+.en-map-stage-field::after { right:-70px; bottom:12%; box-shadow:0 0 0 18px rgba(255,255,255,.16),0 0 0 36px rgba(117,157,207,.035); }
+.duo-stage-path { position:absolute; z-index:0; top:23px; bottom:24px; left:50%; width:4px; transform:translateX(-50%); border-radius:99px; background:repeating-linear-gradient(to bottom,rgba(83,145,217,.34) 0 7px,transparent 7px 15px); filter:drop-shadow(0 1px 0 rgba(255,255,255,.75)); }
+.duo-route-spur { position:absolute; z-index:1; height:0; border-top:3px dotted rgba(90,145,207,.31); transform:translateY(-50%); pointer-events:none; }
+.duo-node { z-index:2; }
+.duo-node--current { animation:duo-current-pulse 2.6s ease-in-out infinite; }
+.duo-node--current::before { content:""; position:absolute; inset:-9px; border:2px solid rgba(104,169,243,.42); border-radius:inherit; animation:duo-ring-pulse 2.3s ease-out infinite; pointer-events:none; }
+.duo-node--done { position:relative; }
+.duo-node--done::after { content:"✓"; position:absolute; right:-2px; top:-3px; display:grid; width:21px; height:21px; place-items:center; border:2px solid white; border-radius:50%; color:#fff; background:#15966a; box-shadow:0 2px 6px rgba(9,87,63,.24); font-size:11px; font-weight:900; }
+.duo-node--locked { background:linear-gradient(145deg,#fff 0%,#edf3fb 100%); border-color:#d6e1ef; box-shadow:inset 0 1px 0 #fff,0 4px 0 #cbd8e8,0 8px 18px -10px rgba(32,66,108,.24); }
+@keyframes duo-current-pulse { 0%,100% { filter:drop-shadow(0 0 0 rgba(77,144,228,0)); } 50% { filter:drop-shadow(0 0 10px rgba(77,144,228,.22)); } }
+@keyframes duo-ring-pulse { 0% { transform:scale(.9); opacity:.7; } 75%,100% { transform:scale(1.22); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .duo-node--current,.duo-node--current::before { animation:none!important; } .duo-unit-progress span { transition:none; } }
+
+/* ================= PENALTY SHOOTOUT · full scene + kick/goal/save feedback ================= */
+.ioe-play-scene { display:block; width:100%; max-width:760px; height:auto; min-height:0; max-height:none; aspect-ratio:16/9; margin:18px auto 0; border-radius:22px; background:#0c2748; box-shadow:0 16px 30px -20px rgba(12,42,86,.62),0 0 0 1px rgba(255,255,255,.48) inset; }
+.ioe-scene-video { object-fit:cover; object-position:center center; transform:none; }
+.ioe-scene-shade { background:linear-gradient(90deg,rgba(5,18,40,.42),transparent 55%),linear-gradient(0deg,rgba(5,18,40,.46),transparent 50%); }
+.ioe-penalty-actors { position:absolute; z-index:2; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+.ioe-penalty-keeper { transform-box:view-box; transform-origin:320px 177px; filter:drop-shadow(0 3px 3px rgba(5,20,40,.3)); }
+.ioe-penalty-kicker { transform-box:view-box; transform-origin:170px 260px; filter:drop-shadow(0 4px 4px rgba(5,20,40,.24)); }
+.ioe-penalty-kick-leg { transform-box:fill-box; transform-origin:0% 0%; }
+.ioe-penalty-ball { position:absolute; z-index:3; left:50%; top:84%; width:15%; height:auto; overflow:visible; transform:translate(-50%,-50%); filter:drop-shadow(0 7px 5px rgba(5,20,40,.34)); pointer-events:none; }
+.ioe-goal-burst,.ioe-save-burst { position:absolute; z-index:5; left:50%; top:40%; display:flex; flex-direction:column; align-items:center; gap:2px; min-width:132px; border:1px solid rgba(255,255,255,.78); border-radius:16px; padding:8px 17px 9px; color:#fff; background:linear-gradient(135deg,rgba(8,110,76,.96),rgba(18,164,104,.96)); box-shadow:0 9px 26px rgba(3,27,48,.35),inset 0 1px 0 rgba(255,255,255,.36); opacity:0; transform:translate(-50%,-50%) scale(.45) rotate(-7deg); pointer-events:none; }
+.ioe-goal-burst strong,.ioe-save-burst strong { font-size:clamp(22px,4.2vw,38px); font-weight:1000; line-height:1; letter-spacing:.04em; text-shadow:0 3px 8px rgba(0,0,0,.24); }
+.ioe-goal-burst span,.ioe-save-burst span { font-size:10px; font-weight:900; letter-spacing:.08em; }
+.ioe-save-burst { background:linear-gradient(135deg,rgba(153,54,46,.96),rgba(211,82,53,.96)); }
+.ioe-goal-confetti { position:absolute; z-index:4; inset:0; overflow:hidden; opacity:0; pointer-events:none; }
+.ioe-goal-confetti i { position:absolute; top:42%; left:50%; width:9px; height:15px; border-radius:3px; background:#ffd45f; transform:translate(-50%,-50%); }
+.ioe-goal-confetti i:nth-child(2n) { background:#6fe2b0; } .ioe-goal-confetti i:nth-child(3n) { background:#f58ab1; }
+.ioe-goal-confetti i:nth-child(1) { --tx:-180px; --ty:-105px; } .ioe-goal-confetti i:nth-child(2) { --tx:-120px; --ty:-145px; } .ioe-goal-confetti i:nth-child(3) { --tx:-55px; --ty:-125px; } .ioe-goal-confetti i:nth-child(4) { --tx:35px; --ty:-150px; } .ioe-goal-confetti i:nth-child(5) { --tx:115px; --ty:-115px; } .ioe-goal-confetti i:nth-child(6) { --tx:185px; --ty:-78px; } .ioe-goal-confetti i:nth-child(7) { --tx:-150px; --ty:55px; } .ioe-goal-confetti i:nth-child(8) { --tx:155px; --ty:70px; }
+.ioe-play-scene.is-goal .ioe-penalty-kick-leg { animation:ioe-kick 260ms ease-out both; }
+.ioe-play-scene.is-goal .ioe-penalty-keeper { animation:ioe-keeper-dive-right 760ms cubic-bezier(.2,.8,.2,1) both; }
+.ioe-play-scene.is-goal .ioe-penalty-ball { animation:ioe-ball-goal 760ms cubic-bezier(.2,.75,.2,1) both; }
+.ioe-play-scene.is-goal .ioe-goal-burst { animation:ioe-goal-pop 820ms cubic-bezier(.2,1.3,.35,1) both; }
+.ioe-play-scene.is-goal .ioe-goal-confetti { opacity:1; }
+.ioe-play-scene.is-goal .ioe-goal-confetti i { animation:ioe-confetti-fly 760ms ease-out both; }
+.ioe-play-scene.is-saved .ioe-penalty-kick-leg { animation:ioe-kick 260ms ease-out both; }
+.ioe-play-scene.is-saved .ioe-penalty-keeper { animation:ioe-keeper-save 720ms cubic-bezier(.2,.8,.2,1) both; }
+.ioe-play-scene.is-saved .ioe-penalty-ball { animation:ioe-ball-save 720ms cubic-bezier(.2,.75,.2,1) both; }
+.ioe-play-scene.is-saved .ioe-save-burst { animation:ioe-goal-pop 780ms cubic-bezier(.2,1.3,.35,1) both; }
+@keyframes ioe-kick { 0% { transform:rotate(0); } 55% { transform:rotate(-38deg); } 100% { transform:rotate(4deg); } }
+@keyframes ioe-keeper-dive-right { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(38px,-10px) rotate(34deg) scale(.92); } 100% { transform:translate(44px,7px) rotate(48deg) scale(.88); } }
+@keyframes ioe-keeper-save { 0% { transform:translate(0,0) rotate(0) scale(1); } 68% { transform:translate(-42px,-14px) rotate(-42deg) scale(.9); } 100% { transform:translate(-50px,1px) rotate(-48deg) scale(.88); } }
+@keyframes ioe-ball-goal { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(-48px,-132px) rotate(620deg) scale(.56); } 100% { transform:translate(-50%,-50%) translate(-64px,-145px) rotate(760deg) scale(.42); } }
+@keyframes ioe-ball-save { 0% { transform:translate(-50%,-50%) translate(0,0) rotate(0) scale(1); } 72% { transform:translate(-50%,-50%) translate(90px,-122px) rotate(560deg) scale(.5); } 100% { transform:translate(-50%,-50%) translate(118px,-110px) rotate(700deg) scale(.38); } }
+@keyframes ioe-goal-pop { 0% { opacity:0; transform:translate(-50%,-50%) scale(.35) rotate(-8deg); } 55% { opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(3deg); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0); } }
+@keyframes ioe-confetti-fly { 0% { opacity:0; transform:translate(-50%,-50%) scale(.2) rotate(0); } 20% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1) rotate(300deg); } }
+@media (max-width:640px) { .ioe-play-scene { width:100%; border-radius:16px; } .ioe-penalty-ball { width:17%; } .ioe-goal-burst,.ioe-save-burst { top:37%; padding:7px 12px; } }
+@media (prefers-reduced-motion:reduce) { .ioe-penalty-kick-leg,.ioe-penalty-keeper,.ioe-penalty-ball,.ioe-goal-burst,.ioe-save-burst,.ioe-goal-confetti i { animation:none!important; } .ioe-play-scene.is-goal .ioe-goal-burst,.ioe-play-scene.is-saved .ioe-save-burst { opacity:1; transform:translate(-50%,-50%); } }
