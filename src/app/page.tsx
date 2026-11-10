@@ -81,7 +81,7 @@ export default function HomePage() {
   return (
     <main className="space-y-6 pb-8">
       {/* Hero: một lát dưa hấu */}
-      <section className="rise hero-shine relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#064436] via-[#0b6b53] to-[#12896a] ring-1 ring-[#c99a2e]/60 p-6 sm:p-8 pb-10 sm:pb-12 text-white shadow-[0_20px_50px_-12px_rgba(6,68,54,0.55)]">
+      <section className="zh-home-hero rise hero-shine relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#064436] via-[#0b6b53] to-[#12896a] ring-1 ring-[#c99a2e]/60 p-6 sm:p-8 pb-10 sm:pb-12 text-white shadow-[0_20px_50px_-12px_rgba(6,68,54,0.55)]">
         {SEEDS.map((s, i) => (
           <span
             key={i}
@@ -98,12 +98,12 @@ export default function HomePage() {
           />
         ))}
 
-        <Watermelon className="hero-slice pointer-events-none select-none absolute -right-8 bottom-4 w-52 sm:w-80 h-auto opacity-30 sm:opacity-100 drop-shadow-xl" />
+        <Watermelon className="hero-slice pointer-events-none select-none absolute -right-4 bottom-3 w-40 sm:w-60 h-auto opacity-20 sm:opacity-65 drop-shadow-xl" />
 
         <div className="relative z-10 max-w-xl space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white border border-white/30">
             <span className="pulse-dot h-2 w-2 rounded-full bg-lime-300" />
-            Góc học tiếng Trung của Dưa Hấu
+            CHINESE GARDEN · HSK 3.0
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-[#f7dc8a]">
@@ -111,8 +111,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-sm sm:text-base text-emerald-50/90 leading-relaxed">
-            Học tiếng Trung đều 4 kỹ năng: nghe, nói, đọc, viết. Tối ưu thao tác
-            cảm ứng và Apple Pencil trên iPad &amp; iPhone.
+            Lộ trình HSK 1–9 theo nhịp riêng: học từ mới, ôn bằng SRS, luyện nghe – nói và thu hoạch từng cột mốc.
+            Bỏ lỡ một ngày vẫn có thể quay lại từ bước tiếp theo.
           </p>
         </div>
 
@@ -125,16 +125,17 @@ export default function HomePage() {
 
       <Link
         href="/en"
-        className="rise block rounded-3xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 p-5 sm:p-6 text-white shadow-[0_12px_30px_rgb(251,146,60,0.3)]"
+        className="en-gateway-card rise block rounded-3xl p-5 sm:p-6 text-white"
       >
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold">Học tiếng Anh theo bản đồ chặng</h2>
+            <span className="en-gateway-kicker">ENGLISH QUEST · WORLD ROUTE</span>
+            <h2 className="mt-1 text-lg font-bold">Học tiếng Anh theo bản đồ chặng</h2>
             <p className="mt-1 text-sm text-amber-50">
               Mỗi ngày một chặng nhỏ, có sao và boss. Mục tiêu TOEIC và IELTS.
             </p>
           </div>
-          <span className="text-4xl" aria-hidden="true">🍈</span>
+          <span className="en-gateway-mark" aria-hidden="true">EN</span>
         </div>
       </Link>
 

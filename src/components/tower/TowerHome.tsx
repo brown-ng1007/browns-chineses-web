@@ -814,6 +814,9 @@ export default function TowerHome() {
 
   const loading = data === null;
   const crownReady = data !== null && floors[FLOORS.length - 1].stars === 3;
+  const chineseCardsTotal = floors.reduce((sum, floor) => sum + floor.cards, 0);
+  const chineseWordsLearned = floors.reduce((sum, floor) => sum + floor.learned, 0);
+  const chineseProgressPct = chineseCardsTotal > 0 ? Math.round((chineseWordsLearned / chineseCardsTotal) * 100) : 0;
   const sel = selected ? floors[selected.level - 1] : null;
   const selDef = selected ? FLOORS[selected.level - 1] : null;
 
@@ -878,9 +881,29 @@ export default function TowerHome() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 zh-learning-path">
+      {/* ===== Tổng quan vườn chữ Hán ===== */}
+      <section className="zh-journey-panel" aria-label="Tổng quan lộ trình tiếng Trung">
+        <div className="zh-journey-copy">
+          <span className="zh-journey-kicker">CHINESE GARDEN · HSK 3.0</span>
+          <h2>Vườn chữ Hán của bạn</h2>
+          <p>Chăm từng cụm từ, ôn đúng thời điểm và thu hoạch theo tiến độ. Ngày bận, ưu tiên thẻ đến hạn; chặng đã tích lũy không bị reset.</p>
+          <div className="zh-journey-progress-label"><span>Tỷ lệ thẻ trong bộ học đã thuộc</span><strong>{chineseWordsLearned.toLocaleString("vi-VN")} / {chineseCardsTotal.toLocaleString("vi-VN")} thẻ</strong></div>
+          <div className="zh-journey-progress"><span style={{ width: `${chineseProgressPct}%` }} /></div>
+          <div className="zh-journey-flow" aria-label="Trình tự học">
+            <span><b>01</b> Từ mới</span><i>→</i><span><b>02</b> Ôn tập</span><i>→</i><span><b>03</b> Nghe · Nói</span><i>→</i><span><b>04</b> Thu hoạch</span>
+          </div>
+        </div>
+        <div className="zh-journey-seal" aria-hidden="true"><span>汉</span><small>HSK<br/>1—9</small></div>
+        <div className="zh-journey-metrics">
+          <div><strong>{current || 1}</strong><span>Tầng đang học</span></div>
+          <div><strong>{pace}</strong><span>Từ mới / ngày</span></div>
+          <div><strong>{streak}</strong><span>Ngày duy trì</span></div>
+        </div>
+      </section>
+
       {/* ===== Nhiệm vụ hôm nay ===== */}
-      <section className="rise rounded-3xl bg-white/85 backdrop-blur-xl p-5 sm:p-6 border border-white/90 shadow-[0_8px_30px_rgb(229,51,79,0.08)] space-y-4">
+      <section className="zh-today-panel rise rounded-3xl bg-white/85 backdrop-blur-xl p-5 sm:p-6 border border-white/90 shadow-[0_8px_30px_rgb(229,51,79,0.08)] space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-stone-900">Nhiệm vụ hôm nay</h2>
@@ -982,14 +1005,14 @@ export default function TowerHome() {
               <Link
                 key={m.key}
                 href={m.href}
-                className={`flex items-center gap-3 rounded-2xl border p-3 transition-colors ${
+                className={`zh-mission-card flex items-center gap-3 rounded-2xl border p-3 transition-colors ${
                   done
                     ? "bg-emerald-50/80 border-emerald-200"
                     : "bg-white/70 border-rose-100 hover:bg-rose-50/60"
                 }`}
               >
                 <span
-                  className={`font-hanzi shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-sm ${
+                  className={`zh-mission-glyph font-hanzi shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-sm ${
                     done
                       ? "bg-gradient-to-br from-emerald-500 to-green-600"
                       : "bg-gradient-to-br from-rose-500 to-pink-500"
@@ -1000,7 +1023,7 @@ export default function TowerHome() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="text-sm font-bold text-stone-900">{m.title}</span>
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                    <span className="zh-mission-count flex items-center gap-1.5 text-xs font-semibold text-stone-500">
                       <Watermelon className={`wm-mission-fruit ${done ? "is-ripe" : ""}`} />
                       <span>{Math.min(m.value, 999)}/{m.target} {m.unit}</span>
                     </span>
@@ -1008,7 +1031,7 @@ export default function TowerHome() {
                   <span className="mt-1 block text-[11px] leading-tight text-stone-500">
                     {m.hint}
                   </span>
-                  <span className="mt-1.5 block h-2 rounded-full bg-stone-200/70 overflow-hidden">
+                  <span className="zh-mission-track mt-1.5 block h-2 rounded-full bg-stone-200/70 overflow-hidden">
                     <span
                       className={`block h-full rounded-full transition-[width] duration-700 ${
                         done

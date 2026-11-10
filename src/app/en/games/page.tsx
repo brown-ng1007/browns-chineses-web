@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import "@/components/en/en.css";
 import EnHeader from "@/components/en/EnHeader";
 import { loadPractice } from "@/lib/en/store";
 
 const GAMES = [
-  { href: "/en/games/match", emoji: "🧩", title: "Ghép cặp", desc: "Nối từ với nghĩa, càng nhanh càng nhiều sao", tag: "Từ vựng" },
-  { href: "/en/games/speed", emoji: "⚡", title: "Đua tốc độ", desc: "60 giây chọn nghĩa đúng, ăn combo, có 3 mạng", tag: "Phản xạ" },
-  { href: "/en/games/scramble", emoji: "🔤", title: "Xếp chữ", desc: "Sắp lại các chữ cái thành từ, có gợi ý", tag: "Chính tả" },
-  { href: "/en/games/guess", emoji: "🎯", title: "Đoán chữ", desc: "Đoán từng chữ cái trước khi hết 6 mạng", tag: "Ghi nhớ" },
+  { href: "/en/games/match", thumb: "pair", title: "Ghép cặp", desc: "Nối từ với nghĩa, càng nhanh càng nhiều sao", tag: "Từ vựng" },
+  { href: "/en/games/speed", thumb: "penalty", title: "Đua tốc độ", desc: "60 giây chọn nghĩa đúng, ăn combo, có 3 mạng", tag: "Phản xạ" },
+  { href: "/en/games/scramble", thumb: "rearrange", title: "Xếp chữ", desc: "Sắp lại các chữ cái thành từ, có gợi ý", tag: "Chính tả" },
+  { href: "/en/games/guess", thumb: "extra", title: "Đoán chữ", desc: "Đoán từng chữ cái trước khi hết 6 mạng", tag: "Ghi nhớ" },
 ];
 
 export default function EnGamesPage() {
@@ -35,7 +36,7 @@ export default function EnGamesPage() {
           <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-50/90">10 mini-game gốc + 29 dạng luyện tập mở rộng theo kỹ năng thường gặp trong IOE.</p>
           <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-amber-300 px-4 py-2.5 text-xs font-black text-emerald-950 shadow-lg transition group-hover:-translate-y-0.5">Khám phá 39 thử thách <span>→</span></span>
         </div>
-        <div className="ioe-hero-art" aria-hidden="true"><span>🍉</span><i>✦</i><b>+XP</b></div>
+        <div className="ioe-hero-art" aria-hidden="true"><Image src="/ioe/games/exam.webp" alt="" fill sizes="220px" /></div>
       </Link>
 
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -45,7 +46,7 @@ export default function EnGamesPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         {GAMES.map((game) => (
           <Link key={game.href} href={game.href} className="ioe-quick-card text-left">
-            <span className="ioe-game-icon">{game.emoji}</span>
+            <span className="ioe-game-icon"><Image src={`/ioe/games/${game.thumb}.webp`} alt="" width={72} height={58} /></span>
             <span className="min-w-0 flex-1"><span className="block text-[10px] font-extrabold uppercase tracking-widest text-emerald-700">{game.tag}</span><span className="mt-1 block text-base font-extrabold text-slate-900">{game.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{game.desc}</span></span>
             <span className="ioe-card-arrow">↗</span>
           </Link>

@@ -811,3 +811,99 @@
 @media (prefers-reduced-motion: reduce) {
   .ioe-scene-video { display: none; }
 }
+
+/* ================= MELON ENGLISH QUEST · ROADMAP + IOE VISUAL REVISION ================= */
+.en-journey-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
+  gap: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 177, 221, .24);
+  border-radius: 26px;
+  padding: 18px;
+  color: #f8fbff;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(72, 129, 222, .34), transparent 34%),
+    radial-gradient(circle at 90% 100%, rgba(245, 176, 65, .16), transparent 30%),
+    linear-gradient(128deg, #0b1730 0%, #142b52 58%, #1c3b6a 100%);
+  box-shadow: 0 18px 44px -30px rgba(12, 30, 64, .75), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.en-journey-main { min-width: 0; padding: 7px 7px 5px; }
+.en-journey-kicker { display: inline-flex; align-items: center; gap: 8px; color: #f6c76e; font-size: 9px; font-weight: 900; letter-spacing: .2em; }
+.en-journey-kicker::before { content: ""; width: 20px; height: 2px; border-radius: 3px; background: #f6c76e; }
+.en-journey-main h1 { margin-top: 10px; color: #fff; font-size: clamp(23px, 3vw, 31px); font-weight: 900; line-height: 1.12; letter-spacing: -.035em; }
+.en-journey-main > p { max-width: 540px; margin-top: 9px; color: rgba(230,239,255,.78); font-size: 12px; line-height: 1.7; }
+.en-journey-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 18px; max-width: 530px; }
+.en-journey-stats > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; border-left: 2px solid rgba(246,199,110,.62); padding-left: 10px; }
+.en-journey-stats strong { color: #fff; font-size: 22px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
+.en-journey-stats span { color: rgba(222,235,255,.68); font-size: 9px; font-weight: 700; line-height: 1.35; }
+.en-journey-progress { height: 7px; max-width: 530px; overflow: hidden; margin-top: 15px; border-radius: 999px; background: rgba(255,255,255,.13); }
+.en-journey-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#68b6ff,#84d9de,#f4c76c); box-shadow: 0 0 12px rgba(104,182,255,.3); transition: width .6s ease; }
+.en-journey-focus { display: flex; flex-direction: column; min-width: 0; border: 1px solid rgba(255,255,255,.16); border-radius: 19px; padding: 15px; background: linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055)); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.en-journey-focus-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: rgba(224,237,255,.68); font-size: 9px; font-weight: 900; letter-spacing: .13em; }
+.en-journey-focus-top b { border: 1px solid rgba(246,199,110,.35); border-radius: 999px; padding: 4px 8px; color: #f7d28b; font-size: 9px; letter-spacing: .08em; }
+.en-journey-focus > strong { margin-top: 10px; color: #fff; font-size: 21px; font-weight: 900; line-height: 1.2; }
+.en-journey-focus > p { margin-top: 5px; color: rgba(230,239,255,.7); font-size: 11px; line-height: 1.5; }
+.en-journey-continue { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 12px; border-radius: 12px; padding: 9px 12px; color: #142443; background: linear-gradient(100deg,#f6d58c,#f2ba57); font-size: 11px; font-weight: 900; box-shadow: 0 4px 12px rgba(5,15,35,.2); transition: transform .18s ease, filter .18s ease; }
+.en-journey-continue:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.en-journey-three-steps { display: grid; grid-template-columns: 1fr; gap: 5px; margin-top: auto; padding-top: 13px; }
+.en-journey-three-steps span { display: flex; align-items: center; gap: 8px; color: rgba(228,238,255,.72); font-size: 9px; font-weight: 700; }
+.en-journey-three-steps b { display: grid; width: 19px; height: 19px; place-items: center; border-radius: 7px; color: #f7d28b; background: rgba(246,199,110,.13); font-size: 8px; }
+
+/* The English map is a world-expedition route, visually distinct from the Chinese garden. */
+.duo-unit-banner { border-radius: 17px; padding: 17px 19px; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 20px -13px var(--u-shadow,rgba(37,99,235,.35)); }
+.duo-unit-banner::after { right: 18px; top: -55px; width: 185px; height: 185px; border: 1px solid rgba(255,255,255,.11); background: radial-gradient(circle,rgba(255,255,255,.15),transparent 68%); }
+.duo-node--done { background: linear-gradient(155deg,#f9cc71,#d99a37); color: #33240c; border-color: #fff0bf; box-shadow: inset 0 1px 0 rgba(255,255,255,.5),0 4px 0 #936324,0 8px 16px -5px rgba(147,99,36,.28); }
+.duo-node--current { border: 2px solid rgba(255,255,255,.84); box-shadow: 0 0 0 4px rgba(96,165,250,.18),0 6px 0 var(--edge,#123c83),0 12px 20px -5px var(--u-shadow,rgba(37,99,235,.3)); }
+.duo-widget { border-color: rgba(148,177,221,.34); border-bottom-color: rgba(99,135,193,.4); }
+
+/* IOE-inspired scene art: illustrated environments lead; no oversized emoji overlays. */
+.ioe-hero { background: radial-gradient(circle at 82% 12%,rgba(90,160,255,.34),transparent 26%),linear-gradient(118deg,#102548 0%,#174a84 55%,#167b88 100%); border-color: rgba(70,130,200,.38); box-shadow: 0 18px 40px -24px rgba(12,42,86,.72),inset 0 1px 0 rgba(255,255,255,.18); }
+.ioe-kicker { color: #b9d9ff; }
+.ioe-stat { border-color: rgba(210,229,255,.22); background: rgba(255,255,255,.1); }
+.ioe-hero-art { width: 214px; height: 164px; border-radius: 22px; border: 2px solid rgba(255,255,255,.38); background: rgba(8,27,56,.28); box-shadow: 0 18px 35px -18px rgba(0,0,0,.58); }
+.ioe-hero-art::before,.ioe-hero-art::after { display: none; }
+.ioe-hero-art img { object-fit: cover; }
+.ioe-game-card { border-color: #d5e0ed; background: #fff; box-shadow: 0 6px 18px -13px rgba(19,44,79,.34); }
+.ioe-game-card:hover { border-color: #8cb9e9; box-shadow: 0 15px 26px -18px rgba(30,86,150,.4); }
+.ioe-game-art { aspect-ratio: 16 / 8.2; background: #dbeafe; }
+.ioe-game-art img { object-fit: cover; }
+.ioe-game-art-tag { width: 29px; height: 25px; border-radius: 8px; color: #fff; background: rgba(10,31,61,.66); border-color: rgba(255,255,255,.4); font-size: 9px; font-weight: 900; letter-spacing: .06em; box-shadow: 0 3px 10px rgba(0,0,0,.16); }
+.ioe-lesson-icon { color: #1e477c; background: #eaf2fb; font-size: 13px; font-weight: 900; }
+.ioe-lesson-card.is-selected { border-color: #3b82c4; background: linear-gradient(145deg,#edf6ff,#fff); box-shadow: 0 0 0 2px rgba(59,130,196,.15),0 12px 24px -18px rgba(30,86,150,.42); }
+.ioe-length-button.is-active { border-color: #1e5595; background: #1e5595; box-shadow: 0 3px 0 #123b6c; }
+.ioe-filter.is-active { border-color: #8ab4e0; background: #edf5ff; color: #174a84; }
+.ioe-scene-video { opacity: 1; filter: saturate(1.02) contrast(1.02); transform: scale(1.015); }
+.ioe-play-scene { height: auto; min-height: 150px; max-height: 205px; aspect-ratio: 16 / 5.2; border-color: rgba(94,133,176,.32); border-radius: 19px; background: #102548; box-shadow: 0 12px 24px -20px rgba(12,42,86,.6); }
+.ioe-scene-shade { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg,rgba(7,22,45,.62),rgba(7,22,45,.08) 65%),linear-gradient(0deg,rgba(5,18,38,.38),transparent 56%); pointer-events: none; }
+.ioe-scene-meta { position: absolute; z-index: 2; left: 17px; bottom: 15px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; max-width: min(74%,520px); }
+.ioe-scene-chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 5px 9px; color: #fff; background: rgba(8,28,56,.55); backdrop-filter: blur(8px); font-size: 8px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.ioe-scene-chip i { width: 6px; height: 6px; border-radius: 50%; background: #f8cf79; box-shadow: 0 0 8px #f8cf79; }
+.ioe-scene-meta strong { color: #fff; font-size: clamp(15px,2.3vw,22px); font-weight: 900; line-height: 1.16; text-shadow: 0 2px 12px rgba(0,0,0,.25); }
+.ioe-scene-mark { position: absolute; z-index: 2; right: 15px; top: 13px; border: 1px solid rgba(255,255,255,.32); border-radius: 8px; padding: 5px 8px; color: rgba(255,255,255,.88); background: rgba(8,28,56,.34); font-size: 7px; font-weight: 900; letter-spacing: .18em; }
+.ioe-play-scene::after { display: none; }
+.ioe-pair-card { border-color: #d6e1ed; border-bottom-color: #b8c9dc; background: linear-gradient(160deg,#fff,#f7fbff); }
+.ioe-pair-card:hover { border-color: #88b7e5; background: #edf6ff; }
+.ioe-pair-card.is-selected { border-color: #3b82c4; background: #e0efff; color: #174a84; }
+.ioe-option:hover:not(:disabled),.ioe-word-token:hover { border-color: #8ab4e0; background: #edf5ff; }
+.ioe-option.is-correct { border-color: #8dd2ae; background: #edf9f1; color: #17603c; }
+
+@media (max-width: 760px) {
+  .en-journey-hero { grid-template-columns: 1fr; gap: 12px; padding: 15px; }
+  .en-journey-main h1 { font-size: 25px; }
+  .en-journey-focus { min-height: 0; }
+  .en-journey-three-steps { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; }
+  .en-journey-three-steps span { align-items: flex-start; flex-direction: column; gap: 4px; font-size: 8px; }
+  .ioe-play-scene { aspect-ratio: 16 / 7; min-height: 138px; }
+}
+@media (max-width: 540px) {
+  .ioe-hero { padding-right: 18px; padding-bottom: 142px; }
+  .ioe-hero-art { right: 16px; bottom: 12px; top: auto; width: 126px; height: 105px; opacity: .95; }
+  .ioe-scene-meta { left: 12px; bottom: 11px; gap: 5px; }
+  .ioe-scene-mark { right: 10px; top: 9px; font-size: 6px; }
+}
+
+.ioe-quick-card .ioe-game-icon { overflow: hidden; border: 1px solid #d8e4f1; border-radius: 14px; background: #eaf2fb; }
+.ioe-quick-card .ioe-game-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ioe-hero-art { overflow: hidden; }
+.ioe-renderer-label { display: inline-flex; align-items: center; margin-bottom: 4px; border: 1px solid #d5e4f4; border-radius: 999px; padding: 5px 9px; color: #315d8b; background: #f0f6fd; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }

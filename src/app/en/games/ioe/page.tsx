@@ -8,6 +8,7 @@ import { loadPractice, logActivity } from "@/lib/en/store";
 import { meaningOptions, shortMeaning, pickDistinct, isPlayableWord } from "@/lib/en/games";
 import { shuffle, norm } from "@/lib/en/quiz";
 import { IOE_EXPANSION, type IoeExpandedGame } from "@/lib/en/ioe-expansion";
+import { getMelonRenderer, type MelonRuntimeRendererKind } from "@/lib/content/contract";
 import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
 
@@ -33,7 +34,7 @@ type GameId = CoreId | ExpandedId;
 type GameDef = { id: GameId; title: string; vi: string; icon: string; color: string; scene: string; thumb: string; desc: string; category: string; expanded: boolean };
 type PairCard = { key: string; value: string; pairId: string; side: "word" | "meaning" };
 type RuntimeQuestion = {
-  kind: "choice" | "listen" | "order" | "input" | "stress" | "letters" | "pairs";
+  kind: MelonRuntimeRendererKind;
   prompt: string;
   subPrompt?: string;
   options?: string[];
@@ -166,17 +167,27 @@ function formatTime(seconds: number) {
 }
 
 function GameScene({ game }: { game: GameDef }) {
+  const categoryLabel = game.expanded ? game.category : "MELON MINI GAME";
   return (
-    <div className={`ioe-play-scene scene-${game.scene}`} data-scene={game.scene} aria-hidden="true">
-      <video className="ioe-scene-video" autoPlay loop muted playsInline preload="metadata" poster={`/ioe/games/${game.thumb}.webp`}>
+    <div className={`ioe-play-scene scene-${game.scene}`} data-scene={game.scene} role="img" aria-label={`Bối cảnh ${game.vi}`}>
+      <video
+        className="ioe-scene-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        poster={`/ioe/games/${game.thumb}.webp`}
+        aria-hidden="true"
+      >
         <source src={`/ioe/videos/${game.thumb}.mp4`} type="video/mp4" />
       </video>
-      <span className="ioe-scene-cloud cloud-one">☁️</span>
-      <span className="ioe-scene-cloud cloud-two">☁️</span>
-      <span className="ioe-scene-ground" />
-      <span className="ioe-scene-actor">{game.icon}</span>
-      <span className="ioe-scene-spark">✦</span>
-      <span className="ioe-scene-caption">MELON ARCADE</span>
+      <div className="ioe-scene-shade" aria-hidden="true" />
+      <div className="ioe-scene-meta">
+        <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
+        <strong>{game.vi}</strong>
+      </div>
+      <span className="ioe-scene-mark" aria-hidden="true">MELON · QUEST</span>
     </div>
   );
 }
@@ -378,12 +389,12 @@ export default function IoeArcadePage() {
               <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-4xl">Vừa học, vừa chơi,<br />mỗi ngày tiến bộ.</h1>
               <p className="mt-3 max-w-lg text-sm leading-6 text-emerald-50/90">Khôi phục khung luyện theo Lesson của Gemini, giữ 10 mini-game gốc và bổ sung 29 dạng luyện tập theo kỹ năng thường gặp trong IOE.</p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
-                <span className="ioe-stat">🎮 {ALL_GAMES.length} thử thách</span>
-                <span className="ioe-stat">📚 {data.words.length} từ sẵn sàng</span>
-                <span className="ioe-stat">🏅 Kỷ lục {best} điểm</span>
+                <span className="ioe-stat"><b>{ALL_GAMES.length}</b> thử thách</span>
+                <span className="ioe-stat"><b>{data.words.length}</b> từ sẵn sàng</span>
+                <span className="ioe-stat"><b>{best}</b> điểm kỷ lục</span>
               </div>
             </div>
-            <div className="ioe-hero-art" aria-hidden="true"><Image src="/ioe/hero-melon.webp" alt="" fill priority sizes="220px" /></div>
+            <div className="ioe-hero-art" aria-hidden="true"><Image src="/ioe/games/exam.webp" alt="" fill priority sizes="220px" /></div>
           </section>
 
           <section className="space-y-3">
@@ -397,7 +408,7 @@ export default function IoeArcadePage() {
                 const selected = selectedLessonId === lesson.id;
                 return (
                   <button key={lesson.id} type="button" disabled={locked} onClick={() => setSelectedLessonId(lesson.id)} className={`ioe-lesson-card ${selected ? "is-selected" : ""} ${locked ? "is-locked" : ""}`}>
-                    <span className="ioe-lesson-icon">{locked ? "🔒" : lesson.icon}</span>
+                    <span className="ioe-lesson-icon">{locked ? "—" : String(index + 1).padStart(2, "0")}</span>
                     <span className="block text-left"><span className="ioe-game-number">LESSON {index + 1} · {lesson.gameIds.length} DẠNG BÀI</span><strong className="mt-1 block text-sm text-slate-900">{lesson.title}</strong><span className="mt-2 block text-xs leading-5 text-slate-600">{lesson.description}</span></span>
                     <span className="ioe-lesson-score">{progress.highScores[lesson.id] ? `Kỷ lục ${progress.highScores[lesson.id]} điểm` : locked ? "Chưa mở khóa" : "Chưa có điểm"}</span>
                   </button>
@@ -423,7 +434,7 @@ export default function IoeArcadePage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredGames.filter((game) => game.expanded ? showExpanded : showCore).map((game, index) => (
                 <button key={game.id} type="button" onClick={() => playSingle(game.id)} className={`ioe-game-card ioe-${game.color} text-left`}>
-                  <span className="ioe-game-art"><Image src={`/ioe/games/${game.thumb}.webp`} alt={game.title} fill sizes="(max-width: 640px) 100vw, 33vw" /><span className="ioe-game-art-tag">{game.icon}</span></span>
+                  <span className="ioe-game-art"><Image src={`/ioe/games/${game.thumb}.webp`} alt={game.title} fill sizes="(max-width: 640px) 100vw, 33vw" /><span className="ioe-game-art-tag">{String(index + 1).padStart(2, "0")}</span></span>
                   <span className="ioe-game-copy"><span className="ioe-game-number">{game.expanded ? game.category.toUpperCase() : "MELON MINI GAME"} · {String(index + 1).padStart(2, "0")}</span><span className="ioe-game-title">{game.vi}</span><span className="ioe-game-desc">{game.desc}</span></span>
                   <span className="ioe-card-arrow" aria-hidden="true">↗</span>
                 </button>
@@ -444,6 +455,7 @@ export default function IoeArcadePage() {
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-all" style={{ width: `${((sessionIndex + (feedback ? 1 : 0)) / sessionGames.length) * 100}%` }} /></div>
           <GameScene game={activeGame} />
           <div className="mx-auto max-w-2xl py-5 text-center">
+            <p className="ioe-renderer-label">{getMelonRenderer(question.kind).label}</p>
             <p className="text-sm font-bold text-slate-700">{question.prompt}</p>
             {question.subPrompt && <p className="mt-3 rounded-2xl bg-gradient-to-br from-slate-50 to-emerald-50 p-5 text-xl font-black text-slate-900">{question.subPrompt}</p>}
             {question.word && <div className="mt-2 flex items-center justify-center gap-3"><span className="text-xs text-slate-500">{question.word.pos} · {question.word.ipa}</span><button type="button" onClick={() => speakText(question.word!.word)} className="text-xs font-bold text-emerald-700 hover:underline">🔊 Nghe phát âm</button></div>}
@@ -483,7 +495,7 @@ export default function IoeArcadePage() {
       )}
 
       {phase === "result" && (
-        <section className="en-card p-7 text-center sm:p-10"><div className="ioe-result-art"><Image src="/ioe/games/exam.webp" alt="Cúp chiến thắng" fill sizes="112px" /></div><p className="ioe-section-label mt-4">PHIÊN LUYỆN TẬP HOÀN TẤT</p><h2 className="mt-2 text-2xl font-black text-slate-900">Làm tốt lắm! 🍉</h2><p className="mt-1 text-sm text-slate-500">{isStandalone ? activeGame?.vi : currentLesson.title}</p><div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2"><div className="ioe-mini-stat"><b>{score}</b><span>Điểm số</span></div><div className="ioe-mini-stat"><b>{correctCount}/{sessionGames.length}</b><span>Trò hoàn thành</span></div><div className="ioe-mini-stat"><b>{mistakes}</b><span>Số lỗi</span></div></div><p className="mt-5 text-xs text-slate-500">Kỷ lục cá nhân: <b className="text-amber-700">{best} điểm</b>{!isStandalone ? ` · Kỷ lục Lesson: ${progress.highScores[selectedLessonId] ?? score} điểm` : ""}</p><div className="mx-auto mt-7 flex max-w-md flex-col gap-2 sm:flex-row"><button type="button" onClick={playAgain} className="en-btn">{isStandalone ? "Chơi lại ↻" : "Về bảng Lesson"}</button><button type="button" onClick={() => { setPhase("hub"); setSessionGames([]); }} className="en-btn en-btn--ghost">Chọn thử thách khác</button></div></section>
+        <section className="en-card p-7 text-center sm:p-10"><div className="ioe-result-art"><Image src="/ioe/games/exam.webp" alt="Cúp chiến thắng" fill sizes="112px" /></div><p className="ioe-section-label mt-4">PHIÊN LUYỆN TẬP HOÀN TẤT</p><h2 className="mt-2 text-2xl font-black text-slate-900">Hoàn thành thử thách!</h2><p className="mt-1 text-sm text-slate-500">{isStandalone ? activeGame?.vi : currentLesson.title}</p><div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2"><div className="ioe-mini-stat"><b>{score}</b><span>Điểm số</span></div><div className="ioe-mini-stat"><b>{correctCount}/{sessionGames.length}</b><span>Trò hoàn thành</span></div><div className="ioe-mini-stat"><b>{mistakes}</b><span>Số lỗi</span></div></div><p className="mt-5 text-xs text-slate-500">Kỷ lục cá nhân: <b className="text-amber-700">{best} điểm</b>{!isStandalone ? ` · Kỷ lục Lesson: ${progress.highScores[selectedLessonId] ?? score} điểm` : ""}</p><div className="mx-auto mt-7 flex max-w-md flex-col gap-2 sm:flex-row"><button type="button" onClick={playAgain} className="en-btn">{isStandalone ? "Chơi lại ↻" : "Về bảng Lesson"}</button><button type="button" onClick={() => { setPhase("hub"); setSessionGames([]); }} className="en-btn en-btn--ghost">Chọn thử thách khác</button></div></section>
       )}
     </main>
   );

@@ -13,46 +13,11 @@ import { STAGE_SIZE, buildStages, stageStates, type Prog, type StageState } from
 
 // Bảng màu trầm ấm, sang trọng, dịu mắt cho từng Unit
 const UNIT_THEME = [
-  {
-    bg: "#0d6e57",
-    bg2: "#128c6e",
-    edge: "#084c3c",
-    text: "#0d6e57",
-    shadow: "rgba(13, 110, 87, 0.26)",
-    ring: "#10b981",
-  },
-  {
-    bg: "#364fc7",
-    bg2: "#4c6ef5",
-    edge: "#283b99",
-    text: "#364fc7",
-    shadow: "rgba(54, 79, 199, 0.26)",
-    ring: "#6366f1",
-  },
-  {
-    bg: "#5f3dc4",
-    bg2: "#7950f2",
-    edge: "#472d96",
-    text: "#5f3dc4",
-    shadow: "rgba(95, 61, 196, 0.26)",
-    ring: "#8b5cf6",
-  },
-  {
-    bg: "#c94814",
-    bg2: "#e8590c",
-    edge: "#9c360d",
-    text: "#c94814",
-    shadow: "rgba(201, 72, 20, 0.26)",
-    ring: "#f97316",
-  },
-  {
-    bg: "#0b7285",
-    bg2: "#1098ad",
-    edge: "#085563",
-    text: "#0b7285",
-    shadow: "rgba(11, 114, 133, 0.26)",
-    ring: "#06b6d4",
-  },
+  { bg: "#174ea6", bg2: "#2563eb", edge: "#123c83", text: "#174ea6", shadow: "rgba(37, 99, 235, 0.25)", ring: "#60a5fa" },
+  { bg: "#4338ca", bg2: "#6366f1", edge: "#312e81", text: "#4338ca", shadow: "rgba(79, 70, 229, 0.24)", ring: "#818cf8" },
+  { bg: "#0e7490", bg2: "#0891b2", edge: "#155e75", text: "#0e7490", shadow: "rgba(8, 145, 178, 0.24)", ring: "#22d3ee" },
+  { bg: "#b45309", bg2: "#d97706", edge: "#92400e", text: "#b45309", shadow: "rgba(217, 119, 6, 0.23)", ring: "#fbbf24" },
+  { bg: "#5b21b6", bg2: "#7c3aed", edge: "#4c1d95", text: "#5b21b6", shadow: "rgba(124, 58, 237, 0.23)", ring: "#a78bfa" },
 ];
 const themeOf = (unitIndex: number) => UNIT_THEME[(unitIndex - 1) % UNIT_THEME.length];
 
@@ -110,8 +75,8 @@ const TOOLS: {
     ),
   },
   {
-    href: "/en/games/ioe",
-    label: "IOE Arcade",
+    href: "/en/games",
+    label: "Trò chơi",
     tone: "bg-amber-50 text-amber-700 border-amber-200/70",
     icon: (
       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -427,6 +392,33 @@ export default function EnMapPage() {
           </Link>
         ))}
       </div>
+
+      <section className="en-journey-hero mb-6" aria-labelledby="en-journey-title">
+        <div className="en-journey-main">
+          <span className="en-journey-kicker">ENGLISH QUEST · WORLD ROUTE</span>
+          <h1 id="en-journey-title">Chinh phục tiếng Anh từng chặng</h1>
+          <p>Tiến đều mỗi ngày: học từ mới, dùng từ trong câu, rồi quay lại kiểm tra trí nhớ. Lỡ một ngày cũng không phải học bù tất cả.</p>
+          <div className="en-journey-stats">
+            <div><strong>{pct}%</strong><span>lộ trình đã qua</span></div>
+            <div><strong>{wordsLearned}</strong><span>từ đã hoàn thành</span></div>
+            <div><strong>{dueN}</strong><span>thẻ đến hạn ôn</span></div>
+          </div>
+          <div className="en-journey-progress" role="progressbar" aria-label="Tiến độ lộ trình tiếng Anh" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <span style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        <div className="en-journey-focus">
+          <div className="en-journey-focus-top"><span>CHECKPOINT TIẾP THEO</span><b>{cur?.stage.boss ? "BOSS" : `UNIT ${cur?.stage.world ?? 1}`}</b></div>
+          <strong>{cur?.stage.boss ? "Ôn tập tổng hợp" : `Chặng ${cur?.stage.n ?? 1}`}</strong>
+          <p>{cur?.stage.boss ? "Tổng hợp kiến thức của Unit trước khi mở vùng mới." : `${cur?.stage.wordIds.length ?? STAGE_SIZE} từ mới · một lượt luyện ngắn.`}</p>
+          <Link href={cur ? (cur.recallDue ? `/en/stage/${cur.stage.id}?recall=1` : `/en/stage/${cur.stage.id}`) : "/en"} className="en-journey-continue">{cur?.recallDue ? "Ôn lại chặng này" : "Tiếp tục học"} <span>→</span></Link>
+          <div className="en-journey-three-steps">
+            <span><b>01</b> Học ≥60%</span>
+            <span><b>02</b> Dùng từ ≥80%</span>
+            <span><b>03</b> Nhớ lại ngày mai</span>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         {/* ================= CỘT TRÁI: LỘ TRÌNH HỌC SẮC NÉT ================= */}

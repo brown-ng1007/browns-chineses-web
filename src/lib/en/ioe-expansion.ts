@@ -1,8 +1,10 @@
+import type { MelonQuestionKind } from "@/lib/content/contract";
+
 /**
  * 29 dạng luyện tập mở rộng theo các nhóm kỹ năng thường gặp trong IOE.
  * Đây là nội dung luyện tập tự biên soạn theo định dạng, không sao chép đề thi thật.
  */
-export type IoeQuestionKind = "choice" | "listen" | "order" | "input" | "binary" | "stress";
+export type IoeQuestionKind = MelonQuestionKind;
 
 export interface IoeExpandedGame {
   id: string;
@@ -26,19 +28,19 @@ export interface IoeExpandedGame {
 
 export const IOE_EXPANSION: IoeExpandedGame[] = [
   {
-    id: "listen-one", title: "Listen & Choose", vi: "Nghe từ – chọn đáp án", category: "Listening", icon: "🎧", color: "cyan", scene: "audio", thumb: "pair",
+    id: "listen-one", title: "Listen & Choose", vi: "Nghe từ – chọn đáp án", category: "Listening", icon: "🎧", color: "cyan", scene: "audio", thumb: "audio",
     desc: "Nghe một từ tiếng Anh rồi chọn đúng từ hoặc nghĩa tương ứng.", kind: "listen", prompt: "Nghe kỹ từ được đọc và chọn từ bạn nghe thấy.", speakText: "schedule", options: ["schedule", "school", "student", "subject"], answer: "schedule", explain: "Schedule /ˈʃedjuːl/ nghĩa là lịch trình hoặc thời gian biểu."
   },
   {
-    id: "listen-sentence", title: "Listen to the Sentence", vi: "Nghe câu – hiểu ý", category: "Listening", icon: "🔊", color: "cyan", scene: "audio", thumb: "exam",
+    id: "listen-sentence", title: "Listen to the Sentence", vi: "Nghe câu – hiểu ý", category: "Listening", icon: "🔊", color: "cyan", scene: "audio", thumb: "audio",
     desc: "Nghe một câu hoàn chỉnh và chọn nội dung đúng.", kind: "listen", prompt: "Nghe câu và chọn nghĩa tiếng Việt phù hợp.", speakText: "The library closes at five o'clock.", options: ["Thư viện đóng cửa lúc năm giờ.", "Thư viện mở cửa lúc bảy giờ.", "Hiệu sách đóng cửa lúc năm giờ.", "Lớp học bắt đầu lúc năm giờ."], answer: "Thư viện đóng cửa lúc năm giờ.", explain: "Closes at five o'clock = đóng cửa lúc năm giờ."
   },
   {
-    id: "phoneme-odd", title: "Sound Detective", vi: "Tìm từ phát âm khác", category: "Pronunciation", icon: "🕵️", color: "violet", scene: "sound", thumb: "climb",
+    id: "phoneme-odd", title: "Sound Detective", vi: "Tìm từ phát âm khác", category: "Pronunciation", icon: "🕵️", color: "violet", scene: "sound", thumb: "audio",
     desc: "Nhận diện âm nguyên âm khác biệt trong nhóm từ.", kind: "choice", prompt: "Chọn từ có phần in hoa phát âm khác ba từ còn lại.", subPrompt: "A. hEA d · B. brEA d · C. grEA t · D. wEA ther", options: ["head", "bread", "great", "weather"], answer: "great", explain: "Great có âm /eɪ/, các từ còn lại có âm /e/."
   },
   {
-    id: "ending-sound", title: "Ending Sound Race", vi: "Phân biệt đuôi -s / -es", category: "Pronunciation", icon: "🏁", color: "violet", scene: "sound", thumb: "extra",
+    id: "ending-sound", title: "Ending Sound Race", vi: "Phân biệt đuôi -s / -es", category: "Pronunciation", icon: "🏁", color: "violet", scene: "sound", thumb: "audio",
     desc: "Phân biệt cách phát âm đuôi số nhiều -s/-es.", kind: "choice", prompt: "Từ nào có đuôi -s phát âm là /ɪz/?", options: ["books", "bags", "classes", "cups"], answer: "classes", explain: "Classes kết thúc bằng âm /ɪz/; books, cups là /s/ và bags là /z/."
   },
   {
@@ -58,7 +60,7 @@ export const IOE_EXPANSION: IoeExpandedGame[] = [
     desc: "Chọn từ có nghĩa trái ngược với từ đã cho.", kind: "choice", prompt: "Choose the opposite of GENEROUS.", options: ["kind", "selfish", "helpful", "friendly"], answer: "selfish", explain: "Generous là hào phóng; selfish là ích kỷ."
   },
   {
-    id: "definition-match", title: "Definition Match", vi: "Đoán từ qua định nghĩa", category: "Vocabulary", icon: "📖", color: "blue", scene: "book", thumb: "pair",
+    id: "definition-match", title: "Definition Match", vi: "Đoán từ qua định nghĩa", category: "Vocabulary", icon: "📖", color: "blue", scene: "book", thumb: "reading",
     desc: "Đọc định nghĩa ngắn để tìm đúng từ vựng.", kind: "choice", prompt: "A place where you can borrow books is a _____.", options: ["library", "stadium", "factory", "restaurant"], answer: "library", explain: "A library là thư viện – nơi bạn có thể mượn sách."
   },
   {
@@ -70,7 +72,7 @@ export const IOE_EXPANSION: IoeExpandedGame[] = [
     desc: "Nghe hoặc đọc gợi ý rồi tự nhập cách viết đúng.", kind: "input", prompt: "Spell the word: the natural world around us.", subPrompt: "Gợi ý: môi trường", answer: "environment", explain: "Environment = môi trường. Hãy chú ý thứ tự chữ n-m-e-n-t ở cuối từ."
   },
   {
-    id: "missing-vowels", title: "Vowel Rescue", vi: "Cứu nguyên âm", category: "Vocabulary", icon: "🔤", color: "blue", scene: "letters", thumb: "climb",
+    id: "missing-vowels", title: "Vowel Rescue", vi: "Cứu nguyên âm", category: "Vocabulary", icon: "🔤", color: "blue", scene: "letters", thumb: "extra",
     desc: "Điền các nguyên âm còn thiếu để hoàn thành từ.", kind: "input", prompt: "Complete the word: c_mf_rt_bl_", subPrompt: "Nghĩa: thoải mái", answer: "comfortable", explain: "Comfortable được viết là c-o-m-f-o-r-t-a-b-l-e."
   },
   {
@@ -110,11 +112,11 @@ export const IOE_EXPANSION: IoeExpandedGame[] = [
     desc: "Sắp xếp các câu theo trình tự hội thoại tự nhiên.", kind: "order", prompt: "Put the conversation in the correct order.", tokens: ["Good morning!", "How are you?", "I'm fine, thank you."], answer: "Good morning!|How are you?|I'm fine, thank you.", explain: "Lời chào → hỏi thăm → trả lời."
   },
   {
-    id: "reading-comprehension", title: "Reading Explorer", vi: "Đọc hiểu thám hiểm", category: "Reading", icon: "🧭", color: "blue", scene: "book", thumb: "exam",
+    id: "reading-comprehension", title: "Reading Explorer", vi: "Đọc hiểu thám hiểm", category: "Reading", icon: "🧭", color: "blue", scene: "book", thumb: "reading",
     desc: "Đọc đoạn văn ngắn và tìm thông tin chính xác.", kind: "choice", prompt: "Read: “Tom usually goes to school by bicycle. His school is two kilometres from his house.” How does Tom go to school?", options: ["By bus", "On foot", "By bicycle", "By car"], answer: "By bicycle", explain: "Đoạn văn cho biết Tom usually goes to school by bicycle."
   },
   {
-    id: "cloze-passage", title: "Cloze River", vi: "Điền khuyết đoạn văn", category: "Reading", icon: "🏞️", color: "cyan", scene: "river", thumb: "monkey",
+    id: "cloze-passage", title: "Cloze River", vi: "Điền khuyết đoạn văn", category: "Reading", icon: "🏞️", color: "cyan", scene: "river", thumb: "reading",
     desc: "Điền từ còn thiếu dựa vào mạch nghĩa của đoạn văn.", kind: "choice", prompt: "Tom is a student. He _____ up at six every morning and has breakfast with his family.", options: ["get", "gets", "got", "getting"], answer: "gets", explain: "Chủ ngữ He ở hiện tại đơn: gets up."
   },
   {
@@ -130,7 +132,7 @@ export const IOE_EXPANSION: IoeExpandedGame[] = [
     desc: "Dùng so sánh hơn hoặc nhất đúng ngữ cảnh.", kind: "choice", prompt: "A train is _____ than a bicycle.", options: ["fast", "faster", "fastest", "the faster"], answer: "faster", explain: "Có than nên dùng dạng so sánh hơn faster."
   },
   {
-    id: "question-word", title: "Wh-question Wheel", vi: "Vòng quay từ để hỏi", category: "Grammar", icon: "❓", color: "blue", scene: "wheel", thumb: "exam",
+    id: "question-word", title: "Wh-question Wheel", vi: "Vòng quay từ để hỏi", category: "Grammar", icon: "❓", color: "blue", scene: "wheel", thumb: "audio",
     desc: "Chọn từ để hỏi phù hợp với câu trả lời.", kind: "choice", prompt: "_____ do you go to school? — By bus.", options: ["Where", "When", "How", "Who"], answer: "How", explain: "By bus trả lời cho câu hỏi về cách thức: How."
   },
   {
