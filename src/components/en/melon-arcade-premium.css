@@ -1,0 +1,63 @@
+﻿/* Melon Arcade Premium — visual-only refinement.
+   Gameplay state, scoring, unlocks and persistence stay in the existing components. */
+.ioe-arcade-page,.ioe-games-index{--arcade-ink:#172b27;--arcade-muted:#667873;--arcade-line:#dce8e2;--arcade-green:#176b50;max-width:1100px;color:var(--arcade-ink)}
+.ioe-arcade-page>.ioe-hero,.ioe-games-index .ioe-hero{position:relative;min-height:270px;padding:34px 285px 32px 34px;overflow:hidden;isolation:isolate;border:1px solid rgba(255,255,255,.48);border-radius:28px;background:radial-gradient(ellipse at 78% 4%,rgba(192,228,191,.28),transparent 34%),radial-gradient(ellipse at 8% 100%,rgba(218,178,105,.16),transparent 38%),linear-gradient(124deg,#123f35 0%,#17644b 52%,#27785a 100%);box-shadow:0 22px 44px -30px rgba(13,63,47,.65),inset 0 1px 0 rgba(255,255,255,.24)}
+.ioe-arcade-page>.ioe-hero:before,.ioe-games-index .ioe-hero:before{content:"";position:absolute;z-index:-1;inset:14px;border:1px solid rgba(255,255,255,.12);border-radius:19px;pointer-events:none}
+.ioe-arcade-page .ioe-kicker,.ioe-games-index .ioe-kicker{display:inline-flex;align-items:center;gap:8px;color:#d9eee0;font-size:9px;font-weight:900;letter-spacing:.2em}
+.ioe-arcade-page .ioe-hero h1,.ioe-games-index .ioe-hero h2{max-width:590px;color:#fff;letter-spacing:-.045em;line-height:1.04;text-wrap:balance}
+.ioe-arcade-page .ioe-hero p,.ioe-games-index .ioe-hero p{max-width:560px;color:rgba(241,248,242,.82);line-height:1.7}
+.ioe-arcade-page .ioe-stat{border-color:rgba(239,248,240,.2);background:rgba(255,255,255,.09);color:#f4f8ef;backdrop-filter:blur(8px)}
+.ioe-arcade-page .ioe-stat b{color:#f4d89b;font-variant-numeric:tabular-nums}
+.ioe-arcade-page .ioe-hero-art,.ioe-games-index .ioe-hero-art{right:32px;width:218px;height:184px;border:1px solid rgba(255,255,255,.36);border-radius:23px;background:rgba(255,255,255,.1);box-shadow:0 18px 34px -20px rgba(0,0,0,.55)}
+.ioe-arcade-page .ioe-hero-art img,.ioe-games-index .ioe-hero-art img{object-fit:cover}
+.ioe-arcade-page .ioe-section-label,.ioe-games-index .ioe-section-label{color:#39765c;letter-spacing:.19em}
+.ioe-arcade-page h2,.ioe-games-index h2{letter-spacing:-.035em}
+.ioe-arcade-page .ioe-lesson-card{display:grid;grid-template-columns:44px minmax(0,1fr);align-content:start;align-items:start;gap:10px 12px;min-height:176px;border:1px solid #dce8e2;border-bottom:2px solid #cadbd1;border-radius:19px;background:linear-gradient(150deg,#fff,#fbfdfb);padding:17px;box-shadow:0 8px 22px -20px rgba(22,61,45,.4);transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.ioe-arcade-page .ioe-lesson-card:hover:not(:disabled){transform:none;border-color:#a9cbb8;box-shadow:0 12px 26px -20px rgba(22,84,58,.38)}
+.ioe-arcade-page .ioe-lesson-card.is-selected{border-color:#4b9971;border-bottom-color:#397a59;background:linear-gradient(145deg,#eff8f0,#fff 82%);box-shadow:inset 0 0 0 1px rgba(75,153,113,.13),0 12px 25px -20px rgba(22,84,58,.48)}
+.ioe-arcade-page .ioe-lesson-card.is-locked{opacity:.58;background:#f7f9f7}
+.ioe-arcade-page .ioe-lesson-icon{width:42px;height:42px;border:1px solid #d8e8dd;border-radius:14px;background:#eaf4ed;color:#286747;font-size:15px;font-weight:900}
+.ioe-arcade-page .ioe-lesson-card.is-selected .ioe-lesson-icon{border-color:#b6d8c1;background:#dcefe0;color:#14583d}
+.ioe-arcade-page .ioe-game-number{color:#648575;font-size:9px;letter-spacing:.15em}
+.ioe-arcade-page .ioe-lesson-score{grid-column:1/-1;margin-top:1px;border:1px solid #e3ebe5;background:#f7faf7;color:#61736a}
+.ioe-arcade-page .ioe-lesson-card.is-selected .ioe-lesson-score{border-color:#d5e8d9;background:#eaf5ec;color:#286747}
+.ioe-arcade-page .ioe-session-panel{border:1px solid #dce8df;border-radius:20px;background:linear-gradient(112deg,#f2f8f2,#fbf8ee);box-shadow:inset 0 1px 0 #fff;padding:19px}
+.ioe-arcade-page .ioe-length-button{min-width:64px;border-color:#dce6df;border-radius:11px;background:#fff;color:#53665c;transition:background .14s ease,border-color .14s ease,color .14s ease}
+.ioe-arcade-page .ioe-length-button.is-active{border-color:#1d6c4d;background:#1d6c4d;color:#fff;box-shadow:0 2px 0 #124a35}
+.ioe-arcade-page .en-btn{border-radius:12px;background:linear-gradient(180deg,#267a58,#175b41);box-shadow:0 2px 0 #104630,0 8px 16px -10px rgba(16,70,48,.65);letter-spacing:.01em}
+.ioe-arcade-page .en-btn--ghost{border:1px solid #d9e4dc;background:#fff;color:#42564b;box-shadow:0 2px 0 #e1e8e2}
+.ioe-arcade-page .ioe-filter{border-color:#e0e9e3;color:#64756b;transition:background .14s ease,color .14s ease,border-color .14s ease}
+.ioe-arcade-page .ioe-filter.is-active{border-color:#8fbea0;background:#eaf5ec;color:#1e6745}
+.ioe-arcade-page .ioe-toggle{border-color:#e0e8e2;color:#63756a}
+.ioe-arcade-page .ioe-toggle.is-on{border-color:#bfddc7;background:#edf7ef;color:#236645}
+.ioe-arcade-page .ioe-game-card{border-color:#e0e9e3;border-bottom-color:#cbd9d0;border-radius:19px;background:#fff;box-shadow:0 8px 22px -20px rgba(22,61,45,.48);transition:border-color .14s ease,box-shadow .14s ease}
+.ioe-arcade-page .ioe-game-card:hover{transform:none;border-color:#a9cbb8;box-shadow:0 12px 24px -19px rgba(22,84,58,.4)}
+.ioe-arcade-page .ioe-game-art{aspect-ratio:16/9;background:#e8f0e9}
+.ioe-arcade-page .ioe-game-art img{transition:none!important}
+.ioe-arcade-page .ioe-game-art-tag{border-color:rgba(255,255,255,.8);border-radius:10px;background:rgba(248,250,247,.94);color:#2e5c43;box-shadow:0 3px 10px rgba(22,55,38,.13);font-size:14px;font-weight:900}
+.ioe-arcade-page .ioe-game-copy{min-height:112px;padding:14px 48px 16px 16px}
+.ioe-arcade-page .ioe-game-title{color:#203a2e;font-size:15px;letter-spacing:-.015em}
+.ioe-arcade-page .ioe-game-desc{color:#718078;font-size:11px;line-height:1.55}
+.ioe-arcade-page .ioe-card-arrow,.ioe-games-index .ioe-quick-card .ioe-card-arrow{border:1px solid #dfebe2;background:#f1f7f2;color:#326b4c}
+.ioe-arcade-page .ioe-footnote,.ioe-games-index .ioe-footnote{border-color:#e0e9e3;border-radius:15px;background:#f6f9f6;color:#65756b}
+.ioe-games-index .ioe-quick-card{min-height:112px;border-color:#e0e9e3;border-bottom-color:#cbd9d0;border-radius:18px;background:#fff;box-shadow:0 8px 22px -20px rgba(22,61,45,.48);transition:border-color .14s ease,box-shadow .14s ease}
+.ioe-games-index .ioe-quick-card:hover{transform:none;border-color:#a9cbb8;box-shadow:0 12px 24px -19px rgba(22,84,58,.4)}
+.ioe-games-index .ioe-quick-card .ioe-game-icon{border:1px solid #e1ebe4;border-radius:15px;background:#f0f6f1}
+.ioe-arcade-page .en-card{border:1px solid #e0e9e3;border-bottom:2px solid #d2dfd6;border-radius:22px;background:#fff;box-shadow:0 12px 32px -26px rgba(22,61,45,.42)}
+.ioe-arcade-page .ioe-play-thumb{border-color:#dce8df;border-radius:13px}
+.ioe-arcade-page .ioe-pill{border-color:#e0e9e3;background:#f7faf7;color:#56685e}
+.ioe-arcade-page .ioe-play-scene{aspect-ratio:16/9;min-height:0;border:1px solid #dbe6de;border-radius:19px;background:#dfe9df;box-shadow:0 12px 26px -22px rgba(22,61,45,.5)}
+.ioe-arcade-page .ioe-scene-poster{object-fit:cover}
+.ioe-arcade-page .ioe-scene-shade{background:linear-gradient(90deg,rgba(8,29,22,.35),transparent 60%),linear-gradient(0deg,rgba(8,29,22,.38),transparent 56%)}
+.ioe-arcade-page .ioe-option,.ioe-arcade-page .ioe-pair-card,.ioe-arcade-page .ioe-letter,.ioe-arcade-page .ioe-word-token{border-color:#dfe8e1;border-bottom-color:#cbd8ce;border-radius:13px;box-shadow:none}
+.ioe-arcade-page .ioe-option:hover:not(:disabled),.ioe-arcade-page .ioe-pair-card:hover:not(:disabled){border-color:#a8cdb5;background:#f1f7f2}
+.ioe-arcade-page .ioe-option.is-correct,.ioe-arcade-page .ioe-pair-card.is-matched{border-color:#a7d1b2;background:#eef7ef;color:#286744}
+.ioe-arcade-page .ioe-feedback-note{border-radius:13px;padding:13px 15px}
+.ioe-arcade-page .ioe-feedback-note.is-right{border-color:#c4dfc9;background:#f0f8f0;color:#286744}
+.ioe-arcade-page .ioe-feedback-note.is-wrong{border-color:#ebcaca;background:#fff6f4;color:#994c45}
+.ioe-arcade-page .ioe-result-art{border:1px solid #ede4c9;border-radius:20px;background:#fbf7e9}
+.ioe-arcade-page .ioe-mini-stat{border-color:#e1e9e2;border-radius:14px;background:#f8faf8}
+.ioe-arcade-page .ioe-mini-stat b{color:#286b4b}
+.ioe-arcade-page:focus-visible,.ioe-games-index:focus-visible{outline:3px solid rgba(55,125,85,.34);outline-offset:3px}
+@media(max-width:700px){.ioe-arcade-page>.ioe-hero,.ioe-games-index .ioe-hero{min-height:0;padding:23px 20px 148px;border-radius:22px}.ioe-arcade-page .ioe-hero-art,.ioe-games-index .ioe-hero-art{right:19px;top:auto;bottom:17px;width:116px;height:96px;transform:none;opacity:.96;border-radius:15px}.ioe-arcade-page .ioe-lesson-card{min-height:0;padding:14px}.ioe-arcade-page .ioe-session-panel{align-items:flex-start;padding:15px}.ioe-arcade-page .ioe-game-copy{min-height:0;padding:12px 44px 14px 13px}.ioe-arcade-page .ioe-game-title{font-size:14px}.ioe-arcade-page .ioe-game-desc{font-size:10px}.ioe-arcade-page .ioe-play-scene{border-radius:15px}.ioe-games-index .ioe-quick-card{min-height:100px;padding:12px;gap:10px}}
+@media(prefers-reduced-motion:reduce){.ioe-arcade-page .ioe-lesson-card,.ioe-arcade-page .ioe-game-card,.ioe-games-index .ioe-quick-card{transition:none!important}}

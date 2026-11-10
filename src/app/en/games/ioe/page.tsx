@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -11,6 +11,7 @@ import { IOE_EXPANSION, type IoeExpandedGame } from "@/lib/en/ioe-expansion";
 import { getMelonRenderer, type MelonRuntimeRendererKind } from "@/lib/content/contract";
 import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
+import "@/components/en/melon-arcade-premium.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
 const PROGRESS_KEY = "melon_ioe_progress_v3";
@@ -170,18 +171,14 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
   const categoryLabel = game.expanded ? game.category : "MELON MINI GAME";
   return (
     <div className={`ioe-play-scene scene-${game.scene} ${game.id === "penalty" && outcome === "right" ? "is-goal" : ""} ${game.id === "penalty" && outcome === "wrong" ? "is-saved" : ""}`} data-scene={game.scene} role="img" aria-label={`Bối cảnh ${game.vi}`}>
-      <video
-        className="ioe-scene-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        poster={`/ioe/games/${game.thumb}.webp`}
+      <Image
+        className="ioe-scene-poster"
+        src={`/ioe/games/${game.thumb}.webp`}
+        alt=""
+        fill
+        sizes="(max-width: 640px) 100vw, 760px"
         aria-hidden="true"
-      >
-        <source src={`/ioe/videos/${game.thumb}.mp4`} type="video/mp4" />
-      </video>
+      />
       <div className="ioe-scene-shade" aria-hidden="true" />
       {game.id === "penalty" && (
         <>
