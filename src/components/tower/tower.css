@@ -430,3 +430,26 @@
     margin-left: -3.2%;
   }
 }
+
+/* Quả dưa nhỏ đi kèm từng mục tiêu ngày; chín khi nhiệm vụ đạt 100%. */
+.wm-mission-fruit {
+  display: inline-block;
+  width: 28px;
+  height: 18px;
+  flex: 0 0 28px;
+  opacity: .38;
+  filter: grayscale(.35);
+  transition: opacity .25s ease, filter .25s ease, transform .25s ease;
+}
+.wm-mission-fruit.is-ripe {
+  opacity: 1;
+  filter: drop-shadow(0 2px 3px rgba(225,29,72,.25));
+  animation: wm-mission-ripe 1.8s ease-in-out infinite;
+}
+@keyframes wm-mission-ripe {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-mission-fruit.is-ripe { animation: none; }
+}

@@ -1,0 +1,18 @@
+MELON LANGUAGE – IOE ARCADE + CHINESE DAILY GOAL VISUAL PATCH
+
+What is included
+- Restores the Gemini-style IOE lesson flow: 3 lessons, random session selection of 4 / 6 / 10 mini-games, session timer, score summary, best scores, and lesson unlock progress.
+- Keeps the original 10 Melon mini-game modes and adds 29 unique, self-authored IOE-format practice modes (39 selectable activities total).
+- Adds Listening and pronunciation formats, odd-one-out, synonyms/antonyms, spelling, grammar, dialogue, reading/cloze, sentence transformation, and the Sailor Rescue task referenced by the original Lesson 3 but missing from the prototype.
+- Listening tasks attempt automatic speech playback and retain a replay button as a fallback.
+- Adds 10 lightweight local MP4 loop clips (4 seconds, H.264, 640x360) and 10 local WebP illustrations for in-game scenes. The clips are gentle camera-motion loops over illustrations, with additional CSS motion overlays; they are not full character-animation footage. All assets are local and do not rely on a CDN.
+- Restores the four quick-play cards to a horizontal layout using isolated CSS classes so IOE art styles cannot override them.
+- Adds a small watermelon slice to each Chinese daily-goal card. A goal's fruit brightens and gently bobs when that goal is complete. Existing Chinese tower, daily target, and fruit-stage calculations are otherwise unchanged.
+
+Files are intended to be overlaid onto the root of the existing project. This patch intentionally does not include .git, .env.local, node_modules, .next, or Vercel secrets/configuration. Keep your local .git and .env.local files.
+
+Important content note
+The 29 added activities are original practice examples based on common IOE exercise formats. They are not official IOE game titles and do not reproduce official exam questions. A number of new modes currently contain one curated sample prompt each; expanding them into larger randomized question banks is a suitable next iteration.
+
+After applying
+Run `npm run build` locally to verify against your installed dependencies. If the project is connected to Vercel through GitHub, pushing the commit may trigger deployment automatically according to that repository's Vercel settings.

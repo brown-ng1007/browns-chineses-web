@@ -32,8 +32,8 @@ export default function EnGamesPage() {
         <div className="relative z-10 max-w-xl">
           <span className="ioe-kicker">MELON LANGUAGE · ARCADE MODE</span>
           <h2 className="mt-3 text-3xl font-black leading-tight text-white sm:text-4xl">Melon IOE Arcade</h2>
-          <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-50/90">10 mini-game theo phong cách IOE: ghép cặp, sút phạt, xếp câu, tìm chữ thừa và nhiều thử thách khác.</p>
-          <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-amber-300 px-4 py-2.5 text-xs font-black text-emerald-950 shadow-lg transition group-hover:-translate-y-0.5">Khám phá 10 thử thách <span>→</span></span>
+          <p className="mt-2 max-w-lg text-sm leading-6 text-emerald-50/90">10 mini-game gốc + 29 dạng luyện tập mở rộng theo kỹ năng thường gặp trong IOE.</p>
+          <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-amber-300 px-4 py-2.5 text-xs font-black text-emerald-950 shadow-lg transition group-hover:-translate-y-0.5">Khám phá 39 thử thách <span>→</span></span>
         </div>
         <div className="ioe-hero-art" aria-hidden="true"><span>🍉</span><i>✦</i><b>+XP</b></div>
       </Link>
@@ -44,7 +44,7 @@ export default function EnGamesPage() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {GAMES.map((game) => (
-          <Link key={game.href} href={game.href} className="ioe-game-card text-left">
+          <Link key={game.href} href={game.href} className="ioe-quick-card text-left">
             <span className="ioe-game-icon">{game.emoji}</span>
             <span className="min-w-0 flex-1"><span className="block text-[10px] font-extrabold uppercase tracking-widest text-emerald-700">{game.tag}</span><span className="mt-1 block text-base font-extrabold text-slate-900">{game.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{game.desc}</span></span>
             <span className="ioe-card-arrow">↗</span>

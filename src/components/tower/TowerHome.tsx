@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./tower.css";
 import Link from "next/link";
+import Watermelon from "@/components/Watermelon";
 import { createClient } from "@/lib/supabase/client";
 import { refreshSettings } from "@/lib/settings";
 import {
@@ -999,8 +1000,9 @@ export default function TowerHome() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="text-sm font-bold text-stone-900">{m.title}</span>
-                    <span className="text-xs font-semibold text-stone-500">
-                      {Math.min(m.value, 999)}/{m.target} {m.unit}
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                      <Watermelon className={`wm-mission-fruit ${done ? "is-ripe" : ""}`} />
+                      <span>{Math.min(m.value, 999)}/{m.target} {m.unit}</span>
                     </span>
                   </span>
                   <span className="mt-1 block text-[11px] leading-tight text-stone-500">
