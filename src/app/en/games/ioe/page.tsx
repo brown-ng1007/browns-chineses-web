@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -231,7 +231,7 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
               <div className="ioe-pair-library-window"><i /><b /></div>
               <div className="ioe-pair-library-shelves"><i /><i /><i /><i /><i /><i /><i /><i /></div>
               <div className="ioe-pair-library-table" />
-              <div className="ioe-pair-library-mascot"><span>🍉</span><small>LET'S MATCH!</small></div>
+              <div className="ioe-pair-library-mascot"><span>🍉</span><small>LET&apos;S MATCH!</small></div>
               <div className="ioe-pair-library-sign"><small>MELON LANGUAGE LIBRARY</small><strong>WORD PAIR CHALLENGE</strong></div>
             </div>
           )}
