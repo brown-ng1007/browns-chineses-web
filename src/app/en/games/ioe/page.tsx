@@ -200,7 +200,16 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
         aria-hidden="true"
         priority={isPenalty}
       />
-      {cinematicSrc && (
+      {isPenalty && (
+        <div className="ioe-cinematic-preload" aria-hidden="true">
+          <video muted playsInline preload="auto" tabIndex={-1}>
+            <source src="/ioe/cinematics/penalty-goal.webm" type="video/webm" />
+          </video>
+          <video muted playsInline preload="auto" tabIndex={-1}>
+            <source src="/ioe/cinematics/penalty-save.webm" type="video/webm" />
+          </video>
+        </div>
+      )}      {cinematicSrc && (
         <video
           key={cinematicSrc}
           className="ioe-cinematic-video"
@@ -372,7 +381,7 @@ export default function IoeArcadePage() {
     setFeedback(isCorrect ? "right" : "wrong");
     if (isCorrect) { setScore((value) => value + 50); setCorrectCount((value) => value + 1); }
     else setMistakes((value) => value + 1);
-        const feedbackDuration = activeGame?.id === "penalty" ? 1450 : 900;
+        const feedbackDuration = activeGame?.id === "penalty" ? 850 : 900;
     window.setTimeout(() => {
       if (sessionIndex + 1 >= sessionGames.length) setPhase("result");
       else setSessionIndex((value) => value + 1);

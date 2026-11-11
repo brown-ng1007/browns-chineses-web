@@ -148,3 +148,24 @@
   .ioe-arcade-page .ioe-play-scene[data-outcome="right"] .ioe-arcade-reaction,
   .ioe-arcade-page .ioe-play-scene[data-outcome="wrong"] .ioe-arcade-reaction { opacity: 1; transform: translate(-50%,-50%); }
 }
+
+/* CINEMATIC V2 · answer-to-action sync */
+.ioe-arcade-page .ioe-cinematic-preload {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.ioe-arcade-page .ioe-cinematic-preload video {
+  display: block;
+  width: 1px;
+  height: 1px;
+}
+.ioe-arcade-page .ioe-cinematic-video {
+  opacity: 1;
+  animation: none !important;
+}
