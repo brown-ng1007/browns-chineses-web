@@ -12,6 +12,7 @@ import { getMelonRenderer, type MelonRuntimeRendererKind } from "@/lib/content/c
 import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
 import "@/components/en/melon-arcade-premium.css";
+import "@/components/en/melon-arcade-cinematic.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
 const PROGRESS_KEY = "melon_ioe_progress_v3";
@@ -168,65 +169,77 @@ function formatTime(seconds: number) {
 }
 
 function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong" | null }) {
+  const isPenalty = game.id === "penalty";
   const categoryLabel = game.expanded ? game.category : "MELON MINI GAME";
+  const cinematicSrc = !isPenalty ? null : outcome === "right"
+    ? "/ioe/cinematics/penalty-goal.webm"
+    : outcome === "wrong" ? "/ioe/cinematics/penalty-save.webm" : null;
+  const reactionLabel = outcome === "wrong" ? "TRY AGAIN!" :
+    game.id === "pair" ? "MATCHED!" :
+    game.id === "monkey" ? "SWING!" :
+    game.id === "sea" ? "TREASURE!" :
+    game.id === "climb" ? "TOP REACHED!" :
+    game.id === "octopus" ? "FULL SPEED!" :
+    game.id === "rearrange" ? "PERFECT ORDER!" :
+    game.id === "exam" ? "BRILLIANT!" : "NICE MOVE!";
+
   return (
-    <div className={`ioe-play-scene scene-${game.scene} ${game.id === "penalty" && outcome === "right" ? "is-goal" : ""} ${game.id === "penalty" && outcome === "wrong" ? "is-saved" : ""}`} data-scene={game.scene} role="img" aria-label={`Bối cảnh ${game.vi}`}>
+    <div
+      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""}`}
+      data-scene={game.scene}
+      data-outcome={outcome ?? "idle"}
+      role="img"
+      aria-label={`Bối cảnh ${game.vi}`}
+    >
       <Image
-        className="ioe-scene-poster"
-        src={`/ioe/games/${game.thumb}.webp`}
+        className={isPenalty ? "ioe-penalty-poster" : "ioe-scene-poster"}
+        src={isPenalty ? "/ioe/cinematics/penalty-poster.webp" : `/ioe/games/${game.thumb}.webp`}
         alt=""
         fill
         sizes="(max-width: 640px) 100vw, 760px"
         aria-hidden="true"
+        priority={isPenalty}
       />
-      <div className="ioe-scene-shade" aria-hidden="true" />
-      {game.id === "penalty" && (
+      {cinematicSrc && (
+        <video
+          key={cinematicSrc}
+          className="ioe-cinematic-video"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          poster="/ioe/cinematics/penalty-poster.webp"
+          aria-hidden="true"
+        >
+          <source src={cinematicSrc} type="video/webm" />
+        </video>
+      )}
+      {!isPenalty && (
         <>
-          <svg className="ioe-penalty-actors" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
-            <g className="ioe-penalty-keeper" transform="translate(320 177)">
-              <g transform="scale(1.55)">
-              <circle cx="0" cy="-25" r="11" fill="#e8b58e" stroke="#633d2d" strokeWidth="2" />
-              <path d="M-13 -14 Q0 -21 13 -14 L18 24 Q0 33 -18 24 Z" fill="#f7c948" stroke="#8c6516" strokeWidth="2" />
-              <path d="M-13 -8 L-39 2 L-47 -11 M13 -8 L39 2 L47 -11" fill="none" stroke="#e8b58e" strokeWidth="9" strokeLinecap="round" />
-              <path d="M-39 2 L-47 -11 M39 2 L47 -11" fill="none" stroke="#f8fafc" strokeWidth="8" strokeLinecap="round" />
-              <path d="M-8 24 L-13 48 M8 24 L13 48" fill="none" stroke="#253b58" strokeWidth="10" strokeLinecap="round" />
-              <path d="M-13 48 L-25 51 M13 48 L25 51" fill="none" stroke="#e5edf7" strokeWidth="8" strokeLinecap="round" />
-              </g>
-            </g>
-            <g className="ioe-penalty-kicker" transform="translate(170 260)">
-              <g transform="scale(1.35)">
-              <circle cx="0" cy="-61" r="13" fill="#d9a27d" stroke="#593a2b" strokeWidth="2" />
-              <path d="M-12 -70 Q-4 -83 10 -71 L12 -62 L-12 -62 Z" fill="#26364e" />
-              <path d="M-18 -46 Q0 -56 18 -43 L24 -7 L-18 -5 Z" fill="#2466bd" stroke="#164b91" strokeWidth="2" />
-              <path d="M-15 -7 L17 -7 L22 14 L-14 14 Z" fill="#f4f7fb" stroke="#b8c5d7" strokeWidth="2" />
-              <path d="M-13 -42 L-32 -15 L-42 -4 M15 -41 L29 -20" fill="none" stroke="#d9a27d" strokeWidth="9" strokeLinecap="round" />
-              <path d="M-8 12 L-18 43" fill="none" stroke="#d9a27d" strokeWidth="10" strokeLinecap="round" />
-              <g className="ioe-penalty-kick-leg">
-                <path d="M10 11 L31 34 L48 42" fill="none" stroke="#d9a27d" strokeWidth="11" strokeLinecap="round" />
-                <path d="M43 41 L58 43" fill="none" stroke="#172b47" strokeWidth="9" strokeLinecap="round" />
-              </g>
-              </g>
-            </g>
-          </svg>
-          <svg className="ioe-penalty-ball" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="50" cy="50" r="45" fill="#fff" stroke="#d7e0e8" strokeWidth="4" />
-            <path d="M50 17 63 27 58 42 42 42 37 27Z M18 45 31 38 42 49 37 65 21 66Z M82 45 69 38 58 49 63 65 79 66Z M38 82 35 67 50 58 65 67 62 82Z" fill="#26364b" />
-            <path d="M24 23 37 27 M76 23 63 27 M20 76 37 65 M80 76 63 65" stroke="#26364b" strokeWidth="5" strokeLinecap="round" />
-          </svg>
-          <div className="ioe-goal-burst" aria-hidden="true"><strong>GOAL!</strong><span>+50 điểm</span></div>
-          <div className="ioe-save-burst" aria-hidden="true"><strong>ĐỠ ĐƯỢC!</strong><span>Thử cú sút khác</span></div>
-          <div className="ioe-goal-confetti" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
+          <div className="ioe-scene-shade" aria-hidden="true" />
+          <div className="ioe-scene-meta">
+            <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
+            <strong>{game.vi}</strong>
+          </div>
+          {outcome && (
+            <div className={`ioe-arcade-reaction ${outcome === "wrong" ? "is-wrong" : "is-right"}`} aria-hidden="true">
+              {reactionLabel}
+            </div>
+          )}
         </>
       )}
-      <div className="ioe-scene-meta">
-        <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
-        <strong>{game.vi}</strong>
-      </div>
+      {isPenalty && (
+        <>
+          <div className="ioe-penalty-hud" aria-hidden="true">
+            <span><i /> MELON · PENALTY SHOOTOUT</span>
+          </div>
+          <div className="ioe-penalty-caption" aria-hidden="true">CHOOSE · SHOOT · SCORE</div>
+        </>
+      )}
       <span className="ioe-scene-mark" aria-hidden="true">MELON · QUEST</span>
     </div>
   );
 }
-
 export default function IoeArcadePage() {
   const [data, setData] = useState<{ pool: EnWord[]; words: EnWord[] } | null>(null);
   const [phase, setPhase] = useState<"hub" | "playing" | "result">("hub");
@@ -359,10 +372,11 @@ export default function IoeArcadePage() {
     setFeedback(isCorrect ? "right" : "wrong");
     if (isCorrect) { setScore((value) => value + 50); setCorrectCount((value) => value + 1); }
     else setMistakes((value) => value + 1);
+        const feedbackDuration = activeGame?.id === "penalty" ? 1450 : 900;
     window.setTimeout(() => {
       if (sessionIndex + 1 >= sessionGames.length) setPhase("result");
       else setSessionIndex((value) => value + 1);
-    }, 900);
+    }, feedbackDuration);
   }
 
   function submitChoice(value: string) {
