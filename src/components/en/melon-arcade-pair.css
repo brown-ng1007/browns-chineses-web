@@ -1,0 +1,268 @@
+﻿/* MELON ARCADE · COOL PAIR MATCHING CINEMATIC SCENE */
+.ioe-arcade-page .ioe-pair-library-scene {
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 18% 15%, rgba(255,238,190,.95), transparent 28%),
+    linear-gradient(135deg,#dceff3 0%,#f5ead2 58%,#d8e9d8 100%);
+  border-color: #d8e5db;
+  box-shadow: 0 16px 34px -24px rgba(39,69,52,.5), inset 0 1px 0 rgba(255,255,255,.85);
+}
+.ioe-arcade-page .ioe-pair-library-scene .ioe-scene-poster {
+  z-index: 0;
+  opacity: .10;
+  filter: blur(1px) saturate(.7);
+  object-fit: cover;
+}
+.ioe-arcade-page .ioe-pair-library-world {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 26% 24%,rgba(255,255,255,.66),transparent 34%),
+    linear-gradient(180deg,rgba(239,248,239,.12) 0%,rgba(237,221,186,.2) 70%,rgba(120,92,59,.14) 100%);
+}
+.ioe-arcade-page .ioe-pair-library-world::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 28%;
+  background: linear-gradient(180deg,rgba(160,122,76,.04),rgba(104,75,48,.22));
+  border-top: 1px solid rgba(255,255,255,.4);
+}
+.ioe-arcade-page .ioe-pair-library-window {
+  position: absolute;
+  left: 7%;
+  top: 9%;
+  width: 29%;
+  height: 57%;
+  border: 7px solid #f8f1df;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg,transparent 47%,rgba(255,255,255,.86) 48% 52%,transparent 53%),
+    linear-gradient(180deg,transparent 47%,rgba(255,255,255,.86) 48% 52%,transparent 53%),
+    linear-gradient(145deg,#7fc6db 0%,#d7f0dc 65%,#b5d39b 66%);
+  box-shadow: 0 8px 18px rgba(79,87,63,.14), inset 0 0 0 1px rgba(123,153,134,.28);
+}
+.ioe-arcade-page .ioe-pair-library-window::before,
+.ioe-arcade-page .ioe-pair-library-window::after {
+  content: "";
+  position: absolute;
+  bottom: -11%;
+  width: 42%;
+  height: 32%;
+  border-radius: 50% 50% 0 0;
+  background: #8caf7a;
+  opacity: .65;
+}
+.ioe-arcade-page .ioe-pair-library-window::before { left: -8%; }
+.ioe-arcade-page .ioe-pair-library-window::after { right: -8%; background: #a2bd83; }
+.ioe-arcade-page .ioe-pair-library-shelves {
+  position: absolute;
+  right: 6%;
+  top: 8%;
+  width: 38%;
+  height: 66%;
+  border: 7px solid #956d48;
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(90deg,#d27e55 0 8px,#f1c477 8px 17px,#719a82 17px 25px,#728db0 25px 34px,#eee1c1 34px 42px),
+    #a87c4f;
+  box-shadow: 0 9px 17px rgba(68,52,34,.22),inset 0 0 0 5px rgba(255,240,205,.24);
+}
+.ioe-arcade-page .ioe-pair-library-shelves::before,
+.ioe-arcade-page .ioe-pair-library-shelves::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  right: -7px;
+  height: 7px;
+  background: linear-gradient(180deg,#d7ad72,#8e623d);
+  box-shadow: 0 3px 5px rgba(55,39,22,.18);
+}
+.ioe-arcade-page .ioe-pair-library-shelves::before { top: 32%; }
+.ioe-arcade-page .ioe-pair-library-shelves::after { top: 66%; }
+.ioe-arcade-page .ioe-pair-library-shelves i {
+  position: absolute;
+  bottom: 3%;
+  width: 9%;
+  height: 28%;
+  border-radius: 3px 3px 0 0;
+  background: #d7a85d;
+  box-shadow: 14px 0 #668e7b,28px 0 #b97054,42px 0 #7997b7,56px 0 #e5d7b6;
+}
+.ioe-arcade-page .ioe-pair-library-shelves i:nth-child(1) { left: 5%; }
+.ioe-arcade-page .ioe-pair-library-shelves i:nth-child(2) { left: 5%; bottom: 37%; height: 28%; background:#e6bd72; }
+.ioe-arcade-page .ioe-pair-library-shelves i:nth-child(3) { left: 5%; bottom: 70%; height: 25%; background:#7b9a83; }
+.ioe-arcade-page .ioe-pair-library-table {
+  position: absolute;
+  left: 23%;
+  right: 17%;
+  bottom: -15%;
+  height: 37%;
+  border: 8px solid #b98553;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg,#e0b579,#a96f43);
+  box-shadow: 0 -8px 18px rgba(92,64,37,.15);
+}
+.ioe-arcade-page .ioe-pair-library-mascot {
+  position: absolute;
+  z-index: 2;
+  left: 41%;
+  bottom: 19%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 5px 5px rgba(34,58,39,.18));
+}
+.ioe-arcade-page .ioe-pair-library-mascot span { font-size: clamp(34px,6vw,61px); line-height: 1; }
+.ioe-arcade-page .ioe-pair-library-mascot small {
+  border: 1px solid rgba(255,255,255,.85);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #fff;
+  background: #287653;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: .12em;
+}
+.ioe-arcade-page .ioe-pair-library-sign {
+  position: absolute;
+  z-index: 3;
+  left: 5%;
+  bottom: 10%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 10px;
+  padding: 8px 11px;
+  color: #fff;
+  background: rgba(28,79,61,.76);
+  box-shadow: 0 5px 12px rgba(30,62,47,.18);
+  backdrop-filter: blur(6px);
+}
+.ioe-arcade-page .ioe-pair-library-sign small { font-size: 6px; font-weight: 900; letter-spacing: .16em; color: #d4e9d9; }
+.ioe-arcade-page .ioe-pair-library-sign strong { font-size: clamp(10px,1.8vw,15px); font-weight: 950; letter-spacing: .03em; }
+.ioe-arcade-page .ioe-pair-library-scene .ioe-scene-shade { z-index: 2; background: linear-gradient(90deg,rgba(15,46,35,.06),transparent 55%),linear-gradient(0deg,rgba(15,46,35,.24),transparent 58%); }
+.ioe-arcade-page .ioe-pair-library-scene .ioe-scene-meta { z-index: 3; left: auto; right: 17px; bottom: 13px; }
+.ioe-arcade-page .ioe-pair-library-scene .ioe-scene-chip { background: rgba(25,75,54,.68); }
+.ioe-arcade-page .ioe-pair-library-scene .ioe-scene-mark { z-index: 4; }
+
+/* Match board: clear distinction between selected, matched and mismatched states. */
+.ioe-arcade-page .ioe-pair-panel { margin-top: 19px; }
+.ioe-arcade-page .ioe-pair-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e1e9e2;
+  border-radius: 15px;
+  padding: 12px 15px;
+  background: linear-gradient(110deg,#f5faf5,#fffaf0);
+  text-align: left;
+}
+.ioe-arcade-page .ioe-pair-eyebrow { color: #3b7958; font-size: 8px; font-weight: 950; letter-spacing: .17em; }
+.ioe-arcade-page .ioe-pair-instruction { margin-top: 4px; color: #63766b; font-size: 11px; line-height: 1.5; }
+.ioe-arcade-page .ioe-pair-progress-count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 4px;
+  border: 1px solid #d9e8dc;
+  border-radius: 999px;
+  padding: 6px 11px;
+  color: #6a7b70;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.ioe-arcade-page .ioe-pair-progress-count b { color: #1c704a; font-size: 17px; }
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+  max-width: 690px;
+  margin: 14px auto 0;
+  border: 1px solid #e6e7d8;
+  border-radius: 20px;
+  padding: 15px;
+  background: linear-gradient(145deg,#f8f5e9,#eef5ed);
+  box-shadow: inset 0 1px 0 #fff,0 10px 24px -22px rgba(67,76,48,.42);
+}
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card {
+  position: relative;
+  min-height: 104px;
+  overflow: hidden;
+  gap: 9px;
+  border: 1px solid #d9e4d9;
+  border-bottom: 3px solid #b9cdbb;
+  border-radius: 16px;
+  padding: 13px 10px;
+  color: #284b3b;
+  background: linear-gradient(155deg,#fff 0%,#f8fbf7 100%);
+  box-shadow: 0 7px 15px -13px rgba(35,72,48,.5),inset 0 1px 0 #fff;
+  transform-style: preserve-3d;
+  transition: transform .22s cubic-bezier(.2,.8,.2,1),border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card::before {
+  content: "";
+  position: absolute;
+  top: -42%;
+  left: -75%;
+  width: 45%;
+  height: 190%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.76),transparent);
+  transform: rotate(22deg);
+  pointer-events: none;
+}
+.ioe-arcade-page .ioe-pair-card-side { color: #7c9584; font-size: 8px; font-weight: 950; letter-spacing: .16em; }
+.ioe-arcade-page .ioe-pair-card-value { color: #263f32; font-size: clamp(12px,1.6vw,16px); font-weight: 900; line-height: 1.35; overflow-wrap: anywhere; }
+.ioe-arcade-page .ioe-pair-card-stamp { position: absolute; top: 8px; right: 10px; color: #fff; font-size: 10px; }
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-selected {
+  border-color: #6da77f;
+  border-bottom-color: #39714f;
+  background: linear-gradient(145deg,#e8f5e8,#fff);
+  box-shadow: 0 0 0 3px rgba(71,142,91,.13),0 12px 22px -15px rgba(25,91,52,.42);
+  transform: translateY(-4px) rotateX(3deg);
+}
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-selected::before { animation: ioe-pair-card-sheen .62s ease-out both; }
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-matched {
+  border-color: #8bc69a;
+  border-bottom-color: #5b9a6b;
+  color: #1c6942;
+  background: linear-gradient(145deg,#dcf3df,#f6fff5);
+  box-shadow: 0 0 0 2px rgba(91,154,107,.14),0 8px 19px -15px rgba(20,102,57,.4);
+  animation: ioe-pair-match-pop .52s cubic-bezier(.18,1.2,.3,1) both;
+}
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-matched .ioe-pair-card-side { color: #26824e; }
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-mismatch {
+  border-color: #dfa69b;
+  border-bottom-color: #be7669;
+  background: #fff1ed;
+  color: #98564b;
+  animation: ioe-pair-mismatch .38s ease both;
+}
+.ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card.is-mismatch .ioe-pair-card-value { color: #98564b; }
+@keyframes ioe-pair-card-sheen { from { transform:translateX(0) rotate(22deg); } to { transform:translateX(450%) rotate(22deg); } }
+@keyframes ioe-pair-match-pop { 0% { transform:scale(.94) rotate(-2deg); } 56% { transform:scale(1.045) rotate(1deg); } 100% { transform:scale(1) rotate(0); } }
+@keyframes ioe-pair-mismatch { 0%,100% { transform:translateX(0); } 22% { transform:translateX(-5px); } 48% { transform:translateX(4px); } 74% { transform:translateX(-2px); } }
+@media(max-width:700px) {
+  .ioe-arcade-page .ioe-pair-library-window { left:5%; width:35%; }
+  .ioe-arcade-page .ioe-pair-library-shelves { right:4%; width:42%; }
+  .ioe-arcade-page .ioe-pair-library-mascot { left:39%; bottom:20%; }
+  .ioe-arcade-page .ioe-pair-matching-board.is-cool-pair { gap:8px; padding:9px; border-radius:16px; }
+  .ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card { min-height:88px; padding:10px 6px; border-radius:12px; }
+  .ioe-arcade-page .ioe-pair-progress-row { padding:10px 11px; }
+}
+@media(max-width:420px) {
+  .ioe-arcade-page .ioe-pair-matching-board.is-cool-pair { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card,
+  .ioe-arcade-page .ioe-pair-matching-board.is-cool-pair .ioe-pair-card::before { animation:none!important; transition:none!important; }
+}

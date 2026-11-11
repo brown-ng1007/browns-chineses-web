@@ -12,6 +12,7 @@ import { getMelonRenderer, type MelonRuntimeRendererKind } from "@/lib/content/c
 import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
 import "@/components/en/melon-arcade-premium.css";
+import "@/components/en/melon-arcade-pair.css";
 import "@/components/en/melon-arcade-cinematic.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
@@ -185,7 +186,7 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
 
   return (
     <div
-      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""}`}
+      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""}`}
       data-scene={game.scene}
       data-outcome={outcome ?? "idle"}
       role="img"
@@ -225,6 +226,15 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
       )}
       {!isPenalty && (
         <>
+          {game.id === "pair" && (
+            <div className="ioe-pair-library-world" aria-hidden="true">
+              <div className="ioe-pair-library-window"><i /><b /></div>
+              <div className="ioe-pair-library-shelves"><i /><i /><i /><i /><i /><i /><i /><i /></div>
+              <div className="ioe-pair-library-table" />
+              <div className="ioe-pair-library-mascot"><span>🍉</span><small>LET'S MATCH!</small></div>
+              <div className="ioe-pair-library-sign"><small>MELON LANGUAGE LIBRARY</small><strong>WORD PAIR CHALLENGE</strong></div>
+            </div>
+          )}
           <div className="ioe-scene-shade" aria-hidden="true" />
           <div className="ioe-scene-meta">
             <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
@@ -265,6 +275,7 @@ export default function IoeArcadePage() {
   const [feedback, setFeedback] = useState<"right" | "wrong" | null>(null);
   const [pairSelected, setPairSelected] = useState<string[]>([]);
   const [pairMatched, setPairMatched] = useState<string[]>([]);
+  const [pairMismatch, setPairMismatch] = useState<string[]>([]);
   const [ordered, setOrdered] = useState<string[]>([]);
   const [inputAnswer, setInputAnswer] = useState("");
   const [best, setBest] = useState(0);
@@ -297,6 +308,7 @@ export default function IoeArcadePage() {
     setFeedback(null);
     setPairSelected([]);
     setPairMatched([]);
+    setPairMismatch([]);
     setOrdered([]);
     setInputAnswer("");
   }, []);
@@ -405,12 +417,13 @@ export default function IoeArcadePage() {
   }
 
   function selectPair(key: string) {
-    // Chỉ cho chọn tối đa 2 thẻ; tránh trạng thái 3 thẻ nếu người dùng chạm quá nhanh.
+    // Giữ giới hạn tối đa hai thẻ được chọn cùng lúc.
     if (!question?.pairs || feedback || pairSelected.length >= 2 || pairSelected.includes(key)) return;
     const card = question.pairs.find((item) => item.key === key);
     if (!card || pairMatched.includes(card.pairId)) return;
     const next = [...pairSelected, key];
     setPairSelected(next);
+    setPairMismatch([]);
     if (next.length === 2) {
       const a = question.pairs.find((item) => item.key === next[0]);
       const b = question.pairs.find((item) => item.key === next[1]);
@@ -421,11 +434,14 @@ export default function IoeArcadePage() {
         if (matched.length === question.pairs.length / 2) advance(true);
       } else {
         setMistakes((value) => value + 1);
-        window.setTimeout(() => setPairSelected([]), 550);
+        setPairMismatch(next);
+        window.setTimeout(() => {
+          setPairSelected([]);
+          setPairMismatch([]);
+        }, 520);
       }
     }
   }
-
   function playAgain() {
     if (isStandalone && sessionGames[0]) playSingle(sessionGames[0]);
     else { setPhase("hub"); setSessionGames([]); }
@@ -520,7 +536,36 @@ export default function IoeArcadePage() {
             {question.speakText && !question.word && <button type="button" onClick={() => speakText(question.speakText!)} className="ioe-listen-button mt-4">🔊 Nghe lại</button>}
 
             {question.kind === "pairs" && question.pairs && (
-              <div className="mt-5"><p className="text-xs text-slate-500">Đã ghép {pairMatched.length}/{question.pairs.length / 2} cặp</p><div className="mx-auto mt-4 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">{question.pairs.map((card) => { const selected = pairSelected.includes(card.key); const matched = pairMatched.includes(card.pairId); return <button key={card.key} type="button" disabled={matched || !!feedback} onClick={() => selectPair(card.key)} className={`ioe-pair-card ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""}`}><span>{matched ? "✓" : card.side === "word" ? "EN" : "VI"}</span>{matched ? "Đã ghép" : card.value}</button>; })}</div></div>
+              <section className={`ioe-pair-panel ${activeGame?.id === "pair" ? "is-cool-pair" : "is-sea-match"}`}>
+                <div className="ioe-pair-progress-row">
+                  <div>
+                    <p className="ioe-pair-eyebrow">MELON · WORD PAIRS</p>
+                    <p className="ioe-pair-instruction">Chọn một từ tiếng Anh, sau đó tìm nghĩa tiếng Việt tương ứng.</p>
+                  </div>
+                  <span className="ioe-pair-progress-count"><b>{pairMatched.length}</b><i>/</i>{question.pairs.length / 2}</span>
+                </div>
+                <div className={`ioe-pair-matching-board ${activeGame?.id === "pair" ? "is-cool-pair" : "is-sea-match"}`} role="group" aria-label="Các thẻ từ vựng cần ghép">
+                  {question.pairs.map((card) => {
+                    const selected = pairSelected.includes(card.key);
+                    const matched = pairMatched.includes(card.pairId);
+                    const mismatch = pairMismatch.includes(card.key);
+                    return (
+                      <button
+                        key={card.key}
+                        type="button"
+                        disabled={matched || !!feedback}
+                        aria-pressed={selected}
+                        onClick={() => selectPair(card.key)}
+                        className={`ioe-pair-card ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""} ${mismatch ? "is-mismatch" : ""}`}
+                      >
+                        <span className="ioe-pair-card-side">{matched ? "✓" : card.side === "word" ? "ENGLISH" : "TIẾNG VIỆT"}</span>
+                        <span className="ioe-pair-card-value">{matched ? "Đã ghép" : card.value}</span>
+                        <span className="ioe-pair-card-stamp" aria-hidden="true">{matched ? "✓" : selected ? "✦" : ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
             {(question.kind === "choice" || question.kind === "listen" || question.kind === "stress") && question.options && (
