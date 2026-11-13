@@ -1,0 +1,74 @@
+/* MELON ARCADE · GAME 03 — LEAVE ME OUT / LETTER DECODE LAB */
+.ioe-arcade-page .ioe-extra-letter-lab-scene {
+  position:relative; isolation:isolate; overflow:hidden; aspect-ratio:16/9; min-height:190px;
+  border:1px solid rgba(215,229,210,.9); border-radius:20px;
+  background:radial-gradient(ellipse at 72% 20%,rgba(255,255,255,.74),transparent 35%),linear-gradient(125deg,#d7ecdf 0%,#f8edcf 52%,#c9e4d2 100%);
+  box-shadow:0 15px 32px -25px rgba(44,74,50,.5),inset 0 1px 0 rgba(255,255,255,.9);
+}
+.ioe-arcade-page .ioe-extra-letter-lab-scene .ioe-scene-poster { opacity:.08; filter:saturate(.55) blur(1px); }
+.ioe-arcade-page .ioe-extra-lab-world { position:absolute; z-index:2; inset:0; overflow:hidden; background:linear-gradient(180deg,rgba(231,248,246,.12),rgba(240,224,187,.12)); }
+.ioe-arcade-page .ioe-extra-lab-world::before { content:""; position:absolute; left:0; right:0; bottom:0; height:24%; background:linear-gradient(180deg,rgba(141,178,119,.18),rgba(117,157,99,.46)); border-top:1px solid rgba(255,255,255,.5); }
+.ioe-arcade-page .ioe-extra-lab-window { position:absolute; right:13%; top:9%; width:26%; height:53%; border:7px solid #fff7e7; border-radius:13px; background:linear-gradient(90deg,transparent 47%,rgba(255,255,255,.9) 48% 52%,transparent 53%),linear-gradient(180deg,transparent 47%,rgba(255,255,255,.9) 48% 52%,transparent 53%),linear-gradient(150deg,#7fcee1,#d6f1d9 72%,#98c17e 73%); box-shadow:0 7px 18px rgba(51,88,75,.12),inset 0 0 0 1px rgba(113,151,125,.3); }
+.ioe-arcade-page .ioe-extra-lab-window::after { content:""; position:absolute; left:-15%; right:-15%; bottom:-20%; height:35%; border-radius:50% 50% 0 0; background:#91b87a; opacity:.7; }
+.ioe-arcade-page .ioe-extra-lab-clock { position:absolute; right:20%; top:5%; width:clamp(22px,4vw,43px); aspect-ratio:1; border:4px solid #986c48; border-radius:50%; background:#fff6df; box-shadow:0 3px 0 #c99b62; }
+.ioe-arcade-page .ioe-extra-lab-clock::before { content:""; position:absolute; left:48%; top:17%; width:2px; height:34%; background:#47616a; transform-origin:bottom; transform:rotate(28deg); }
+.ioe-arcade-page .ioe-extra-lab-clock::after { content:""; position:absolute; left:49%; top:49%; width:30%; height:2px; background:#47616a; transform-origin:left; transform:rotate(-10deg); }
+.ioe-arcade-page .ioe-extra-lab-shelves { position:absolute; right:4%; bottom:22%; width:27%; height:35%; border:6px solid #966b48; border-radius:8px; background:repeating-linear-gradient(90deg,#d18a59 0 8px,#edc276 8px 16px,#789b82 16px 24px,#7897b7 24px 32px); box-shadow:0 8px 15px rgba(66,48,28,.18); opacity:.8; }
+.ioe-arcade-page .ioe-extra-lab-shelves::before,.ioe-arcade-page .ioe-extra-lab-shelves::after { content:""; position:absolute; left:-6px; right:-6px; height:6px; background:linear-gradient(#e4bd80,#986b44); }
+.ioe-arcade-page .ioe-extra-lab-shelves::before { top:33%; }.ioe-arcade-page .ioe-extra-lab-shelves::after { top:67%; }
+.ioe-arcade-page .ioe-extra-lab-shelves i { position:absolute; bottom:3%; width:9%; height:27%; border-radius:3px 3px 0 0; background:#e2b86f; box-shadow:12px 0 #6f9c81,24px 0 #bd7755,36px 0 #7d9bbc; }
+.ioe-arcade-page .ioe-extra-lab-shelves i:nth-child(1) { left:5%; }.ioe-arcade-page .ioe-extra-lab-shelves i:nth-child(2) { left:5%; bottom:37%; height:27%; background:#d6a45e; }.ioe-arcade-page .ioe-extra-lab-shelves i:nth-child(3) { left:5%; bottom:70%; height:24%; background:#769b82; }
+.ioe-arcade-page .ioe-extra-lab-detective { position:absolute; z-index:3; left:-1%; bottom:-8%; width:34%; height:94%; object-fit:contain; object-position:bottom left; filter:drop-shadow(0 9px 9px rgba(48,71,44,.22)); animation:ioe-extra-detective-breathe 4.8s ease-in-out infinite; }
+.ioe-arcade-page .ioe-extra-lab-sign { position:absolute; z-index:4; left:35%; top:13%; display:flex; flex-direction:column; align-items:flex-start; gap:4px; border:1px solid rgba(255,255,255,.6); border-radius:13px; padding:9px 16px 10px; background:linear-gradient(135deg,rgba(255,249,228,.94),rgba(245,224,182,.88)); box-shadow:0 7px 17px rgba(70,67,43,.12),inset 0 1px 0 #fff; }
+.ioe-arcade-page .ioe-extra-lab-sign small { color:#56866a; font-size:7px; font-weight:950; letter-spacing:.2em; }
+.ioe-arcade-page .ioe-extra-lab-sign strong { color:#6c472e; font-size:clamp(13px,2.2vw,22px); line-height:1; letter-spacing:.02em; }
+.ioe-arcade-page .ioe-extra-lab-sign span { color:#8a7254; font-size:clamp(8px,1vw,11px); font-weight:700; }
+.ioe-arcade-page .ioe-extra-lab-conveyor { position:absolute; z-index:2; left:34%; right:3%; bottom:9%; height:19%; display:flex; align-items:center; justify-content:space-around; gap:6px; padding:8px 13px; border:5px solid #9b714c; border-radius:13px; background:linear-gradient(180deg,#e9c58e,#bb8a57); box-shadow:0 7px 0 rgba(112,77,45,.3),inset 0 2px 3px rgba(255,255,255,.5); }
+.ioe-arcade-page .ioe-extra-lab-conveyor::before { content:""; position:absolute; inset:4px; border:1px dashed rgba(111,76,42,.5); border-radius:7px; }
+.ioe-arcade-page .ioe-extra-lab-conveyor span { position:relative; z-index:1; color:#fff6df; font-size:7px; font-weight:950; letter-spacing:.16em; text-shadow:0 1px 2px #76502f; }
+.ioe-arcade-page .ioe-extra-lab-conveyor i { position:relative; z-index:1; width:clamp(13px,2.1vw,22px); aspect-ratio:1; border:2px solid #f5e7c7; border-radius:5px; background:linear-gradient(145deg,#7ca5b1,#436f7c); box-shadow:0 2px 3px rgba(51,48,35,.22); animation:ioe-extra-conveyor-drift 5s ease-in-out infinite; }
+.ioe-arcade-page .ioe-extra-lab-conveyor i:nth-of-type(2) { animation-delay:-1.1s; background:linear-gradient(145deg,#e8b76e,#b67747); }.ioe-arcade-page .ioe-extra-lab-conveyor i:nth-of-type(3) { animation-delay:-2.2s; background:linear-gradient(145deg,#91bd93,#55856a); }.ioe-arcade-page .ioe-extra-lab-conveyor i:nth-of-type(4) { animation-delay:-3.3s; background:linear-gradient(145deg,#9ba5d1,#6674a4); }
+.ioe-arcade-page .ioe-extra-lab-conveyor b { position:absolute; right:5%; top:-38%; color:#f4cc6d; font-size:21px; text-shadow:0 0 12px rgba(255,225,130,.7); animation:ioe-extra-sparkle 2.4s ease-in-out infinite; }
+.ioe-arcade-page .ioe-extra-lab-glow { position:absolute; z-index:0; right:26%; top:18%; width:24%; aspect-ratio:1; border-radius:50%; background:rgba(255,240,168,.24); filter:blur(20px); animation:ioe-extra-lab-glow 5s ease-in-out infinite; }
+.ioe-arcade-page .ioe-extra-letter-lab-scene .ioe-scene-shade { z-index:1; background:linear-gradient(90deg,rgba(17,54,40,.06),transparent 64%),linear-gradient(0deg,rgba(29,62,39,.22),transparent 54%); }
+.ioe-arcade-page .ioe-extra-letter-lab-scene .ioe-scene-meta { display:none; }
+
+/* Interactive letter decoder board — each tile is a real answer control. */
+.ioe-arcade-page .ioe-extra-letter-lab { position:relative; overflow:hidden; min-height:0; padding:clamp(13px,2.4vw,22px); border:1px solid #eadfc8; border-radius:19px; background:linear-gradient(140deg,#f8f0dc,#fffdf5 58%,#eaf4e9); box-shadow:0 8px 20px -17px rgba(71,72,48,.35); }
+.ioe-arcade-page .ioe-extra-lab-instruction { display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:17px; text-align:center; }
+.ioe-arcade-page .ioe-extra-lab-case { color:#6b9b75; font-size:8px; font-weight:950; letter-spacing:.2em; }
+.ioe-arcade-page .ioe-extra-lab-instruction strong { color:#4d3a2b; font-size:clamp(15px,2.2vw,21px); font-weight:950; letter-spacing:-.02em; }
+.ioe-arcade-page .ioe-extra-lab-instruction small { color:#8c7b64; font-size:11px; }
+.ioe-arcade-page .ioe-extra-letter-track { position:relative; display:grid; grid-template-columns:repeat(auto-fit,minmax(43px,1fr)); gap:clamp(5px,1.2vw,11px); width:100%; max-width:760px; margin:0 auto; padding:12px; border:1px solid #e6d4b3; border-radius:15px; background:linear-gradient(180deg,#d9e4d0,#b8c9ad); box-shadow:inset 0 3px 7px rgba(78,88,61,.15),0 4px 0 #a2b492; }
+.ioe-arcade-page .ioe-extra-letter-track::before { content:""; position:absolute; inset:5px; border:1px dashed rgba(82,107,75,.27); border-radius:10px; pointer-events:none; }
+.ioe-arcade-page .ioe-extra-letter-tile { position:relative; z-index:1; display:flex; min-width:0; min-height:68px; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid #f5e6ca; border-bottom:4px solid #c6a779; border-radius:12px; color:#5a412b; background:linear-gradient(155deg,#fffdf6,#f4e4c7); box-shadow:0 4px 8px rgba(77,65,41,.14),inset 0 1px 0 #fff; transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease; }
+.ioe-arcade-page .ioe-extra-letter-tile:hover:not(:disabled) { transform:translateY(-4px); border-color:#e7bf75; box-shadow:0 8px 13px rgba(77,65,41,.16),inset 0 1px 0 #fff; }
+.ioe-arcade-page .ioe-extra-letter-tile:focus-visible { outline:3px solid rgba(55,125,85,.36); outline-offset:3px; }
+.ioe-arcade-page .ioe-extra-letter-index { position:absolute; top:5px; left:7px; color:#b49a72; font-size:7px; font-weight:900; letter-spacing:.08em; }
+.ioe-arcade-page .ioe-extra-letter-tile strong { font-size:clamp(23px,3.2vw,34px); font-weight:1000; line-height:1; }
+.ioe-arcade-page .ioe-extra-letter-tile i { position:absolute; top:4px; right:7px; min-width:12px; color:#fff; font-size:11px; font-style:normal; font-weight:1000; }
+.ioe-arcade-page .ioe-extra-letter-tile.is-picked { transform:translateY(-8px) rotate(-2deg) scale(1.035); border-color:#efc76d; border-bottom-color:#c38b39; background:linear-gradient(145deg,#fff5c6,#f7d985); box-shadow:0 10px 18px rgba(141,104,42,.23),0 0 0 3px rgba(240,199,109,.2); }
+.ioe-arcade-page .ioe-extra-letter-tile.is-correct { border-color:#9bce9d; border-bottom-color:#599664; color:#2b7047; background:linear-gradient(145deg,#effce6,#cbe9c5); animation:ioe-extra-letter-pop .52s cubic-bezier(.2,1.3,.4,1) both; }
+.ioe-arcade-page .ioe-extra-letter-tile.is-wrong { border-color:#e4a19a; border-bottom-color:#b9685d; color:#9b463f; background:linear-gradient(145deg,#fff0e9,#f3c6b9); animation:ioe-extra-letter-shake .38s ease both; }
+.ioe-arcade-page .ioe-extra-lab-footnote { display:flex; justify-content:space-between; gap:10px; margin-top:14px; color:#8b7a63; font-size:9px; font-weight:700; }
+.ioe-arcade-page .ioe-extra-lab-footnote b { color:#719477; font-size:8px; letter-spacing:.1em; }
+.ioe-arcade-page .ioe-extra-letter-lab[data-outcome="right"] .ioe-extra-lab-instruction { animation:ioe-extra-success-pop .46s cubic-bezier(.2,1.2,.35,1) both; }
+@keyframes ioe-extra-detective-breathe { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(-4px) rotate(-.5deg); } }
+@keyframes ioe-extra-conveyor-drift { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+@keyframes ioe-extra-sparkle { 0%,100% { transform:scale(.78) rotate(0); opacity:.45; } 50% { transform:scale(1.12) rotate(18deg); opacity:1; } }
+@keyframes ioe-extra-lab-glow { 0%,100% { transform:scale(.9); opacity:.4; } 50% { transform:scale(1.12); opacity:.85; } }
+@keyframes ioe-extra-letter-pop { 0% { transform:translateY(-8px) scale(1.02); } 55% { transform:translateY(-18px) scale(1.09) rotate(4deg); } 100% { transform:translateY(-13px) scale(1.04); } }
+@keyframes ioe-extra-letter-shake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-4px) rotate(-2deg); } 55% { transform:translateX(4px) rotate(2deg); } 80% { transform:translateX(-2px); } }
+@keyframes ioe-extra-success-pop { 0% { transform:scale(1); } 45% { transform:scale(1.025); } 100% { transform:scale(1); } }
+@media(max-width:640px) {
+  .ioe-arcade-page .ioe-extra-lab-detective { left:-7%; width:42%; height:82%; bottom:-3%; }
+  .ioe-arcade-page .ioe-extra-lab-sign { left:32%; top:9%; padding:6px 9px; }
+  .ioe-arcade-page .ioe-extra-lab-shelves { right:1%; width:24%; opacity:.55; }
+  .ioe-arcade-page .ioe-extra-lab-conveyor { left:30%; right:2%; height:16%; bottom:7%; padding:5px; }
+  .ioe-arcade-page .ioe-extra-lab-footnote { flex-direction:column; align-items:center; text-align:center; }
+  .ioe-arcade-page .ioe-extra-letter-tile { min-height:58px; border-radius:10px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .ioe-arcade-page .ioe-extra-lab-detective,.ioe-arcade-page .ioe-extra-lab-conveyor i,.ioe-arcade-page .ioe-extra-lab-conveyor b,.ioe-arcade-page .ioe-extra-lab-glow { animation:none!important; }
+  .ioe-arcade-page .ioe-extra-letter-tile { transition:none!important; }
+}

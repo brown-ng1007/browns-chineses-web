@@ -13,6 +13,7 @@ import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
 import "@/components/en/melon-arcade-premium.css";
 import "@/components/en/melon-arcade-pair.css";
+import "@/components/en/melon-arcade-extra.css";
 import "@/components/en/melon-arcade-cinematic.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
@@ -186,7 +187,7 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
 
   return (
     <div
-      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""}`}
+      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""} ${game.id === "extra" ? "ioe-extra-letter-lab-scene" : ""}`}
       data-scene={game.scene}
       data-outcome={outcome ?? "idle"}
       role="img"
@@ -235,6 +236,17 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
               <div className="ioe-pair-library-sign"><small>MELON LANGUAGE LIBRARY</small><strong>WORD PAIR CHALLENGE</strong></div>
             </div>
           )}
+          {game.id === "extra" && (
+            <div className="ioe-extra-lab-world" aria-hidden="true">
+              <div className="ioe-extra-lab-window"><i /><b /></div>
+              <div className="ioe-extra-lab-clock"><i /></div>
+              <div className="ioe-extra-lab-shelves"><i /><i /><i /><i /><i /><i /></div>
+              <Image className="ioe-extra-lab-detective" src="/ioe/games/extra-detective.webp" alt="" width={420} height={420} />
+              <div className="ioe-extra-lab-sign"><small>MELON LETTER DETECTIVE</small><strong>LEAVE ME OUT</strong><span>Find the intruder letter</span></div>
+              <div className="ioe-extra-lab-conveyor"><span>DECODE LAB</span><i /><i /><i /><i /><i /><b>✦</b></div>
+              <div className="ioe-extra-lab-glow" />
+            </div>
+          )}
           <div className="ioe-scene-shade" aria-hidden="true" />
           <div className="ioe-scene-meta">
             <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
@@ -278,6 +290,7 @@ export default function IoeArcadePage() {
   const [pairMismatch, setPairMismatch] = useState<string[]>([]);
   const [ordered, setOrdered] = useState<string[]>([]);
   const [inputAnswer, setInputAnswer] = useState("");
+  const [extraSelectedIndex, setExtraSelectedIndex] = useState<number | null>(null);
   const [best, setBest] = useState(0);
   const [progress, setProgress] = useState<SavedProgress>({ unlockedLesson: 1, highScores: {} });
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Tất cả");
@@ -311,6 +324,7 @@ export default function IoeArcadePage() {
     setPairMismatch([]);
     setOrdered([]);
     setInputAnswer("");
+    setExtraSelectedIndex(null);
   }, []);
 
   useEffect(() => {
@@ -442,6 +456,12 @@ export default function IoeArcadePage() {
       }
     }
   }
+  function selectExtraLetter(index: number) {
+    if (!question?.letters || question.extraIndex === undefined || feedback) return;
+    setExtraSelectedIndex(index);
+    advance(index === question.extraIndex);
+  }
+
   function playAgain() {
     if (isStandalone && sessionGames[0]) playSingle(sessionGames[0]);
     else { setPhase("hub"); setSessionGames([]); }
@@ -584,7 +604,37 @@ export default function IoeArcadePage() {
               <div className="mx-auto mt-5 flex max-w-md flex-col gap-3"><input value={inputAnswer} onChange={(event) => setInputAnswer(event.target.value)} disabled={!!feedback} onKeyDown={(event) => { if (event.key === "Enter") submitInput(); }} className="en-input text-center font-bold" placeholder="Nhập đáp án tiếng Anh…" autoComplete="off" /><button type="button" disabled={!!feedback || !inputAnswer.trim()} onClick={submitInput} className="en-btn">Kiểm tra đáp án</button></div>
             )}
 
-            {question.kind === "letters" && question.letters && (
+            {question.kind === "letters" && question.letters && activeGame?.id === "extra" && (
+              <section className="ioe-extra-letter-lab" data-outcome={feedback ?? "idle"}>
+                <div className="ioe-extra-lab-instruction">
+                  <span className="ioe-extra-lab-case">CASE FILE · 003</span>
+                  <strong>Which letter does not belong?</strong>
+                  <small>{question.subPrompt ?? "Inspect each letter carefully."}</small>
+                </div>
+                <div className="ioe-extra-letter-track" role="group" aria-label="Chọn chữ cái thừa trong từ">
+                  {question.letters.map((letter, index) => {
+                    const picked = extraSelectedIndex === index;
+                    return (
+                      <button
+                        key={`${letter.value}-${index}`}
+                        type="button"
+                        disabled={!!feedback}
+                        onClick={() => selectExtraLetter(index)}
+                        aria-label={`Chữ ${letter.value}, vị trí ${index + 1}`}
+                        aria-pressed={picked}
+                        className={`ioe-extra-letter-tile ${picked ? "is-picked" : ""} ${picked && feedback === "right" ? "is-correct" : ""} ${picked && feedback === "wrong" ? "is-wrong" : ""}`}
+                      >
+                        <span className="ioe-extra-letter-index">{String(index + 1).padStart(2, "0")}</span>
+                        <strong>{letter.value.toUpperCase()}</strong>
+                        <i aria-hidden="true">{picked ? (feedback === "right" ? "✓" : feedback === "wrong" ? "×" : "✦") : ""}</i>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="ioe-extra-lab-footnote"><span>Tap the extra tile to remove it</span><b>{question.letters.length} LETTERS · 1 INTRUDER</b></div>
+              </section>
+            )}
+            {question.kind === "letters" && question.letters && activeGame?.id !== "extra" && (
               <div className="mt-5 flex flex-wrap justify-center gap-2">{question.letters.map((letter, index) => <button key={`${letter.value}-${index}`} type="button" disabled={!!feedback} onClick={() => advance(index === question.extraIndex)} className="ioe-letter">{letter.value.toUpperCase()}</button>)}</div>
             )}
             {question.kind === "letters" && question.word && !question.letters && (
