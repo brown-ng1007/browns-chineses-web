@@ -15,6 +15,7 @@ import "@/components/en/melon-arcade-premium.css";
 import "@/components/en/melon-arcade-pair.css";
 import "@/components/en/melon-arcade-extra.css";
 import "@/components/en/melon-arcade-cinematic.css";
+import "@/components/en/melon-arcade-rearrange.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
 const PROGRESS_KEY = "melon_ioe_progress_v3";
@@ -187,7 +188,7 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
 
   return (
     <div
-      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""} ${game.id === "extra" ? "ioe-extra-letter-lab-scene" : ""}`}
+      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""} ${game.id === "extra" ? "ioe-extra-letter-lab-scene" : ""} ${game.id === "rearrange" ? "ioe-rearrange-cinematic" : ""}`}
       data-scene={game.scene}
       data-outcome={outcome ?? "idle"}
       role="img"
@@ -202,6 +203,14 @@ function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong
         aria-hidden="true"
         priority={isPenalty}
       />
+      {game.id === "rearrange" && (
+        <div className="ioe-rearrange-cinematic-layer" aria-hidden="true">
+          <span className="ioe-rearrange-film-label">SENTENCE WORKSHOP · MELON ACADEMY</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--one">Aa</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--two">?</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--three">✦</span>
+        </div>
+      )}
       {isPenalty && (
         <div className="ioe-cinematic-preload" aria-hidden="true">
           <video muted playsInline preload="auto" tabIndex={-1}>
@@ -592,7 +601,69 @@ export default function IoeArcadePage() {
               <div className="mt-5 grid gap-2 sm:grid-cols-2">{question.options.map((option, index) => <button key={`${option}-${index}`} type="button" disabled={!!feedback} onClick={() => submitChoice(option)} className={`ioe-option ${feedback === "right" && norm(option) === norm(question.answer) ? "is-correct" : ""}`}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
             )}
 
-            {question.kind === "order" && question.tokens && (
+            {question.kind === "order" && question.tokens && activeGame?.id === "rearrange" && (
+  <section className={`ioe-order-workshop ${feedback === "right" ? "is-correct" : ""} ${feedback === "wrong" ? "is-wrong" : ""}`}>
+    <div className="ioe-order-workshop-heading">
+      <div>
+        <span className="ioe-order-eyebrow">SENTENCE WORKSHOP</span>
+        <p className="ioe-order-workshop-title">Build the sentence, one word at a time</p>
+      </div>
+      <div className="ioe-order-meter"><strong>{ordered.length}</strong><span>/ {question.answerTokens?.length ?? question.tokens.length}</span></div>
+    </div>
+    <div className="ioe-order-answer-board" role="group" aria-label="Các từ đã xếp thành câu">
+      {ordered.length ? ordered.map((token, index) => (
+        <button
+          key={`${token}-${index}`}
+          type="button"
+          disabled={!!feedback}
+          onClick={() => setOrdered((items) => items.filter((_, i) => i !== index))}
+          className="ioe-order-answer-token"
+          style={{ animationDelay: `${index * 55}ms` }}
+          aria-label={`Bỏ từ ${token} khỏi câu`}
+        >
+          {token}<span aria-hidden="true">×</span>
+        </button>
+      )) : (
+        <span className="ioe-order-placeholder">Your sentence will appear here. Tap the word tiles below.</span>
+      )}
+    </div>
+    <div className="ioe-order-bank-heading"><span>WORD BANK</span><span>Tap a word to add it</span></div>
+    <div className="ioe-order-word-bank">
+      {question.tokens.filter((token, index) => {
+        const usedCount = ordered.filter((item) => item === token).length;
+        const copiesBefore = question.tokens!.slice(0, index + 1).filter((item) => item === token).length;
+        return copiesBefore > usedCount;
+      }).map((token, index) => (
+        <button
+          key={`${token}-${index}`}
+          type="button"
+          disabled={!!feedback}
+          onClick={() => setOrdered((items) => [...items, token])}
+          className="ioe-order-bank-token"
+          style={{ animationDelay: `${index * 45}ms` }}
+        >
+          <span className="ioe-order-bank-index">{index + 1}</span>{token}<span className="ioe-order-bank-plus" aria-hidden="true">+</span>
+        </button>
+      ))}
+      {question.tokens.every((token) => ordered.filter((item) => item === token).length >= question.tokens!.filter((item) => item === token).length) && (
+        <div className="ioe-order-empty-bank">All word tiles are on the sentence board.</div>
+      )}
+    </div>
+    <div className="ioe-order-footer">
+      <small className="ioe-order-helper">Tap a placed word to move it back to the bank.</small>
+      <button
+        type="button"
+        disabled={!!feedback || ordered.length !== question.answerTokens?.length}
+        onClick={submitOrder}
+        className="en-btn ioe-order-check"
+      >
+        Check sentence <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  </section>
+)}
+
+{question.kind === "order" && question.tokens && activeGame?.id !== "rearrange" && (
               <div className="mt-5"><div className="ioe-answer-line">{ordered.length ? ordered.map((token, index) => <button key={`${token}-${index}`} type="button" disabled={!!feedback} onClick={() => { setOrdered((items) => items.filter((_, i) => i !== index)); }} className="ioe-word-token">{token}</button>) : <span className="text-sm text-slate-400">Chạm các thẻ từ bên dưới theo đúng thứ tự…</span>}</div><div className="mt-4 flex flex-wrap justify-center gap-2">{question.tokens.filter((token, index) => {
                 const usedCount = ordered.filter((item) => item === token).length;
                 const copiesBefore = question.tokens!.slice(0, index + 1).filter((item) => item === token).length;
