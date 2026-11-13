@@ -1,0 +1,171 @@
+﻿/* MELON ARCADE · CINEMATIC PILOT
+   Short, state-driven action sequences. No endless replay or background motion. */
+.ioe-arcade-page .ioe-penalty-cinematic {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  max-width: 760px;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  max-height: none;
+  margin: 18px auto 0;
+  border: 1px solid rgba(223, 239, 231, .7);
+  border-radius: 20px;
+  background: #17394d;
+  box-shadow: 0 16px 34px -22px rgba(10, 43, 38, .65), 0 0 0 1px rgba(255,255,255,.35) inset;
+}
+.ioe-arcade-page .ioe-penalty-poster {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ioe-arcade-page .ioe-cinematic-video {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #17394d;
+  opacity: 0;
+  animation: ioe-cinematic-reveal .18s ease-out forwards;
+}
+@keyframes ioe-cinematic-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ioe-arcade-page .ioe-penalty-hud {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  left: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.ioe-arcade-page .ioe-penalty-hud span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #f7f5e8;
+  background: rgba(13, 39, 47, .48);
+  backdrop-filter: blur(8px);
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .13em;
+  text-shadow: 0 1px 3px rgba(0,0,0,.22);
+}
+.ioe-arcade-page .ioe-penalty-hud i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f3cb75;
+  box-shadow: 0 0 0 3px rgba(243,203,117,.17);
+}
+.ioe-arcade-page .ioe-penalty-caption {
+  position: absolute;
+  z-index: 3;
+  right: 14px;
+  bottom: 12px;
+  color: rgba(255,255,255,.92);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-shadow: 0 2px 7px rgba(0,0,0,.5);
+  pointer-events: none;
+}
+
+/* The other mini-games get a restrained feedback beat until their own scenes are produced. */
+.ioe-arcade-page .ioe-arcade-reaction {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 42%;
+  min-width: 132px;
+  border: 1px solid rgba(255,255,255,.85);
+  border-radius: 15px;
+  padding: 10px 15px;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(18,103,74,.96), rgba(51,163,105,.96));
+  box-shadow: 0 12px 28px rgba(7,33,24,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  font-size: clamp(16px, 3vw, 24px);
+  font-weight: 1000;
+  letter-spacing: .04em;
+  text-align: center;
+  text-shadow: 0 2px 7px rgba(0,0,0,.2);
+  opacity: 0;
+  transform: translate(-50%,-50%) scale(.62) rotate(-5deg);
+  pointer-events: none;
+}
+.ioe-arcade-page .ioe-arcade-reaction.is-wrong {
+  background: linear-gradient(135deg, rgba(123,70,55,.97), rgba(180,100,69,.96));
+}
+.ioe-arcade-page .ioe-play-scene[data-outcome="right"] .ioe-arcade-reaction,
+.ioe-arcade-page .ioe-play-scene[data-outcome="wrong"] .ioe-arcade-reaction {
+  animation: ioe-arcade-reaction-pop .72s cubic-bezier(.2,1.15,.35,1) both;
+}
+.ioe-arcade-page .ioe-play-scene[data-outcome="right"] .ioe-scene-poster {
+  animation: ioe-arcade-poster-win .7s ease-out both;
+}
+.ioe-arcade-page .ioe-play-scene[data-outcome="wrong"] .ioe-scene-poster {
+  animation: ioe-arcade-poster-miss .3s ease-out both;
+}
+@keyframes ioe-arcade-reaction-pop {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.62) rotate(-5deg); }
+  48% { opacity: 1; transform: translate(-50%,-50%) scale(1.06) rotate(1deg); }
+  100% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0); }
+}
+@keyframes ioe-arcade-poster-win {
+  0%, 100% { filter: saturate(1) brightness(1); }
+  42% { filter: saturate(1.24) brightness(1.12); }
+}
+@keyframes ioe-arcade-poster-miss {
+  0%, 100% { transform: scale(1.001) translateX(0); }
+  30% { transform: scale(1.001) translateX(-3px); }
+  65% { transform: scale(1.001) translateX(3px); }
+}
+
+@media (max-width: 640px) {
+  .ioe-arcade-page .ioe-penalty-cinematic { border-radius: 15px; }
+  .ioe-arcade-page .ioe-penalty-hud { top: 8px; left: 8px; }
+  .ioe-arcade-page .ioe-penalty-hud span { padding: 5px 8px; font-size: 6px; }
+  .ioe-arcade-page .ioe-penalty-caption { right: 9px; bottom: 8px; font-size: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ioe-arcade-page .ioe-cinematic-video { display: none; }
+  .ioe-arcade-page .ioe-arcade-reaction,
+  .ioe-arcade-page .ioe-scene-poster { animation: none !important; transition: none !important; }
+  .ioe-arcade-page .ioe-play-scene[data-outcome="right"] .ioe-arcade-reaction,
+  .ioe-arcade-page .ioe-play-scene[data-outcome="wrong"] .ioe-arcade-reaction { opacity: 1; transform: translate(-50%,-50%); }
+}
+
+/* CINEMATIC V2 · answer-to-action sync */
+.ioe-arcade-page .ioe-cinematic-preload {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.ioe-arcade-page .ioe-cinematic-preload video {
+  display: block;
+  width: 1px;
+  height: 1px;
+}
+.ioe-arcade-page .ioe-cinematic-video {
+  opacity: 1;
+  animation: none !important;
+}

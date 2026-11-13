@@ -11,6 +11,11 @@ import { IOE_EXPANSION, type IoeExpandedGame } from "@/lib/en/ioe-expansion";
 import { getMelonRenderer, type MelonRuntimeRendererKind } from "@/lib/content/contract";
 import type { EnWord } from "@/lib/en/words";
 import "@/components/en/en.css";
+import "@/components/en/melon-arcade-premium.css";
+import "@/components/en/melon-arcade-pair.css";
+import "@/components/en/melon-arcade-extra.css";
+import "@/components/en/melon-arcade-cinematic.css";
+import "@/components/en/melon-arcade-rearrange.css";
 
 const BEST_KEY = "melon_ioe_arcade_best_v1";
 const PROGRESS_KEY = "melon_ioe_progress_v3";
@@ -167,69 +172,114 @@ function formatTime(seconds: number) {
 }
 
 function GameScene({ game, outcome }: { game: GameDef; outcome: "right" | "wrong" | null }) {
+  const isPenalty = game.id === "penalty";
   const categoryLabel = game.expanded ? game.category : "MELON MINI GAME";
+  const cinematicSrc = !isPenalty ? null : outcome === "right"
+    ? "/ioe/cinematics/penalty-goal.webm"
+    : outcome === "wrong" ? "/ioe/cinematics/penalty-save.webm" : null;
+  const reactionLabel = outcome === "wrong" ? "TRY AGAIN!" :
+    game.id === "pair" ? "MATCHED!" :
+    game.id === "monkey" ? "SWING!" :
+    game.id === "sea" ? "TREASURE!" :
+    game.id === "climb" ? "TOP REACHED!" :
+    game.id === "octopus" ? "FULL SPEED!" :
+    game.id === "rearrange" ? "PERFECT ORDER!" :
+    game.id === "exam" ? "BRILLIANT!" : "NICE MOVE!";
+
   return (
-    <div className={`ioe-play-scene scene-${game.scene} ${game.id === "penalty" && outcome === "right" ? "is-goal" : ""} ${game.id === "penalty" && outcome === "wrong" ? "is-saved" : ""}`} data-scene={game.scene} role="img" aria-label={`Bối cảnh ${game.vi}`}>
-      <video
-        className="ioe-scene-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        poster={`/ioe/games/${game.thumb}.webp`}
+    <div
+      className={`ioe-play-scene scene-${game.scene} ${isPenalty ? "ioe-penalty-cinematic" : ""} ${game.id === "pair" ? "ioe-pair-library-scene" : ""} ${game.id === "extra" ? "ioe-extra-letter-lab-scene" : ""} ${game.id === "rearrange" ? "ioe-rearrange-cinematic" : ""}`}
+      data-scene={game.scene}
+      data-outcome={outcome ?? "idle"}
+      role="img"
+      aria-label={`Bối cảnh ${game.vi}`}
+    >
+      <Image
+        className={isPenalty ? "ioe-penalty-poster" : "ioe-scene-poster"}
+        src={isPenalty ? "/ioe/cinematics/penalty-poster.webp" : `/ioe/games/${game.thumb}.webp`}
+        alt=""
+        fill
+        sizes="(max-width: 640px) 100vw, 760px"
         aria-hidden="true"
-      >
-        <source src={`/ioe/videos/${game.thumb}.mp4`} type="video/mp4" />
-      </video>
-      <div className="ioe-scene-shade" aria-hidden="true" />
-      {game.id === "penalty" && (
+        priority={isPenalty}
+      />
+      {game.id === "rearrange" && (
+        <div className="ioe-rearrange-cinematic-layer" aria-hidden="true">
+          <span className="ioe-rearrange-film-label">SENTENCE WORKSHOP · MELON ACADEMY</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--one">Aa</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--two">?</span>
+          <span className="ioe-rearrange-orbit ioe-rearrange-orbit--three">✦</span>
+        </div>
+      )}
+      {isPenalty && (
+        <div className="ioe-cinematic-preload" aria-hidden="true">
+          <video muted playsInline preload="auto" tabIndex={-1}>
+            <source src="/ioe/cinematics/penalty-goal.webm" type="video/webm" />
+          </video>
+          <video muted playsInline preload="auto" tabIndex={-1}>
+            <source src="/ioe/cinematics/penalty-save.webm" type="video/webm" />
+          </video>
+        </div>
+      )}      {cinematicSrc && (
+        <video
+          key={cinematicSrc}
+          className="ioe-cinematic-video"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          poster="/ioe/cinematics/penalty-poster.webp"
+          aria-hidden="true"
+        >
+          <source src={cinematicSrc} type="video/webm" />
+        </video>
+      )}
+      {!isPenalty && (
         <>
-          <svg className="ioe-penalty-actors" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
-            <g className="ioe-penalty-keeper" transform="translate(320 177)">
-              <g transform="scale(1.55)">
-              <circle cx="0" cy="-25" r="11" fill="#e8b58e" stroke="#633d2d" strokeWidth="2" />
-              <path d="M-13 -14 Q0 -21 13 -14 L18 24 Q0 33 -18 24 Z" fill="#f7c948" stroke="#8c6516" strokeWidth="2" />
-              <path d="M-13 -8 L-39 2 L-47 -11 M13 -8 L39 2 L47 -11" fill="none" stroke="#e8b58e" strokeWidth="9" strokeLinecap="round" />
-              <path d="M-39 2 L-47 -11 M39 2 L47 -11" fill="none" stroke="#f8fafc" strokeWidth="8" strokeLinecap="round" />
-              <path d="M-8 24 L-13 48 M8 24 L13 48" fill="none" stroke="#253b58" strokeWidth="10" strokeLinecap="round" />
-              <path d="M-13 48 L-25 51 M13 48 L25 51" fill="none" stroke="#e5edf7" strokeWidth="8" strokeLinecap="round" />
-              </g>
-            </g>
-            <g className="ioe-penalty-kicker" transform="translate(170 260)">
-              <g transform="scale(1.35)">
-              <circle cx="0" cy="-61" r="13" fill="#d9a27d" stroke="#593a2b" strokeWidth="2" />
-              <path d="M-12 -70 Q-4 -83 10 -71 L12 -62 L-12 -62 Z" fill="#26364e" />
-              <path d="M-18 -46 Q0 -56 18 -43 L24 -7 L-18 -5 Z" fill="#2466bd" stroke="#164b91" strokeWidth="2" />
-              <path d="M-15 -7 L17 -7 L22 14 L-14 14 Z" fill="#f4f7fb" stroke="#b8c5d7" strokeWidth="2" />
-              <path d="M-13 -42 L-32 -15 L-42 -4 M15 -41 L29 -20" fill="none" stroke="#d9a27d" strokeWidth="9" strokeLinecap="round" />
-              <path d="M-8 12 L-18 43" fill="none" stroke="#d9a27d" strokeWidth="10" strokeLinecap="round" />
-              <g className="ioe-penalty-kick-leg">
-                <path d="M10 11 L31 34 L48 42" fill="none" stroke="#d9a27d" strokeWidth="11" strokeLinecap="round" />
-                <path d="M43 41 L58 43" fill="none" stroke="#172b47" strokeWidth="9" strokeLinecap="round" />
-              </g>
-              </g>
-            </g>
-          </svg>
-          <svg className="ioe-penalty-ball" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="50" cy="50" r="45" fill="#fff" stroke="#d7e0e8" strokeWidth="4" />
-            <path d="M50 17 63 27 58 42 42 42 37 27Z M18 45 31 38 42 49 37 65 21 66Z M82 45 69 38 58 49 63 65 79 66Z M38 82 35 67 50 58 65 67 62 82Z" fill="#26364b" />
-            <path d="M24 23 37 27 M76 23 63 27 M20 76 37 65 M80 76 63 65" stroke="#26364b" strokeWidth="5" strokeLinecap="round" />
-          </svg>
-          <div className="ioe-goal-burst" aria-hidden="true"><strong>GOAL!</strong><span>+50 điểm</span></div>
-          <div className="ioe-save-burst" aria-hidden="true"><strong>ĐỠ ĐƯỢC!</strong><span>Thử cú sút khác</span></div>
-          <div className="ioe-goal-confetti" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /><i /></div>
+          {game.id === "pair" && (
+            <div className="ioe-pair-library-world" aria-hidden="true">
+              <div className="ioe-pair-library-window"><i /><b /></div>
+              <div className="ioe-pair-library-shelves"><i /><i /><i /><i /><i /><i /><i /><i /></div>
+              <div className="ioe-pair-library-table" />
+              <div className="ioe-pair-library-mascot"><span>🍉</span><small>LET&apos;S MATCH!</small></div>
+              <div className="ioe-pair-library-sign"><small>MELON LANGUAGE LIBRARY</small><strong>WORD PAIR CHALLENGE</strong></div>
+            </div>
+          )}
+          {game.id === "extra" && (
+            <div className="ioe-extra-lab-world" aria-hidden="true">
+              <div className="ioe-extra-lab-window"><i /><b /></div>
+              <div className="ioe-extra-lab-clock"><i /></div>
+              <div className="ioe-extra-lab-shelves"><i /><i /><i /><i /><i /><i /></div>
+              <Image className="ioe-extra-lab-detective" src="/ioe/games/extra-detective.webp" alt="" width={420} height={420} />
+              <div className="ioe-extra-lab-sign"><small>MELON LETTER DETECTIVE</small><strong>LEAVE ME OUT</strong><span>Find the intruder letter</span></div>
+              <div className="ioe-extra-lab-conveyor"><span>DECODE LAB</span><i /><i /><i /><i /><i /><b>✦</b></div>
+              <div className="ioe-extra-lab-glow" />
+            </div>
+          )}
+          <div className="ioe-scene-shade" aria-hidden="true" />
+          <div className="ioe-scene-meta">
+            <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
+            <strong>{game.vi}</strong>
+          </div>
+          {outcome && (
+            <div className={`ioe-arcade-reaction ${outcome === "wrong" ? "is-wrong" : "is-right"}`} aria-hidden="true">
+              {reactionLabel}
+            </div>
+          )}
         </>
       )}
-      <div className="ioe-scene-meta">
-        <span className="ioe-scene-chip"><i aria-hidden="true" />{categoryLabel}</span>
-        <strong>{game.vi}</strong>
-      </div>
+      {isPenalty && (
+        <>
+          <div className="ioe-penalty-hud" aria-hidden="true">
+            <span><i /> MELON · PENALTY SHOOTOUT</span>
+          </div>
+          <div className="ioe-penalty-caption" aria-hidden="true">CHOOSE · SHOOT · SCORE</div>
+        </>
+      )}
       <span className="ioe-scene-mark" aria-hidden="true">MELON · QUEST</span>
     </div>
   );
 }
-
 export default function IoeArcadePage() {
   const [data, setData] = useState<{ pool: EnWord[]; words: EnWord[] } | null>(null);
   const [phase, setPhase] = useState<"hub" | "playing" | "result">("hub");
@@ -246,8 +296,10 @@ export default function IoeArcadePage() {
   const [feedback, setFeedback] = useState<"right" | "wrong" | null>(null);
   const [pairSelected, setPairSelected] = useState<string[]>([]);
   const [pairMatched, setPairMatched] = useState<string[]>([]);
+  const [pairMismatch, setPairMismatch] = useState<string[]>([]);
   const [ordered, setOrdered] = useState<string[]>([]);
   const [inputAnswer, setInputAnswer] = useState("");
+  const [extraSelectedIndex, setExtraSelectedIndex] = useState<number | null>(null);
   const [best, setBest] = useState(0);
   const [progress, setProgress] = useState<SavedProgress>({ unlockedLesson: 1, highScores: {} });
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Tất cả");
@@ -278,8 +330,10 @@ export default function IoeArcadePage() {
     setFeedback(null);
     setPairSelected([]);
     setPairMatched([]);
+    setPairMismatch([]);
     setOrdered([]);
     setInputAnswer("");
+    setExtraSelectedIndex(null);
   }, []);
 
   useEffect(() => {
@@ -362,10 +416,11 @@ export default function IoeArcadePage() {
     setFeedback(isCorrect ? "right" : "wrong");
     if (isCorrect) { setScore((value) => value + 50); setCorrectCount((value) => value + 1); }
     else setMistakes((value) => value + 1);
+        const feedbackDuration = activeGame?.id === "penalty" ? 850 : 900;
     window.setTimeout(() => {
       if (sessionIndex + 1 >= sessionGames.length) setPhase("result");
       else setSessionIndex((value) => value + 1);
-    }, 900);
+    }, feedbackDuration);
   }
 
   function submitChoice(value: string) {
@@ -385,12 +440,13 @@ export default function IoeArcadePage() {
   }
 
   function selectPair(key: string) {
-    // Chỉ cho chọn tối đa 2 thẻ; tránh trạng thái 3 thẻ nếu người dùng chạm quá nhanh.
+    // Giữ giới hạn tối đa hai thẻ được chọn cùng lúc.
     if (!question?.pairs || feedback || pairSelected.length >= 2 || pairSelected.includes(key)) return;
     const card = question.pairs.find((item) => item.key === key);
     if (!card || pairMatched.includes(card.pairId)) return;
     const next = [...pairSelected, key];
     setPairSelected(next);
+    setPairMismatch([]);
     if (next.length === 2) {
       const a = question.pairs.find((item) => item.key === next[0]);
       const b = question.pairs.find((item) => item.key === next[1]);
@@ -401,9 +457,18 @@ export default function IoeArcadePage() {
         if (matched.length === question.pairs.length / 2) advance(true);
       } else {
         setMistakes((value) => value + 1);
-        window.setTimeout(() => setPairSelected([]), 550);
+        setPairMismatch(next);
+        window.setTimeout(() => {
+          setPairSelected([]);
+          setPairMismatch([]);
+        }, 520);
       }
     }
+  }
+  function selectExtraLetter(index: number) {
+    if (!question?.letters || question.extraIndex === undefined || feedback) return;
+    setExtraSelectedIndex(index);
+    advance(index === question.extraIndex);
   }
 
   function playAgain() {
@@ -500,14 +565,105 @@ export default function IoeArcadePage() {
             {question.speakText && !question.word && <button type="button" onClick={() => speakText(question.speakText!)} className="ioe-listen-button mt-4">🔊 Nghe lại</button>}
 
             {question.kind === "pairs" && question.pairs && (
-              <div className="mt-5"><p className="text-xs text-slate-500">Đã ghép {pairMatched.length}/{question.pairs.length / 2} cặp</p><div className="mx-auto mt-4 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">{question.pairs.map((card) => { const selected = pairSelected.includes(card.key); const matched = pairMatched.includes(card.pairId); return <button key={card.key} type="button" disabled={matched || !!feedback} onClick={() => selectPair(card.key)} className={`ioe-pair-card ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""}`}><span>{matched ? "✓" : card.side === "word" ? "EN" : "VI"}</span>{matched ? "Đã ghép" : card.value}</button>; })}</div></div>
+              <section className={`ioe-pair-panel ${activeGame?.id === "pair" ? "is-cool-pair" : "is-sea-match"}`}>
+                <div className="ioe-pair-progress-row">
+                  <div>
+                    <p className="ioe-pair-eyebrow">MELON · WORD PAIRS</p>
+                    <p className="ioe-pair-instruction">Chọn một từ tiếng Anh, sau đó tìm nghĩa tiếng Việt tương ứng.</p>
+                  </div>
+                  <span className="ioe-pair-progress-count"><b>{pairMatched.length}</b><i>/</i>{question.pairs.length / 2}</span>
+                </div>
+                <div className={`ioe-pair-matching-board ${activeGame?.id === "pair" ? "is-cool-pair" : "is-sea-match"}`} role="group" aria-label="Các thẻ từ vựng cần ghép">
+                  {question.pairs.map((card) => {
+                    const selected = pairSelected.includes(card.key);
+                    const matched = pairMatched.includes(card.pairId);
+                    const mismatch = pairMismatch.includes(card.key);
+                    return (
+                      <button
+                        key={card.key}
+                        type="button"
+                        disabled={matched || !!feedback}
+                        aria-pressed={selected}
+                        onClick={() => selectPair(card.key)}
+                        className={`ioe-pair-card ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""} ${mismatch ? "is-mismatch" : ""}`}
+                      >
+                        <span className="ioe-pair-card-side">{matched ? "✓" : card.side === "word" ? "ENGLISH" : "TIẾNG VIỆT"}</span>
+                        <span className="ioe-pair-card-value">{matched ? "Đã ghép" : card.value}</span>
+                        <span className="ioe-pair-card-stamp" aria-hidden="true">{matched ? "✓" : selected ? "✦" : ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
             {(question.kind === "choice" || question.kind === "listen" || question.kind === "stress") && question.options && (
               <div className="mt-5 grid gap-2 sm:grid-cols-2">{question.options.map((option, index) => <button key={`${option}-${index}`} type="button" disabled={!!feedback} onClick={() => submitChoice(option)} className={`ioe-option ${feedback === "right" && norm(option) === norm(question.answer) ? "is-correct" : ""}`}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>
             )}
 
-            {question.kind === "order" && question.tokens && (
+            {question.kind === "order" && question.tokens && activeGame?.id === "rearrange" && (
+  <section className={`ioe-order-workshop ${feedback === "right" ? "is-correct" : ""} ${feedback === "wrong" ? "is-wrong" : ""}`}>
+    <div className="ioe-order-workshop-heading">
+      <div>
+        <span className="ioe-order-eyebrow">SENTENCE WORKSHOP</span>
+        <p className="ioe-order-workshop-title">Build the sentence, one word at a time</p>
+      </div>
+      <div className="ioe-order-meter"><strong>{ordered.length}</strong><span>/ {question.answerTokens?.length ?? question.tokens.length}</span></div>
+    </div>
+    <div className="ioe-order-answer-board" role="group" aria-label="Các từ đã xếp thành câu">
+      {ordered.length ? ordered.map((token, index) => (
+        <button
+          key={`${token}-${index}`}
+          type="button"
+          disabled={!!feedback}
+          onClick={() => setOrdered((items) => items.filter((_, i) => i !== index))}
+          className="ioe-order-answer-token"
+          style={{ animationDelay: `${index * 55}ms` }}
+          aria-label={`Bỏ từ ${token} khỏi câu`}
+        >
+          {token}<span aria-hidden="true">×</span>
+        </button>
+      )) : (
+        <span className="ioe-order-placeholder">Your sentence will appear here. Tap the word tiles below.</span>
+      )}
+    </div>
+    <div className="ioe-order-bank-heading"><span>WORD BANK</span><span>Tap a word to add it</span></div>
+    <div className="ioe-order-word-bank">
+      {question.tokens.filter((token, index) => {
+        const usedCount = ordered.filter((item) => item === token).length;
+        const copiesBefore = question.tokens!.slice(0, index + 1).filter((item) => item === token).length;
+        return copiesBefore > usedCount;
+      }).map((token, index) => (
+        <button
+          key={`${token}-${index}`}
+          type="button"
+          disabled={!!feedback}
+          onClick={() => setOrdered((items) => [...items, token])}
+          className="ioe-order-bank-token"
+          style={{ animationDelay: `${index * 45}ms` }}
+        >
+          <span className="ioe-order-bank-index">{index + 1}</span>{token}<span className="ioe-order-bank-plus" aria-hidden="true">+</span>
+        </button>
+      ))}
+      {question.tokens.every((token) => ordered.filter((item) => item === token).length >= question.tokens!.filter((item) => item === token).length) && (
+        <div className="ioe-order-empty-bank">All word tiles are on the sentence board.</div>
+      )}
+    </div>
+    <div className="ioe-order-footer">
+      <small className="ioe-order-helper">Tap a placed word to move it back to the bank.</small>
+      <button
+        type="button"
+        disabled={!!feedback || ordered.length !== question.answerTokens?.length}
+        onClick={submitOrder}
+        className="en-btn ioe-order-check"
+      >
+        Check sentence <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  </section>
+)}
+
+{question.kind === "order" && question.tokens && activeGame?.id !== "rearrange" && (
               <div className="mt-5"><div className="ioe-answer-line">{ordered.length ? ordered.map((token, index) => <button key={`${token}-${index}`} type="button" disabled={!!feedback} onClick={() => { setOrdered((items) => items.filter((_, i) => i !== index)); }} className="ioe-word-token">{token}</button>) : <span className="text-sm text-slate-400">Chạm các thẻ từ bên dưới theo đúng thứ tự…</span>}</div><div className="mt-4 flex flex-wrap justify-center gap-2">{question.tokens.filter((token, index) => {
                 const usedCount = ordered.filter((item) => item === token).length;
                 const copiesBefore = question.tokens!.slice(0, index + 1).filter((item) => item === token).length;
@@ -519,7 +675,37 @@ export default function IoeArcadePage() {
               <div className="mx-auto mt-5 flex max-w-md flex-col gap-3"><input value={inputAnswer} onChange={(event) => setInputAnswer(event.target.value)} disabled={!!feedback} onKeyDown={(event) => { if (event.key === "Enter") submitInput(); }} className="en-input text-center font-bold" placeholder="Nhập đáp án tiếng Anh…" autoComplete="off" /><button type="button" disabled={!!feedback || !inputAnswer.trim()} onClick={submitInput} className="en-btn">Kiểm tra đáp án</button></div>
             )}
 
-            {question.kind === "letters" && question.letters && (
+            {question.kind === "letters" && question.letters && activeGame?.id === "extra" && (
+              <section className="ioe-extra-letter-lab" data-outcome={feedback ?? "idle"}>
+                <div className="ioe-extra-lab-instruction">
+                  <span className="ioe-extra-lab-case">CASE FILE · 003</span>
+                  <strong>Which letter does not belong?</strong>
+                  <small>{question.subPrompt ?? "Inspect each letter carefully."}</small>
+                </div>
+                <div className="ioe-extra-letter-track" role="group" aria-label="Chọn chữ cái thừa trong từ">
+                  {question.letters.map((letter, index) => {
+                    const picked = extraSelectedIndex === index;
+                    return (
+                      <button
+                        key={`${letter.value}-${index}`}
+                        type="button"
+                        disabled={!!feedback}
+                        onClick={() => selectExtraLetter(index)}
+                        aria-label={`Chữ ${letter.value}, vị trí ${index + 1}`}
+                        aria-pressed={picked}
+                        className={`ioe-extra-letter-tile ${picked ? "is-picked" : ""} ${picked && feedback === "right" ? "is-correct" : ""} ${picked && feedback === "wrong" ? "is-wrong" : ""}`}
+                      >
+                        <span className="ioe-extra-letter-index">{String(index + 1).padStart(2, "0")}</span>
+                        <strong>{letter.value.toUpperCase()}</strong>
+                        <i aria-hidden="true">{picked ? (feedback === "right" ? "✓" : feedback === "wrong" ? "×" : "✦") : ""}</i>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="ioe-extra-lab-footnote"><span>Tap the extra tile to remove it</span><b>{question.letters.length} LETTERS · 1 INTRUDER</b></div>
+              </section>
+            )}
+            {question.kind === "letters" && question.letters && activeGame?.id !== "extra" && (
               <div className="mt-5 flex flex-wrap justify-center gap-2">{question.letters.map((letter, index) => <button key={`${letter.value}-${index}`} type="button" disabled={!!feedback} onClick={() => advance(index === question.extraIndex)} className="ioe-letter">{letter.value.toUpperCase()}</button>)}</div>
             )}
             {question.kind === "letters" && question.word && !question.letters && (

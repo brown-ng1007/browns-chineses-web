@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import "@/components/en/en.css";
+import "@/components/en/melon-arcade-premium.css";
 import EnHeader from "@/components/en/EnHeader";
 import { loadPractice } from "@/lib/en/store";
 
@@ -26,7 +27,7 @@ export default function EnGamesPage() {
   }, []);
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-5 pb-24 pt-2">
+    <main className="ioe-games-index mx-auto w-full max-w-4xl space-y-5 pb-24 pt-2">
       <EnHeader title="Trò chơi tiếng Anh" sub="Chơi để nhớ từ, luyện phản xạ và biến việc học thành niềm vui" />
 
       <Link href="/en/games/ioe" className="ioe-hero block group">
